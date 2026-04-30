@@ -4,6 +4,7 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Pemilik\DashboardController as PemilikDashboardController;
 use App\Http\Controllers\Pemilik\UserController;
 use App\Http\Controllers\Pemilik\ProductController;
+use App\Http\Controllers\Pemilik\CategoryController;
 use App\Http\Controllers\Pemilik\MaterialController;
 use App\Http\Controllers\Pemilik\TableController;
 use App\Http\Controllers\Pemilik\ReportController;
@@ -48,9 +49,24 @@ Route::middleware(['auth', CheckRole::class . ':pemilik'])
 
         // Kelola Data Produk & Harga
         Route::get('/products', [ProductController::class, 'index'])->name('products.index');
+        Route::get('/products/create', [ProductController::class, 'create'])->name('products.create');
+        Route::post('/products', [ProductController::class, 'store'])->name('products.store');
+        Route::get('/products/{product}/edit', [ProductController::class, 'edit'])->name('products.edit');
+        Route::put('/products/{product}', [ProductController::class, 'update'])->name('products.update');
+        Route::patch('/products/{product}/toggle-status', [ProductController::class, 'toggleStatus'])->name('products.toggle-status');
+        Route::delete('/products/{product}', [ProductController::class, 'destroy'])->name('products.destroy');
+
+        // Kategori Produk
+        Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index');
+        Route::post('/categories', [CategoryController::class, 'store'])->name('categories.store');
+        Route::put('/categories/{category}', [CategoryController::class, 'update'])->name('categories.update');
+        Route::patch('/categories/{category}/toggle-status', [CategoryController::class, 'toggleStatus'])->name('categories.toggle-status');
 
         // Kelola Data Bahan Baku
         Route::get('/materials', [MaterialController::class, 'index'])->name('materials.index');
+        Route::post('/materials', [MaterialController::class, 'store'])->name('materials.store');
+        Route::put('/materials/{ingredient}', [MaterialController::class, 'update'])->name('materials.update');
+        Route::delete('/materials/{ingredient}', [MaterialController::class, 'destroy'])->name('materials.destroy');
 
         // Kelola Data Meja
         Route::get('/tables', [TableController::class, 'index'])->name('tables.index');

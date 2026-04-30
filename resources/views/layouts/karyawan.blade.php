@@ -58,11 +58,26 @@
                     Dashboard
                 </a>
 
-                {{-- Operasional will be added later --}}
+                {{-- Operasional --}}
                 <div class="sidebar-section-title mt-4">Operasional</div>
-                <div class="px-6 py-4">
-                    <p class="text-xs text-caramel italic">Fitur kasir & pesanan akan segera tersedia.</p>
-                </div>
+                <a href="{{ route('karyawan.pos.index') }}" class="sidebar-link flex items-center gap-3 px-6 py-2.5 text-sm {{ request()->routeIs('karyawan.pos.*') ? 'active text-espresso font-semibold' : 'text-espresso/70 hover:text-espresso' }}">
+                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121 0 2.09-.773 2.21-1.886L21 5.25H6.228M16.5 18.75a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM8.25 18.75a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z"/>
+                    </svg>
+                    Point of Sales
+                </a>
+                <a href="{{ route('karyawan.orders.index') }}" class="sidebar-link flex items-center gap-3 px-6 py-2.5 text-sm {{ request()->routeIs('karyawan.orders.*') ? 'active text-espresso font-semibold' : 'text-espresso/70 hover:text-espresso' }}">
+                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"/>
+                    </svg>
+                    Antrean Pesanan
+                </a>
+                <a href="{{ route('karyawan.tables.index') }}" class="sidebar-link flex items-center gap-3 px-6 py-2.5 text-sm {{ request()->routeIs('karyawan.tables.*') ? 'active text-espresso font-semibold' : 'text-espresso/70 hover:text-espresso' }}">
+                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h12A2.25 2.25 0 0120.25 6v12A2.25 2.25 0 0118 20.25H6A2.25 2.25 0 013.75 18V6z"/>
+                    </svg>
+                    Monitoring Meja
+                </a>
             </nav>
 
             {{-- User Info at Bottom --}}
@@ -109,6 +124,9 @@
             </div>
             <div id="mobile-menu-k" class="hidden bg-espresso-light border-t border-espresso/30 pb-3">
                 <a href="{{ route('karyawan.dashboard') }}" class="block px-4 py-2.5 text-sm {{ request()->routeIs('karyawan.dashboard') ? 'text-cream font-semibold' : 'text-cream/70' }}">Dashboard</a>
+                <a href="{{ route('karyawan.pos.index') }}" class="block px-4 py-2.5 text-sm {{ request()->routeIs('karyawan.pos.*') ? 'text-cream font-semibold' : 'text-cream/70' }}">Point of Sales</a>
+                <a href="{{ route('karyawan.orders.index') }}" class="block px-4 py-2.5 text-sm {{ request()->routeIs('karyawan.orders.*') ? 'text-cream font-semibold' : 'text-cream/70' }}">Antrean Pesanan</a>
+                <a href="{{ route('karyawan.tables.index') }}" class="block px-4 py-2.5 text-sm {{ request()->routeIs('karyawan.tables.*') ? 'text-cream font-semibold' : 'text-cream/70' }}">Monitoring Meja</a>
                 <div class="border-t border-espresso/30 mt-2 pt-2 px-4">
                     <form method="POST" action="{{ route('logout') }}">
                         @csrf
@@ -145,6 +163,8 @@
             </div>
         </main>
     </div>
+
+    @stack('modals')
 
     <script>
         const flashEl = document.getElementById('flash-success');

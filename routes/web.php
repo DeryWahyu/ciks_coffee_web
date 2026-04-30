@@ -11,6 +11,9 @@ use App\Http\Controllers\Pemilik\ReportController;
 use App\Http\Controllers\Pemilik\AnalyticsController;
 use App\Http\Controllers\Pemilik\ExportController;
 use App\Http\Controllers\Karyawan\DashboardController as KaryawanDashboardController;
+use App\Http\Controllers\Karyawan\PosController;
+use App\Http\Controllers\Karyawan\OrderController;
+use App\Http\Controllers\Karyawan\TableMonitorController;
 use App\Http\Middleware\CheckRole;
 use Illuminate\Support\Facades\Route;
 
@@ -91,5 +94,20 @@ Route::middleware(['auth', CheckRole::class . ':karyawan'])
     ->prefix('karyawan')
     ->name('karyawan.')
     ->group(function () {
+        // Dashboard
         Route::get('/dashboard', [KaryawanDashboardController::class, 'index'])->name('dashboard');
+
+        // Point of Sales
+        Route::get('/pos', [PosController::class, 'index'])->name('pos.index');
+        Route::get('/pos/{product}/detail', [PosController::class, 'productDetail'])->name('pos.detail');
+        Route::post('/pos/checkout', [PosController::class, 'checkout'])->name('pos.checkout');
+
+        // Antrean Pesanan
+        Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
+        Route::patch('/orders/{order}/status', [OrderController::class, 'updateStatus'])->name('orders.update-status');
+        Route::get('/orders/{order}/receipt', [OrderController::class, 'receipt'])->name('orders.receipt');
+
+
+        // Monitoring Meja
+        Route::get('/tables', [TableMonitorController::class, 'index'])->name('tables.index');
     });

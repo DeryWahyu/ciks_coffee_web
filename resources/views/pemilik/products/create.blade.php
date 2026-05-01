@@ -5,7 +5,7 @@
 @section('page-description', 'Isi detail produk untuk ditambahkan ke menu')
 
 @section('content')
-    <div class="max-w-2xl">
+    <div class="w-full">
         <form method="POST" action="{{ route('pemilik.products.store') }}" enctype="multipart/form-data" class="space-y-6">
             @csrf
 

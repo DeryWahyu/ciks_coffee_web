@@ -12,7 +12,7 @@
 @endsection
 
 @section('content')
-    <div class="max-w-2xl space-y-6">
+    <div class="w-full space-y-6">
         {{-- Add Category Form --}}
         <div class="bg-white rounded-2xl shadow-sm border border-latte/50 p-6">
             <h3 class="text-sm font-bold text-espresso uppercase tracking-wider mb-4">Tambah Kategori Baru</h3>

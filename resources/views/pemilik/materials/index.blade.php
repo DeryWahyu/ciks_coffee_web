@@ -5,7 +5,7 @@
 @section('page-description', 'Atur stok dan data bahan baku')
 
 @section('content')
-    <div class="max-w-4xl space-y-6">
+    <div class="w-full space-y-6">
         {{-- Add Ingredient Form --}}
         <div class="bg-white rounded-2xl shadow-sm border border-latte/50 p-6">
             <h3 class="text-sm font-bold text-espresso uppercase tracking-wider mb-4">Tambah Bahan Baku Baru</h3>

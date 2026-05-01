@@ -1,8 +1,8 @@
 @extends('layouts.pemilik')
 
 @section('title', 'Data Pengguna')
-@section('page-title', 'Kelola Data Pengguna')
-@section('page-description', 'Kelola akun karyawan dan pengguna')
+@section('page-title', 'Kelola Data karyawan')
+@section('page-description', 'Kelola akun karyawan')
 
 @section('page-actions')
     <a href="{{ route('pemilik.users.create') }}" class="inline-flex items-center gap-2 bg-espresso hover:bg-espresso-light text-cream text-sm font-medium px-4 py-2.5 rounded-xl transition-all duration-200 hover:shadow-md" id="btn-add-user">

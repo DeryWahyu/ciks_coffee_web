@@ -10,6 +10,7 @@ use App\Http\Controllers\Pemilik\TableController;
 use App\Http\Controllers\Pemilik\ReportController;
 use App\Http\Controllers\Pemilik\AnalyticsController;
 use App\Http\Controllers\Pemilik\ExportController;
+use App\Http\Controllers\Pemilik\CustomerController;
 use App\Http\Controllers\Karyawan\DashboardController as KaryawanDashboardController;
 use App\Http\Controllers\Karyawan\PosController;
 use App\Http\Controllers\Karyawan\OrderController;
@@ -83,6 +84,9 @@ Route::middleware(['auth', CheckRole::class . ':pemilik'])
 
         // Ekspor Data
         Route::get('/exports', [ExportController::class, 'index'])->name('exports.index');
+
+        // Pelanggan
+        Route::get('/customers', [CustomerController::class, 'index'])->name('customers.index');
     });
 
 /*
@@ -106,6 +110,14 @@ Route::middleware(['auth', CheckRole::class . ':karyawan'])
         Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
         Route::patch('/orders/{order}/status', [OrderController::class, 'updateStatus'])->name('orders.update-status');
         Route::get('/orders/{order}/receipt', [OrderController::class, 'receipt'])->name('orders.receipt');
+
+        // Riwayat Transaksi
+        Route::get('/riwayat-transaksi', [OrderController::class, 'history'])->name('orders.history');
+        Route::get('/orders/{order}/detail', [OrderController::class, 'show'])->name('orders.show');
+        Route::delete('/orders/{order}', [OrderController::class, 'destroy'])->name('orders.destroy');
+
+        // Pelanggan
+        Route::get('/pelanggan', [OrderController::class, 'customers'])->name('customers.index');
 
 
         // Monitoring Meja

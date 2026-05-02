@@ -119,7 +119,7 @@
                     <p class="text-white/70 text-sm font-medium tracking-[0.3em] uppercase mb-3">
                         Est. 2026
                     </p>
-                    <h2 class="text-white text-4xl font-bold tracking-tight" style="font-family: 'Playfair Display', serif;">
+                    <h2 class="text-white text-4xl font-bold tracking-tight font-sans">
                         Ciks Coffee
                     </h2>
                     <div class="w-12 h-0.5 bg-caramel mt-4 mb-4"></div>
@@ -149,7 +149,7 @@
                         </h1>
                     </div>
 
-                    <h2 class="text-2xl font-semibold text-espresso" style="font-family: 'Playfair Display', serif;">
+                    <h2 class="text-2xl font-bold text-espresso font-sans">
                         Welcome Back
                     </h2>
                     <p class="text-caramel-dark mt-2 text-sm">

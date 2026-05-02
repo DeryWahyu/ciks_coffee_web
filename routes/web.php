@@ -77,6 +77,8 @@ Route::middleware(['auth', CheckRole::class . ':pemilik'])
 
         // Laporan
         Route::get('/reports/sales', [ReportController::class, 'sales'])->name('reports.sales');
+        Route::get('/reports/transactions', [ReportController::class, 'transactions'])->name('reports.transactions');
+        Route::get('/reports/transactions/{order}/receipt', [ReportController::class, 'receipt'])->name('reports.transactions.receipt');
         Route::get('/reports/inventory', [ReportController::class, 'inventory'])->name('reports.inventory');
 
         // Analisis Bisnis

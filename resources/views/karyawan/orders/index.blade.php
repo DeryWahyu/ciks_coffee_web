@@ -79,7 +79,7 @@
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm animate-fade-in my-auto">
             <div id="receipt-content" class="p-6">
                 <div class="text-center border-b border-dashed border-latte/60 pb-4 mb-4">
-                    <h3 class="text-base font-bold text-espresso" style="font-family:'Playfair Display',serif">Ciks Coffee</h3>
+                    <h3 class="text-base font-bold text-espresso font-sans">Ciks Coffee</h3>
                     <p class="text-[0.6rem] text-caramel mt-1">Terima kasih atas kunjungan Anda</p>
                 </div>
                 <div class="space-y-1.5 text-xs mb-4">

@@ -1,4 +1,4 @@
-@extends('layouts.karyawan')
+@extends('layouts.pemilik')
 @section('title', 'Riwayat Transaksi')
 @section('page-title', 'Riwayat Transaksi')
 @section('page-description', 'Semua transaksi yang tercatat')
@@ -26,7 +26,7 @@
 
 {{-- Filters --}}
 <div class="bg-white rounded-2xl shadow-sm border border-latte/50 p-4 sm:p-5 mb-6">
-    <form method="GET" action="{{ route('karyawan.orders.history') }}">
+    <form method="GET" action="{{ route('pemilik.reports.transactions') }}">
         <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-3">
             <div class="col-span-2 sm:col-span-3">
                 <label class="block text-xs font-semibold text-espresso mb-1">Cari</label>
@@ -60,12 +60,12 @@
         </div>
         <div class="flex gap-2">
             <button type="submit" class="flex-1 sm:flex-none px-4 py-2 text-sm font-semibold bg-espresso text-cream rounded-xl hover:bg-espresso-light transition">Filter</button>
-            <a href="{{ route('karyawan.orders.history') }}" class="flex-1 sm:flex-none px-4 py-2 text-sm font-medium text-caramel hover:text-espresso border border-latte/60 rounded-xl transition text-center">Reset</a>
+            <a href="{{ route('pemilik.reports.transactions') }}" class="flex-1 sm:flex-none px-4 py-2 text-sm font-medium text-caramel hover:text-espresso border border-latte/60 rounded-xl transition text-center">Reset</a>
         </div>
     </form>
 </div>
 
-{{-- Transaction Cards (always visible, works on all screens) --}}
+{{-- Transaction Cards --}}
 <div class="space-y-3">
     @forelse ($orders as $order)
     <div class="bg-white rounded-2xl shadow-sm border border-latte/50 p-4 sm:p-5 hover:shadow-md transition-all duration-300">
@@ -92,10 +92,7 @@
             </div>
             <div class="flex items-center gap-2 shrink-0">
                 <span class="text-sm font-bold text-espresso">{{ $order->formatted_total }}</span>
-                <button onclick="viewDetail({{ $order->id }})" class="p-2 rounded-lg bg-espresso/5 text-espresso hover:bg-espresso/15 transition" title="Lihat Detail">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                </button>
-
+                <button onclick="viewReceipt({{ $order->id }})" class="px-3 py-2 text-xs font-semibold bg-espresso/5 text-espresso hover:bg-espresso/15 rounded-lg transition">Lihat Struk</button>
             </div>
         </div>
     </div>
@@ -113,57 +110,80 @@
     <div class="mt-6">{{ $orders->links() }}</div>
 @endif
 
-
 @endsection
 
 @push('modals')
-{{-- Detail Modal --}}
-<div id="detail-modal" class="fixed inset-0 z-50 hidden">
-    <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="closeDetail()"></div>
-    <div class="absolute inset-0 overflow-y-auto flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md animate-fade-in my-auto">
-            <div class="flex items-center justify-between px-5 sm:px-6 pt-5 sm:pt-6 pb-4 border-b border-latte/40">
-                <h3 class="text-base font-bold text-espresso">Detail Transaksi</h3>
-                <button onclick="closeDetail()" class="p-1 rounded-lg hover:bg-latte/30 text-caramel transition"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></button>
+{{-- Receipt Modal --}}
+<div id="receipt-modal" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="closeReceipt()"></div>
+    <div class="absolute inset-0 overflow-y-auto flex items-center justify-center p-4 py-16">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm animate-fade-in my-auto">
+            <div id="receipt-content" class="p-6">
+                <div class="text-center border-b border-dashed border-latte/60 pb-4 mb-4">
+                    <h3 class="text-base font-bold text-espresso font-sans">Ciks Coffee</h3>
+                    <p class="text-[0.6rem] text-caramel mt-1">Terima kasih atas kunjungan Anda</p>
+                </div>
+                <div class="space-y-1.5 text-xs mb-4">
+                    <div class="flex justify-between"><span class="text-caramel">No. Pesanan</span><span id="rcpt-number" class="font-bold text-espresso"></span></div>
+                    <div class="flex justify-between"><span class="text-caramel">Pelanggan</span><span id="rcpt-customer" class="font-medium text-espresso"></span></div>
+                    <div class="flex justify-between"><span class="text-caramel">Kasir</span><span id="rcpt-cashier" class="text-espresso"></span></div>
+                    <div class="flex justify-between"><span class="text-caramel">Waktu</span><span id="rcpt-time" class="text-espresso"></span></div>
+                    <div class="flex justify-between"><span class="text-caramel">Pembayaran</span><span id="rcpt-payment" class="font-medium text-espresso uppercase"></span></div>
+                </div>
+                <div class="border-t border-dashed border-latte/60 pt-3 mb-3"><div id="rcpt-items" class="space-y-2"></div></div>
+                <div class="border-t border-dashed border-latte/60 pt-3 space-y-1.5">
+                    <div class="flex justify-between text-sm"><span class="font-bold text-espresso">Total</span><span id="rcpt-total" class="font-bold text-espresso"></span></div>
+                    <div id="rcpt-cash-row" class="flex justify-between text-xs hidden"><span class="text-caramel">Tunai</span><span id="rcpt-cash" class="text-espresso"></span></div>
+                    <div id="rcpt-change-row" class="flex justify-between text-xs hidden"><span class="text-caramel">Kembalian</span><span id="rcpt-change" class="font-medium text-green-600"></span></div>
+                </div>
+                <div class="border-t border-dashed border-latte/60 mt-4 pt-3"><div class="flex justify-between text-xs"><span class="text-caramel">Status</span><span id="rcpt-status" class="font-bold"></span></div></div>
             </div>
-            <div id="detail-content" class="p-5 sm:p-6">
-                <div class="text-center py-8"><div class="animate-spin w-6 h-6 border-2 border-espresso border-t-transparent rounded-full mx-auto"></div><p class="text-xs text-caramel mt-2">Memuat...</p></div>
+            <div class="px-6 pb-6 flex gap-3">
+                <button onclick="printReceipt()" class="flex-1 bg-espresso hover:bg-espresso-light text-cream text-sm font-semibold py-3 rounded-xl transition-all flex items-center justify-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0110.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0l.229 2.523a1.125 1.125 0 01-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0021 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 00-1.913-.247M6.34 18H5.25A2.25 2.25 0 013 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.041 48.041 0 011.913-.247m10.5 0a48.536 48.536 0 00-10.5 0m10.5 0V3.375c0-.621-.504-1.125-1.125-1.125h-8.25c-.621 0-1.125.504-1.125 1.125v3.659M18 10.5h.008v.008H18V10.5zm-3 0h.008v.008H15V10.5z"/></svg>
+                    Cetak Struk
+                </button>
+                <button onclick="closeReceipt()" class="px-4 py-3 text-sm font-medium text-caramel hover:text-espresso rounded-xl border border-latte/60 hover:border-caramel transition">Tutup</button>
             </div>
         </div>
     </div>
 </div>
-
-
 @endpush
 
 @push('scripts')
 <script>
-    function viewDetail(id) {
-        document.getElementById('detail-modal').classList.remove('hidden');
-        document.getElementById('detail-content').innerHTML = '<div class="text-center py-8"><div class="animate-spin w-6 h-6 border-2 border-espresso border-t-transparent rounded-full mx-auto"></div><p class="text-xs text-caramel mt-2">Memuat...</p></div>';
-        fetch(`/karyawan/orders/${id}/detail`).then(r => r.json()).then(d => {
-            let itemsHtml = d.items.map(i => `<div class="flex justify-between text-xs py-1"><span class="text-espresso">${i.product_name} x${i.quantity}</span><span class="font-medium text-espresso">Rp ${parseFloat(i.subtotal).toLocaleString('id-ID')}</span></div>`).join('');
-            let cashHtml = '';
-            if (d.payment_method === 'cash' && d.cash_received) {
-                cashHtml = `<div class="flex justify-between text-xs"><span class="text-caramel">Tunai</span><span class="text-espresso">Rp ${parseFloat(d.cash_received).toLocaleString('id-ID')}</span></div>
-                <div class="flex justify-between text-xs"><span class="text-caramel">Kembalian</span><span class="font-medium text-green-600">Rp ${parseFloat(d.change_amount).toLocaleString('id-ID')}</span></div>`;
+    function viewReceipt(orderId) {
+        fetch(`/pemilik/reports/transactions/${orderId}/receipt`).then(r => r.json()).then(data => {
+            document.getElementById('rcpt-number').textContent = data.order_number;
+            document.getElementById('rcpt-customer').textContent = data.customer_name;
+            document.getElementById('rcpt-cashier').textContent = data.cashier;
+            document.getElementById('rcpt-time').textContent = data.paid_at || data.created_at;
+            document.getElementById('rcpt-payment').textContent = data.payment_method;
+            document.getElementById('rcpt-total').textContent = data.formatted_total;
+            document.getElementById('rcpt-status').textContent = data.status_label;
+            let itemsHtml = '';
+            data.items.forEach(i => {
+                itemsHtml += `<div class="flex justify-between text-xs"><span class="text-espresso">${i.product_name} x${i.quantity}</span><span class="font-medium text-espresso">Rp ${parseFloat(i.subtotal).toLocaleString('id-ID')}</span></div>`;
+            });
+            document.getElementById('rcpt-items').innerHTML = itemsHtml;
+            if (data.payment_method === 'cash' && data.cash_received) {
+                document.getElementById('rcpt-cash-row').classList.remove('hidden');
+                document.getElementById('rcpt-change-row').classList.remove('hidden');
+                document.getElementById('rcpt-cash').textContent = 'Rp ' + parseFloat(data.cash_received).toLocaleString('id-ID');
+                document.getElementById('rcpt-change').textContent = 'Rp ' + parseFloat(data.change_amount).toLocaleString('id-ID');
+            } else {
+                document.getElementById('rcpt-cash-row').classList.add('hidden');
+                document.getElementById('rcpt-change-row').classList.add('hidden');
             }
-            document.getElementById('detail-content').innerHTML = `
-                <div class="space-y-2 text-xs mb-4">
-                    <div class="flex justify-between"><span class="text-caramel">No. Pesanan</span><span class="font-bold text-espresso">${d.order_number}</span></div>
-                    <div class="flex justify-between"><span class="text-caramel">Pelanggan</span><span class="font-medium text-espresso">${d.customer_name}</span></div>
-                    <div class="flex justify-between"><span class="text-caramel">Kasir</span><span class="text-espresso">${d.cashier}</span></div>
-                    <div class="flex justify-between"><span class="text-caramel">Waktu</span><span class="text-espresso">${d.paid_at || d.created_at}</span></div>
-                    <div class="flex justify-between"><span class="text-caramel">Pembayaran</span><span class="font-medium text-espresso uppercase">${d.payment_method}</span></div>
-                    <div class="flex justify-between items-center"><span class="text-caramel">Status</span><span class="px-2 py-0.5 rounded-full text-[0.6rem] font-bold uppercase ${d.status_color}">${d.status_label}</span></div>
-                </div>
-                <div class="border-t border-dashed border-latte/60 pt-3 mb-3">${itemsHtml}</div>
-                <div class="border-t border-dashed border-latte/60 pt-3 space-y-1.5">
-                    <div class="flex justify-between text-sm"><span class="font-bold text-espresso">Total</span><span class="font-bold text-espresso">${d.formatted_total}</span></div>
-                    ${cashHtml}
-                </div>`;
+            document.getElementById('receipt-modal').classList.remove('hidden');
         });
     }
-    function closeDetail() { document.getElementById('detail-modal').classList.add('hidden'); }
+    function closeReceipt() { document.getElementById('receipt-modal').classList.add('hidden'); }
+    function printReceipt() {
+        const content = document.getElementById('receipt-content').innerHTML;
+        const w = window.open('', '_blank', 'width=320,height=600');
+        w.document.write(`<html><head><title>Struk</title><style>body{font-family:monospace,sans-serif;font-size:12px;padding:10px;max-width:280px;margin:0 auto}h3{margin:0;font-size:16px;text-align:center}.flex{display:flex;justify-content:space-between}.border-t,.border-b{border-top:1px dashed #ccc;padding-top:8px;margin-top:8px}.mb-4{margin-bottom:12px}.font-bold{font-weight:bold}.space-y-1>*+*{margin-top:4px}.space-y-2>*+*{margin-top:6px}span{display:inline-block}@media print{body{padding:0}}</style></head><body>${content}<div class="text-center border-t" style="margin-top:12px;padding-top:8px;text-align:center"><small>*** Terima Kasih ***</small></div></body></html>`);
+        w.document.close(); w.focus(); w.print(); w.close();
+    }
 </script>
 @endpush

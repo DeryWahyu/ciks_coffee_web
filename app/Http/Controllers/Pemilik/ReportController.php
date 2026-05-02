@@ -79,4 +79,81 @@ class ReportController extends Controller
             'ingredients', 'totalIngredients', 'lowStockCount', 'safeStockCount', 'chartData'
         ));
     }
+
+    /**
+     * Display transaction history.
+     */
+    public function transactions(Request $request)
+    {
+        $query = Order::with(['items', 'user'])->latest();
+
+        if ($search = $request->get('search')) {
+            $query->where(function ($q) use ($search) {
+                $q->where('order_number', 'like', "%{$search}%")
+                  ->orWhere('customer_name', 'like', "%{$search}%");
+            });
+        }
+        if ($dateFrom = $request->get('date_from')) {
+            $query->whereDate('created_at', '>=', $dateFrom);
+        }
+        if ($dateTo = $request->get('date_to')) {
+            $query->whereDate('created_at', '<=', $dateTo);
+        }
+        if ($payment = $request->get('payment_method')) {
+            $query->where('payment_method', $payment);
+        }
+        if ($status = $request->get('status')) {
+            $query->where('status', $status);
+        }
+
+        $orders = $query->paginate(20)->withQueryString();
+
+        $statsQuery = Order::query();
+        if ($search) {
+            $statsQuery->where(function ($q) use ($search) {
+                $q->where('order_number', 'like', "%{$search}%")
+                  ->orWhere('customer_name', 'like', "%{$search}%");
+            });
+        }
+        if ($dateFrom) $statsQuery->whereDate('created_at', '>=', $dateFrom);
+        if ($dateTo) $statsQuery->whereDate('created_at', '<=', $dateTo);
+        if ($payment) $statsQuery->where('payment_method', $payment);
+        if ($status) $statsQuery->where('status', $status);
+
+        $stats = [
+            'total_transactions' => $statsQuery->count(),
+            'total_revenue' => $statsQuery->sum('total'),
+            'avg_transaction' => $statsQuery->avg('total') ?? 0,
+            'today_count' => Order::whereDate('created_at', today())->count(),
+        ];
+
+        return view('pemilik.reports.transactions', compact('orders', 'stats'));
+    }
+
+    /**
+     * Get order detail for receipt (AJAX).
+     */
+    public function receipt(Order $order)
+    {
+        $order->load('items', 'user');
+
+        return response()->json([
+            'order_number' => $order->order_number,
+            'customer_name' => $order->customer_name,
+            'payment_method' => $order->payment_method,
+            'total' => $order->total,
+            'formatted_total' => $order->formatted_total,
+            'cash_received' => $order->cash_received,
+            'change_amount' => $order->change_amount,
+            'status_label' => $order->status_label,
+            'paid_at' => $order->paid_at?->format('d/m/Y H:i'),
+            'cashier' => $order->user->name ?? '-',
+            'items' => $order->items->map(fn($i) => [
+                'product_name' => $i->product_name,
+                'quantity' => $i->quantity,
+                'price' => $i->price,
+                'subtotal' => $i->subtotal,
+            ]),
+        ]);
+    }
 }

@@ -66,19 +66,7 @@
             <p class="text-xs text-caramel-dark mt-1">Pendapatan hari ini</p>
         </div>
 
-        {{-- Meja --}}
-        <div class="bg-white rounded-2xl shadow-sm border border-latte/50 p-5 hover:shadow-md hover:border-caramel/30 transition-all duration-300">
-            <div class="flex items-center justify-between mb-3">
-                <div class="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center">
-                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h12A2.25 2.25 0 0120.25 6v12A2.25 2.25 0 0118 20.25H6A2.25 2.25 0 013.75 18V6z"/>
-                    </svg>
-                </div>
-                <span class="text-[0.65rem] text-caramel font-semibold uppercase tracking-wider">Meja</span>
-            </div>
-            <p class="text-2xl font-bold text-espresso">-</p>
-            <p class="text-xs text-caramel-dark mt-1">Total meja</p>
-        </div>
+
     </div>
 
     {{-- Quick Access Cards --}}
@@ -136,10 +124,7 @@
                         <span class="w-1.5 h-1.5 bg-caramel rounded-full"></span>
                         Manajemen bahan baku & stok
                     </li>
-                    <li class="flex items-center gap-2">
-                        <span class="w-1.5 h-1.5 bg-caramel rounded-full"></span>
-                        Manajemen meja
-                    </li>
+
                     <li class="flex items-center gap-2">
                         <span class="w-1.5 h-1.5 bg-caramel rounded-full"></span>
                         Laporan & analisis bisnis

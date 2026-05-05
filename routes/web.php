@@ -6,7 +6,7 @@ use App\Http\Controllers\Pemilik\UserController;
 use App\Http\Controllers\Pemilik\ProductController;
 use App\Http\Controllers\Pemilik\CategoryController;
 use App\Http\Controllers\Pemilik\MaterialController;
-use App\Http\Controllers\Pemilik\TableController;
+
 use App\Http\Controllers\Pemilik\ReportController;
 use App\Http\Controllers\Pemilik\AnalyticsController;
 use App\Http\Controllers\Pemilik\ExportController;
@@ -14,7 +14,7 @@ use App\Http\Controllers\Pemilik\CustomerController;
 use App\Http\Controllers\Karyawan\DashboardController as KaryawanDashboardController;
 use App\Http\Controllers\Karyawan\PosController;
 use App\Http\Controllers\Karyawan\OrderController;
-use App\Http\Controllers\Karyawan\TableMonitorController;
+
 use App\Http\Middleware\CheckRole;
 use Illuminate\Support\Facades\Route;
 
@@ -72,8 +72,6 @@ Route::middleware(['auth', CheckRole::class . ':pemilik'])
         Route::put('/materials/{ingredient}', [MaterialController::class, 'update'])->name('materials.update');
         Route::delete('/materials/{ingredient}', [MaterialController::class, 'destroy'])->name('materials.destroy');
 
-        // Kelola Data Meja
-        Route::get('/tables', [TableController::class, 'index'])->name('tables.index');
 
         // Laporan
         Route::get('/reports/sales', [ReportController::class, 'sales'])->name('reports.sales');
@@ -122,6 +120,4 @@ Route::middleware(['auth', CheckRole::class . ':karyawan'])
         Route::get('/pelanggan', [OrderController::class, 'customers'])->name('customers.index');
 
 
-        // Monitoring Meja
-        Route::get('/tables', [TableMonitorController::class, 'index'])->name('tables.index');
     });

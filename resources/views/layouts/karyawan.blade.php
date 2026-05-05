@@ -87,13 +87,7 @@
                     Pelanggan
                 </a>
 
-                <div class="sidebar-section-title mt-4">Lainnya</div>
-                <a href="{{ route('karyawan.tables.index') }}" class="sidebar-link flex items-center gap-3 px-6 py-2.5 text-sm {{ request()->routeIs('karyawan.tables.*') ? 'active text-espresso font-semibold' : 'text-espresso/70 hover:text-espresso' }}">
-                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h12A2.25 2.25 0 0120.25 6v12A2.25 2.25 0 0118 20.25H6A2.25 2.25 0 013.75 18V6z"/>
-                    </svg>
-                    Monitoring Meja
-                </a>
+
             </nav>
 
             {{-- User Info at Bottom --}}
@@ -144,7 +138,7 @@
                 <a href="{{ route('karyawan.orders.index') }}" class="block px-4 py-2.5 text-sm {{ request()->routeIs('karyawan.orders.index') ? 'text-cream font-semibold' : 'text-cream/70' }}">Antrean Pesanan</a>
                 <a href="{{ route('karyawan.orders.history') }}" class="block px-4 py-2.5 text-sm {{ request()->routeIs('karyawan.orders.history') ? 'text-cream font-semibold' : 'text-cream/70' }}">Riwayat Transaksi</a>
                 <a href="{{ route('karyawan.customers.index') }}" class="block px-4 py-2.5 text-sm {{ request()->routeIs('karyawan.customers.*') ? 'text-cream font-semibold' : 'text-cream/70' }}">Pelanggan</a>
-                <a href="{{ route('karyawan.tables.index') }}" class="block px-4 py-2.5 text-sm {{ request()->routeIs('karyawan.tables.*') ? 'text-cream font-semibold' : 'text-cream/70' }}">Monitoring Meja</a>
+
                 <div class="border-t border-espresso/30 mt-2 pt-2 px-4">
                     <form method="POST" action="{{ route('logout') }}">
                         @csrf

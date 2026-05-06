@@ -17,6 +17,25 @@ use App\Http\Controllers\Karyawan\OrderController;
 
 use App\Http\Middleware\CheckRole;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Response;
+
+// Serve storage files with CORS for Flutter Web local development
+Route::get('/storage/{path}', function ($path) {
+    $filePath = storage_path('app/public/' . $path);
+    
+    if (!file_exists($filePath)) {
+        abort(404);
+    }
+    
+    $file = file_get_contents($filePath);
+    $type = mime_content_type($filePath);
+    
+    return Response::make($file, 200, [
+        'Content-Type' => $type,
+        'Access-Control-Allow-Origin' => '*',
+        'Access-Control-Allow-Methods' => 'GET, OPTIONS',
+    ]);
+})->where('path', '.*');
 
 /*
 |--------------------------------------------------------------------------

@@ -1,19 +1,33 @@
 @extends('layouts.pemilik')
 
-@section('title', 'Data Pengguna')
-@section('page-title', 'Kelola Data karyawan')
-@section('page-description', 'Kelola akun karyawan')
+@section('title', 'Data ' . ucfirst($tab))
+@section('page-title', 'Kelola Data ' . ucfirst($tab))
+@section('page-description', 'Kelola akun ' . $tab)
 
 @section('page-actions')
+    @if($tab === 'karyawan')
     <a href="{{ route('pemilik.users.create') }}" class="inline-flex items-center gap-2 bg-espresso hover:bg-espresso-light text-cream text-sm font-medium px-4 py-2.5 rounded-xl transition-all duration-200 hover:shadow-md" id="btn-add-user">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
         </svg>
         Tambah Karyawan
     </a>
+    @endif
 @endsection
 
 @section('content')
+    {{-- Tabs --}}
+    <div class="flex items-center gap-4 border-b border-latte/40 mb-6">
+        <a href="{{ route('pemilik.users.index', ['tab' => 'karyawan']) }}" 
+           class="px-4 py-2.5 text-sm font-semibold border-b-2 transition-colors {{ $tab === 'karyawan' ? 'border-espresso text-espresso' : 'border-transparent text-espresso/60 hover:text-espresso hover:border-latte' }}">
+            Karyawan
+        </a>
+        <a href="{{ route('pemilik.users.index', ['tab' => 'pengguna']) }}" 
+           class="px-4 py-2.5 text-sm font-semibold border-b-2 transition-colors {{ $tab === 'pengguna' ? 'border-espresso text-espresso' : 'border-transparent text-espresso/60 hover:text-espresso hover:border-latte' }}">
+            Akun Pengguna
+        </a>
+    </div>
+
     {{-- Mobile Card Layout --}}
     <div class="md:hidden space-y-4">
         @forelse ($users as $user)
@@ -63,8 +77,10 @@
                             <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/>
                         </svg>
                     </div>
-                    <p class="text-sm text-caramel-dark font-medium">Belum ada pengguna terdaftar</p>
+                    <p class="text-sm text-caramel-dark font-medium">Belum ada {{ $tab }} terdaftar</p>
+                    @if($tab === 'karyawan')
                     <a href="{{ route('pemilik.users.create') }}" class="text-sm text-espresso font-semibold mt-2 hover:underline">+ Tambah Karyawan Baru</a>
+                    @endif
                 </div>
             </div>
         @endforelse
@@ -134,8 +150,10 @@
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/>
                                         </svg>
                                     </div>
-                                    <p class="text-sm text-caramel-dark font-medium">Belum ada pengguna terdaftar</p>
+                                    <p class="text-sm text-caramel-dark font-medium">Belum ada {{ $tab }} terdaftar</p>
+                                    @if($tab === 'karyawan')
                                     <a href="{{ route('pemilik.users.create') }}" class="text-sm text-espresso font-semibold mt-2 hover:underline">+ Tambah Karyawan Baru</a>
+                                    @endif
                                 </div>
                             </td>
                         </tr>

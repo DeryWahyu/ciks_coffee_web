@@ -8,16 +8,21 @@ use Illuminate\Http\Request;
 
 class UserController extends Controller
 {
-    /**
-     * Display a listing of users.
-     */
-    public function index()
+    public function index(Request $request)
     {
-        $users = User::whereIn('role', ['karyawan', 'pengguna'])
-            ->orderBy('created_at', 'desc')
-            ->paginate(10);
+        $tab = $request->get('tab', 'karyawan');
 
-        return view('pemilik.users.index', compact('users'));
+        $query = User::orderBy('created_at', 'desc');
+
+        if ($tab === 'pengguna') {
+            $query->where('role', 'pengguna');
+        } else {
+            $query->where('role', 'karyawan');
+        }
+
+        $users = $query->paginate(10)->appends(['tab' => $tab]);
+
+        return view('pemilik.users.index', compact('users', 'tab'));
     }
 
     /**
@@ -68,7 +73,7 @@ class UserController extends Controller
         $user->update(['is_active' => !$user->is_active]);
 
         $status = $user->is_active ? 'diaktifkan' : 'dinonaktifkan';
-        return redirect()->route('pemilik.users.index')
+        return redirect()->route('pemilik.users.index', ['tab' => $user->role])
             ->with('success', "Akun {$user->name} berhasil {$status}.");
     }
 }

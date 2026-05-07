@@ -14,6 +14,7 @@ use App\Http\Controllers\Pemilik\CustomerController;
 use App\Http\Controllers\Karyawan\DashboardController as KaryawanDashboardController;
 use App\Http\Controllers\Karyawan\PosController;
 use App\Http\Controllers\Karyawan\OrderController;
+use App\Http\Controllers\Pemilik\PerformanceController;
 
 use App\Http\Middleware\CheckRole;
 use Illuminate\Support\Facades\Route;
@@ -98,11 +99,19 @@ Route::middleware(['auth', CheckRole::class . ':pemilik'])
         Route::get('/reports/transactions/{order}/receipt', [ReportController::class, 'receipt'])->name('reports.transactions.receipt');
         Route::get('/reports/inventory', [ReportController::class, 'inventory'])->name('reports.inventory');
 
+        // Performa
+        Route::get('/performance/employees', [PerformanceController::class, 'employees'])->name('performance.employees');
+        Route::get('/performance/employees/{user}', [PerformanceController::class, 'employeeDetail'])->name('performance.employee-detail');
+        Route::get('/performance/products', [PerformanceController::class, 'products'])->name('performance.products');
+
         // Analisis Bisnis
         Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics.index');
 
         // Ekspor Data
         Route::get('/exports', [ExportController::class, 'index'])->name('exports.index');
+        Route::get('/exports/csv', [ExportController::class, 'exportCsv'])->name('exports.csv');
+        Route::get('/exports/excel', [ExportController::class, 'exportExcel'])->name('exports.excel');
+        Route::get('/exports/pdf', [ExportController::class, 'exportPdf'])->name('exports.pdf');
 
         // Pelanggan
         Route::get('/customers', [CustomerController::class, 'index'])->name('customers.index');
@@ -137,6 +146,4 @@ Route::middleware(['auth', CheckRole::class . ':karyawan'])
 
         // Pelanggan
         Route::get('/pelanggan', [OrderController::class, 'customers'])->name('customers.index');
-
-
     });

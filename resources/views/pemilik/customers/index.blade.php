@@ -58,15 +58,7 @@
         <div class="flex flex-wrap items-start gap-3 sm:gap-4">
             {{-- Rank --}}
             <div class="shrink-0">
-                @if ($rank === 1)
-                    <span class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-amber-100 text-lg">🥇</span>
-                @elseif ($rank === 2)
-                    <span class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 text-lg">🥈</span>
-                @elseif ($rank === 3)
-                    <span class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-orange-100 text-lg">🥉</span>
-                @else
-                    <span class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-latte/30 text-sm font-bold text-espresso">{{ $rank }}</span>
-                @endif
+                <span class="inline-flex items-center justify-center w-10 h-10 rounded-full {{ $rank <= 3 ? 'bg-espresso text-cream' : 'bg-latte/30 text-espresso' }} text-sm font-bold">{{ $rank }}</span>
             </div>
 
             {{-- Name & Badge --}}

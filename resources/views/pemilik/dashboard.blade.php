@@ -7,7 +7,6 @@
 {{-- Welcome --}}
 <div class="bg-white rounded-2xl shadow-sm border border-latte/50 p-6 mb-6">
     <div class="flex items-start gap-4">
-        <div class="w-12 h-12 bg-espresso/10 rounded-2xl flex items-center justify-center shrink-0"><span class="text-2xl">👋</span></div>
         <div>
             <h3 class="text-xl font-bold text-espresso">Selamat Datang, {{ Auth::user()->name }}!</h3>
             <p class="text-sm text-caramel-dark mt-1">Berikut ringkasan bisnis Ciks Coffee Anda hari ini, {{ now()->translatedFormat('l, d F Y') }}.</p>

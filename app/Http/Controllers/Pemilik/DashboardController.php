@@ -23,15 +23,15 @@ class DashboardController extends Controller
         $totalProducts = Product::where('is_active', true)->count();
 
         $todayOrders = Order::whereDate('created_at', $today)->count();
-        $todayRevenue = Order::where('status', 'selesai')->whereDate('created_at', $today)->sum('total');
+        $todayRevenue = Order::whereIn('status', ['selesai', 'diambil'])->whereDate('created_at', $today)->sum('total');
         $pendingOrders = Order::whereIn('status', ['antrian_baru', 'sedang_dibuat'])->count();
 
         // This month stats
         $monthStart = $today->copy()->startOfMonth();
-        $monthRevenue = Order::where('status', 'selesai')
+        $monthRevenue = Order::whereIn('status', ['selesai', 'diambil'])
             ->whereDate('created_at', '>=', $monthStart)
             ->sum('total');
-        $monthOrders = Order::where('status', 'selesai')
+        $monthOrders = Order::whereIn('status', ['selesai', 'diambil'])
             ->whereDate('created_at', '>=', $monthStart)
             ->count();
 
@@ -39,10 +39,10 @@ class DashboardController extends Controller
         $last7Days = collect();
         for ($i = 6; $i >= 0; $i--) {
             $date = $today->copy()->subDays($i);
-            $revenue = Order::where('status', 'selesai')
+            $revenue = Order::whereIn('status', ['selesai', 'diambil'])
                 ->whereDate('created_at', $date)
                 ->sum('total');
-            $orders = Order::where('status', 'selesai')
+            $orders = Order::whereIn('status', ['selesai', 'diambil'])
                 ->whereDate('created_at', $date)
                 ->count();
             $last7Days->push([
@@ -56,7 +56,7 @@ class DashboardController extends Controller
         // Top 5 products this month
         $topProducts = DB::table('order_items')
             ->join('orders', 'order_items.order_id', '=', 'orders.id')
-            ->where('orders.status', 'selesai')
+            ->whereIn('orders.status', ['selesai', 'diambil'])
             ->whereDate('orders.created_at', '>=', $monthStart)
             ->select('order_items.product_name', DB::raw('SUM(order_items.quantity) as total_qty'))
             ->groupBy('order_items.product_name')
@@ -71,7 +71,7 @@ class DashboardController extends Controller
             ->get();
 
         // Payment method distribution this month
-        $paymentStats = Order::where('status', 'selesai')
+        $paymentStats = Order::whereIn('status', ['selesai', 'diambil'])
             ->whereDate('created_at', '>=', $monthStart)
             ->select('payment_method', DB::raw('COUNT(*) as count'), DB::raw('SUM(total) as total'))
             ->groupBy('payment_method')

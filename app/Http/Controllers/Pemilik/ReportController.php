@@ -20,7 +20,7 @@ class ReportController extends Controller
         $startDate = $request->get('start_date', Carbon::now()->startOfMonth()->format('Y-m-d'));
         $endDate = $request->get('end_date', Carbon::now()->endOfMonth()->format('Y-m-d'));
 
-        $query = Order::where('status', 'selesai')
+        $query = Order::whereIn('status', ['selesai', 'diambil'])
             ->whereDate('created_at', '>=', $startDate)
             ->whereDate('created_at', '<=', $endDate);
 
@@ -40,7 +40,7 @@ class ReportController extends Controller
         // We join order_items to orders to filter by date and status
         $topProducts = DB::table('order_items')
             ->join('orders', 'order_items.order_id', '=', 'orders.id')
-            ->where('orders.status', 'selesai')
+            ->whereIn('orders.status', ['selesai', 'diambil'])
             ->whereDate('orders.created_at', '>=', $startDate)
             ->whereDate('orders.created_at', '<=', $endDate)
             ->select('order_items.product_name', 'order_items.variant', DB::raw('SUM(order_items.quantity) as total_quantity'), DB::raw('SUM(order_items.subtotal) as total_revenue'))

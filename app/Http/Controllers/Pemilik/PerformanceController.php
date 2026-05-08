@@ -20,17 +20,19 @@ class PerformanceController extends Controller
         $monthStart = Carbon::createFromFormat('Y-m', $month)->startOfMonth();
         $monthEnd = Carbon::createFromFormat('Y-m', $month)->endOfMonth();
 
-        // Revenue per employee
-        $employeeStats = Order::where('status', 'selesai')
-            ->whereDate('created_at', '>=', $monthStart)
-            ->whereDate('created_at', '<=', $monthEnd)
+        // Revenue per employee (only karyawan, exclude pengguna/pemilik)
+        $employeeStats = Order::whereIn('orders.status', ['selesai', 'diambil'])
+            ->whereDate('orders.created_at', '>=', $monthStart)
+            ->whereDate('orders.created_at', '<=', $monthEnd)
+            ->join('users', 'orders.cashier_id', '=', 'users.id')
+            ->where('users.role', 'karyawan')
             ->select(
-                'user_id',
+                'orders.cashier_id as user_id',
                 DB::raw('COUNT(*) as total_orders'),
-                DB::raw('SUM(total) as total_revenue'),
-                DB::raw('AVG(total) as avg_order_value')
+                DB::raw('SUM(orders.total) as total_revenue'),
+                DB::raw('AVG(orders.total) as avg_order_value')
             )
-            ->groupBy('user_id')
+            ->groupBy('orders.cashier_id')
             ->orderByDesc('total_revenue')
             ->get();
 
@@ -71,8 +73,8 @@ class PerformanceController extends Controller
         // Products sold by this employee
         $productsSold = DB::table('order_items')
             ->join('orders', 'order_items.order_id', '=', 'orders.id')
-            ->where('orders.user_id', $user->id)
-            ->where('orders.status', 'selesai')
+            ->where('orders.cashier_id', $user->id)
+            ->whereIn('orders.status', ['selesai', 'diambil'])
             ->whereDate('orders.created_at', '>=', $monthStart)
             ->whereDate('orders.created_at', '<=', $monthEnd)
             ->select(
@@ -87,8 +89,8 @@ class PerformanceController extends Controller
             ->get();
 
         // Employee summary stats
-        $summary = Order::where('user_id', $user->id)
-            ->where('status', 'selesai')
+        $summary = Order::where('cashier_id', $user->id)
+            ->whereIn('status', ['selesai', 'diambil'])
             ->whereDate('created_at', '>=', $monthStart)
             ->whereDate('created_at', '<=', $monthEnd)
             ->selectRaw('COUNT(*) as total_orders, SUM(total) as total_revenue, AVG(total) as avg_order')
@@ -96,8 +98,8 @@ class PerformanceController extends Controller
 
         // Recent orders
         $recentOrders = Order::with('items')
-            ->where('user_id', $user->id)
-            ->where('status', 'selesai')
+            ->where('cashier_id', $user->id)
+            ->whereIn('status', ['selesai', 'diambil'])
             ->whereDate('created_at', '>=', $monthStart)
             ->whereDate('created_at', '<=', $monthEnd)
             ->orderByDesc('created_at')
@@ -122,7 +124,7 @@ class PerformanceController extends Controller
         $productStats = DB::table('order_items')
             ->join('orders', 'order_items.order_id', '=', 'orders.id')
             ->join('products', 'order_items.product_id', '=', 'products.id')
-            ->where('orders.status', 'selesai')
+            ->whereIn('orders.status', ['selesai', 'diambil'])
             ->whereDate('orders.created_at', '>=', $monthStart)
             ->whereDate('orders.created_at', '<=', $monthEnd)
             ->select(

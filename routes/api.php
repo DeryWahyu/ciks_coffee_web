@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Response;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ProductController;
+use App\Http\Controllers\Api\OrderController;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
@@ -19,6 +20,15 @@ Route::middleware('auth:sanctum')->group(function () {
     // Products and Categories
     Route::get('/categories', [ProductController::class, 'categories']);
     Route::get('/products', [ProductController::class, 'index']);
+
+    // Mobile Orders (Customer)
+    Route::post('/orders', [OrderController::class, 'store']);
+    Route::get('/orders/active', [OrderController::class, 'active']);
+    Route::get('/orders/history', [OrderController::class, 'history']);
+    Route::post('/orders/{order}/pickup', [OrderController::class, 'confirmPickup']);
+
+    // Shop Settings
+    Route::get('/shop/qris', [OrderController::class, 'qrisImage']);
 });
 
 // Serve storage files with CORS for Flutter Web local development

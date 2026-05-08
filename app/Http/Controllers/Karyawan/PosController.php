@@ -128,6 +128,7 @@ class PosController extends Controller
                 'order_number' => Order::generateOrderNumber(),
                 'customer_name' => $validated['customer_name'],
                 'user_id' => Auth::id(),
+                'cashier_id' => Auth::id(),
                 'payment_method' => $validated['payment_method'],
                 'total' => $total,
                 'cash_received' => $cashReceived,

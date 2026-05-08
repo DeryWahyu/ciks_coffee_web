@@ -25,7 +25,7 @@ class ExportController extends Controller
     private function buildQuery(Request $request)
     {
         $query = Order::with(['items', 'user'])
-            ->where('status', 'selesai');
+            ->whereIn('status', ['selesai', 'diambil']);
 
         if ($request->filled('date_from')) {
             $query->whereDate('created_at', '>=', $request->date_from);

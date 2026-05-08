@@ -11,6 +11,7 @@ use App\Http\Controllers\Pemilik\ReportController;
 use App\Http\Controllers\Pemilik\AnalyticsController;
 use App\Http\Controllers\Pemilik\ExportController;
 use App\Http\Controllers\Pemilik\CustomerController;
+use App\Http\Controllers\Pemilik\SettingController;
 use App\Http\Controllers\Karyawan\DashboardController as KaryawanDashboardController;
 use App\Http\Controllers\Karyawan\PosController;
 use App\Http\Controllers\Karyawan\OrderController;
@@ -115,6 +116,11 @@ Route::middleware(['auth', CheckRole::class . ':pemilik'])
 
         // Pelanggan
         Route::get('/customers', [CustomerController::class, 'index'])->name('customers.index');
+
+        // Pengaturan
+        Route::get('/settings/qris', [SettingController::class, 'qris'])->name('settings.qris');
+        Route::post('/settings/qris', [SettingController::class, 'updateQris'])->name('settings.qris.update');
+        Route::delete('/settings/qris', [SettingController::class, 'deleteQris'])->name('settings.qris.delete');
     });
 
 /*

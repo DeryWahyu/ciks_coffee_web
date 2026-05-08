@@ -137,7 +137,12 @@ class OrderController extends Controller
             'status' => 'required|in:antrian_baru,sedang_dibuat,selesai',
         ]);
 
-        $order->update(['status' => $validated['status']]);
+        $updateData = ['status' => $validated['status']];
+        if ($validated['status'] === 'selesai') {
+            $updateData['cashier_id'] = $request->user()->id;
+        }
+
+        $order->update($updateData);
 
         return back()->with('success', "Pesanan #{$order->order_number} diperbarui ke \"{$order->status_label}\".");
     }

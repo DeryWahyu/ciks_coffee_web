@@ -91,10 +91,10 @@
         </div>
     </div>
 
-    {{-- Top Products --}}
+    {{-- Produk Teratas --}}
     <div class="bg-white rounded-2xl shadow-sm border border-latte/50 overflow-hidden flex flex-col">
         <div class="p-5 border-b border-latte/40 flex items-center justify-between">
-            <h3 class="font-bold text-espresso">Produk Terlaris (Top 10)</h3>
+            <h3 class="font-bold text-espresso">Produk Terlaris (10 Teratas)</h3>
             <span class="text-xs px-2.5 py-1 bg-amber-100 text-amber-800 rounded-lg font-bold">Terpopuler</span>
         </div>
         <div class="p-0 flex-1 overflow-x-auto">

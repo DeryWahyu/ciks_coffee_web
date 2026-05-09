@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', 'Dashboard') - Ciks Coffee</title>
+    <title>@yield('title', 'Dasbor') - Ciks Coffee</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -63,7 +63,7 @@
                     <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z"/>
                     </svg>
-                    Dashboard
+                    Dasbor
                 </a>
 
                 {{-- Kelola Data Dropdown --}}
@@ -195,7 +195,7 @@
                     </div>
                     <form method="POST" action="{{ route('logout') }}">
                         @csrf
-                        <button type="submit" class="p-1.5 rounded-lg hover:bg-red-50 text-caramel hover:text-red-500 transition-colors" title="Logout">
+                        <button type="submit" class="p-1.5 rounded-lg hover:bg-red-50 text-caramel hover:text-red-500 transition-colors" title="Keluar">
                             <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9"/>
                             </svg>
@@ -227,7 +227,7 @@
             </div>
             {{-- Mobile Menu --}}
             <div id="mobile-menu" class="hidden bg-espresso-light border-t border-espresso/30 pb-3">
-                <a href="{{ route('pemilik.dashboard') }}" class="block px-4 py-2.5 text-sm {{ request()->routeIs('pemilik.dashboard') ? 'text-cream font-semibold' : 'text-cream/70' }}">Dashboard</a>
+                <a href="{{ route('pemilik.dashboard') }}" class="block px-4 py-2.5 text-sm {{ request()->routeIs('pemilik.dashboard') ? 'text-cream font-semibold' : 'text-cream/70' }}">Dasbor</a>
                 <a href="{{ route('pemilik.users.index') }}" class="block px-4 py-2.5 text-sm {{ request()->routeIs('pemilik.users.*') ? 'text-cream font-semibold' : 'text-cream/70' }}">Data Karyawan</a>
                 <a href="{{ route('pemilik.products.index') }}" class="block px-4 py-2.5 text-sm {{ request()->routeIs('pemilik.products.*') ? 'text-cream font-semibold' : 'text-cream/70' }}">Produk & Harga</a>
                 <a href="{{ route('pemilik.materials.index') }}" class="block px-4 py-2.5 text-sm {{ request()->routeIs('pemilik.materials.*') ? 'text-cream font-semibold' : 'text-cream/70' }}">Bahan Baku</a>
@@ -244,7 +244,7 @@
                 <div class="border-t border-espresso/30 mt-2 pt-2 px-4">
                     <form method="POST" action="{{ route('logout') }}">
                         @csrf
-                        <button type="submit" class="text-red-300 text-sm py-2">Logout</button>
+                        <button type="submit" class="text-red-300 text-sm py-2">Keluar</button>
                     </form>
                 </div>
             </div>
@@ -261,7 +261,7 @@
                         </button>
                         <div>
                             <h2 class="text-lg font-bold text-espresso">
-                                @yield('page-title', 'Dashboard')
+                                @yield('page-title', 'Dasbor')
                             </h2>
                             <p class="text-xs text-caramel mt-0.5">@yield('page-description', '')</p>
                         </div>

@@ -60,7 +60,7 @@
         </div>
         <div class="flex gap-2">
             <button type="submit" class="flex-1 sm:flex-none px-4 py-2 text-sm font-semibold bg-espresso text-cream rounded-xl hover:bg-espresso-light transition">Filter</button>
-            <a href="{{ route('pemilik.reports.transactions') }}" class="flex-1 sm:flex-none px-4 py-2 text-sm font-medium text-caramel hover:text-espresso border border-latte/60 rounded-xl transition text-center">Reset</a>
+            <a href="{{ route('pemilik.reports.transactions') }}" class="flex-1 sm:flex-none px-4 py-2 text-sm font-medium text-caramel hover:text-espresso border border-latte/60 rounded-xl transition text-center">Atur Ulang</a>
         </div>
     </form>
 </div>

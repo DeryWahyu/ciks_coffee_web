@@ -1,6 +1,6 @@
 @extends('layouts.pemilik')
-@section('title', 'Dashboard')
-@section('page-title', 'Dashboard')
+@section('title', 'Dasbor')
+@section('page-title', 'Dasbor')
 @section('page-description', 'Ringkasan keseluruhan bisnis Ciks Coffee')
 
 @section('content')
@@ -50,7 +50,7 @@
             </div>
         </div>
         <p class="text-xl sm:text-2xl font-bold text-espresso">Rp {{ number_format($monthRevenue, 0, ',', '.') }}</p>
-        <p class="text-xs text-caramel-dark mt-1">Revenue bulan ini ({{ $monthOrders }} order)</p>
+        <p class="text-xs text-caramel-dark mt-1">Pendapatan bulan ini ({{ $monthOrders }} pesanan)</p>
     </div>
 </div>
 

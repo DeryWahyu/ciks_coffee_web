@@ -101,7 +101,7 @@
                         <th class="text-left px-6 py-4 text-xs font-bold text-espresso uppercase tracking-wider">Nama</th>
                         <th class="text-left px-6 py-4 text-xs font-bold text-espresso uppercase tracking-wider">Email</th>
                         <th class="text-left px-6 py-4 text-xs font-bold text-espresso uppercase tracking-wider hidden lg:table-cell">Telepon</th>
-                        <th class="text-left px-6 py-4 text-xs font-bold text-espresso uppercase tracking-wider">Role</th>
+                        <th class="text-left px-6 py-4 text-xs font-bold text-espresso uppercase tracking-wider">Peran</th>
                         <th class="text-left px-6 py-4 text-xs font-bold text-espresso uppercase tracking-wider">Status</th>
                         <th class="text-center px-6 py-4 text-xs font-bold text-espresso uppercase tracking-wider">Aksi</th>
                     </tr>

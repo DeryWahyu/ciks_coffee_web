@@ -100,7 +100,7 @@
                         </div>
                         <div class="grid grid-cols-3 gap-2 text-xs">
                             <div>
-                                <span class="text-caramel block">Qty</span>
+                                <span class="text-caramel block">Jml</span>
                                 <span class="font-bold text-espresso">{{ $p->total_quantity }}</span>
                             </div>
                             <div>
@@ -108,7 +108,7 @@
                                 <span class="font-bold text-espresso">{{ $p->total_orders }}</span>
                             </div>
                             <div>
-                                <span class="text-caramel block">Revenue</span>
+                                <span class="text-caramel block">Pendapatan</span>
                                 <span class="font-bold text-espresso">Rp {{ number_format($p->total_revenue, 0, ',', '.') }}</span>
                             </div>
                         </div>
@@ -124,7 +124,7 @@
                             <th class="text-left py-3 px-3 text-xs font-semibold text-caramel uppercase tracking-wider">#</th>
                             <th class="text-left py-3 px-3 text-xs font-semibold text-caramel uppercase tracking-wider">Produk</th>
                             <th class="text-left py-3 px-3 text-xs font-semibold text-caramel uppercase tracking-wider">Varian</th>
-                            <th class="text-right py-3 px-3 text-xs font-semibold text-caramel uppercase tracking-wider">Qty</th>
+                            <th class="text-right py-3 px-3 text-xs font-semibold text-caramel uppercase tracking-wider">Jml</th>
                             <th class="text-right py-3 px-3 text-xs font-semibold text-caramel uppercase tracking-wider">Pesanan</th>
                             <th class="text-right py-3 px-3 text-xs font-semibold text-caramel uppercase tracking-wider">Pendapatan</th>
                         </tr>

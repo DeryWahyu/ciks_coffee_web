@@ -75,9 +75,9 @@
                             @endif
                         </div>
                         <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-caramel-dark">
-                            <span>Qty: <span class="font-semibold text-espresso">{{ $p->total_quantity }}</span></span>
+                            <span>Jml: <span class="font-semibold text-espresso">{{ $p->total_quantity }}</span></span>
                             <span>Pesanan: <span class="font-semibold text-espresso">{{ $p->total_orders }}</span></span>
-                            <span>Revenue: <span class="font-semibold text-espresso">Rp {{ number_format($p->total_revenue, 0, ',', '.') }}</span></span>
+                            <span>Pendapatan: <span class="font-semibold text-espresso">Rp {{ number_format($p->total_revenue, 0, ',', '.') }}</span></span>
                         </div>
                     </div>
                 @endforeach
@@ -91,7 +91,7 @@
                             <th class="text-left py-3 px-3 text-xs font-semibold text-caramel uppercase tracking-wider">#</th>
                             <th class="text-left py-3 px-3 text-xs font-semibold text-caramel uppercase tracking-wider">Produk</th>
                             <th class="text-left py-3 px-3 text-xs font-semibold text-caramel uppercase tracking-wider">Varian</th>
-                            <th class="text-right py-3 px-3 text-xs font-semibold text-caramel uppercase tracking-wider">Qty Terjual</th>
+                            <th class="text-right py-3 px-3 text-xs font-semibold text-caramel uppercase tracking-wider">Jml Terjual</th>
                             <th class="text-right py-3 px-3 text-xs font-semibold text-caramel uppercase tracking-wider">Pesanan</th>
                             <th class="text-right py-3 px-3 text-xs font-semibold text-caramel uppercase tracking-wider">Pendapatan</th>
                         </tr>
@@ -119,7 +119,7 @@
         @endif
     </div>
 
-    {{-- Recent Orders --}}
+    {{-- Pesanan Terbaru --}}
     <div class="bg-white rounded-2xl shadow-sm border border-latte/50 p-6">
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-4">
             <h4 class="text-sm font-bold text-espresso flex items-center gap-2">
@@ -168,7 +168,7 @@
                         <tr class="border-b border-latte/40">
                             <th class="text-left py-3 px-3 text-xs font-semibold text-caramel uppercase tracking-wider">No. Order</th>
                             <th class="text-left py-3 px-3 text-xs font-semibold text-caramel uppercase tracking-wider">Pelanggan</th>
-                            <th class="text-left py-3 px-3 text-xs font-semibold text-caramel uppercase tracking-wider">Item</th>
+                            <th class="text-left py-3 px-3 text-xs font-semibold text-caramel uppercase tracking-wider">Produk</th>
                             <th class="text-center py-3 px-3 text-xs font-semibold text-caramel uppercase tracking-wider">Bayar</th>
                             <th class="text-right py-3 px-3 text-xs font-semibold text-caramel uppercase tracking-wider">Total</th>
                             <th class="text-right py-3 px-3 text-xs font-semibold text-caramel uppercase tracking-wider">Waktu</th>

@@ -74,7 +74,7 @@
             <div class="flex items-center justify-between text-sm">
                 <span class="text-caramel-dark">{{ strtoupper($pm->payment_method) }}</span>
                 <div class="text-right">
-                    <span class="font-bold text-espresso">{{ $pm->count }} order</span>
+                    <span class="font-bold text-espresso">{{ $pm->count }} pesanan</span>
                     <span class="text-xs text-caramel-dark ml-2">(Rp {{ number_format($pm->total, 0, ',', '.') }})</span>
                 </div>
             </div>
@@ -111,7 +111,7 @@
                     <th class="text-left py-3 px-3 text-xs font-semibold text-caramel uppercase tracking-wider">#</th>
                     <th class="text-left py-3 px-3 text-xs font-semibold text-caramel uppercase tracking-wider">Produk</th>
                     <th class="text-left py-3 px-3 text-xs font-semibold text-caramel uppercase tracking-wider">Varian</th>
-                    <th class="text-right py-3 px-3 text-xs font-semibold text-caramel uppercase tracking-wider">Qty</th>
+                    <th class="text-right py-3 px-3 text-xs font-semibold text-caramel uppercase tracking-wider">Jml</th>
                     <th class="text-right py-3 px-3 text-xs font-semibold text-caramel uppercase tracking-wider">Pendapatan</th>
                 </tr></thead>
                 <tbody class="divide-y divide-latte/20">
@@ -166,7 +166,7 @@ new Chart(document.getElementById('salesTrendChart'), {
     options: {
         responsive: true, maintainAspectRatio: false,
         interaction: { mode: 'index', intersect: false },
-        plugins: { legend: { position: 'top', labels: { padding: 16, font: { size: 11 } } }, tooltip: { callbacks: { label: ctx => ctx.dataset.label === 'Pendapatan' ? 'Rp ' + ctx.raw.toLocaleString('id-ID') : ctx.raw + ' order' } } },
+        plugins: { legend: { position: 'top', labels: { padding: 16, font: { size: 11 } } }, tooltip: { callbacks: { label: ctx => ctx.dataset.label === 'Pendapatan' ? 'Rp ' + ctx.raw.toLocaleString('id-ID') : ctx.raw + ' pesanan' } } },
         scales: {
             y: { type: 'linear', position: 'left', beginAtZero: true, ticks: { callback: v => 'Rp ' + (v/1000) + 'k', font: { size: 10 } }, grid: { color: 'rgba(161,136,127,0.1)' } },
             y1: { type: 'linear', position: 'right', beginAtZero: true, grid: { drawOnChartArea: false }, ticks: { font: { size: 10 } } },

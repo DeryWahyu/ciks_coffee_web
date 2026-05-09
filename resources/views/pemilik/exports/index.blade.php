@@ -28,7 +28,7 @@
             </select>
         </div>
         <div class="flex items-end">
-            <button type="button" onclick="resetFilters()" class="w-full px-4 py-2.5 text-sm font-semibold text-caramel border border-latte rounded-xl hover:bg-cream/50 transition-all">Reset Filter</button>
+            <button type="button" onclick="resetFilters()" class="w-full px-4 py-2.5 text-sm font-semibold text-caramel border border-latte rounded-xl hover:bg-cream/50 transition-all">Atur Ulang Filter</button>
         </div>
     </form>
 </div>
@@ -49,7 +49,7 @@
         <p class="text-xs text-caramel-dark mb-4">Format ringan yang dapat dibuka di Excel, Google Sheets, dan aplikasi spreadsheet lainnya.</p>
         <button onclick="exportData('csv')" class="w-full py-2.5 bg-green-600 text-white font-semibold text-sm rounded-xl hover:bg-green-700 transition-all flex items-center justify-center gap-2">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
-            Download CSV
+            Unduh CSV
         </button>
     </div>
 
@@ -67,7 +67,7 @@
         <p class="text-xs text-caramel-dark mb-4">Format Excel lengkap dengan header berwarna, auto-width kolom, dan format angka otomatis.</p>
         <button onclick="exportData('excel')" class="w-full py-2.5 bg-emerald-600 text-white font-semibold text-sm rounded-xl hover:bg-emerald-700 transition-all flex items-center justify-center gap-2">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
-            Download Excel
+            Unduh Excel
         </button>
     </div>
 
@@ -85,7 +85,7 @@
         <p class="text-xs text-caramel-dark mb-4">Laporan PDF landscape dengan branding Ciks Coffee, siap untuk dicetak atau di-share.</p>
         <button onclick="exportData('pdf')" class="w-full py-2.5 bg-red-600 text-white font-semibold text-sm rounded-xl hover:bg-red-700 transition-all flex items-center justify-center gap-2">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
-            Download PDF
+            Unduh PDF
         </button>
     </div>
 </div>
@@ -124,7 +124,7 @@
     <div class="flex items-center justify-between p-4 bg-amber-50 rounded-xl border border-amber-200">
         <div class="flex items-center gap-3">
             <svg class="w-5 h-5 text-amber-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/></svg>
-            <p class="text-xs text-amber-800"><span class="font-semibold">Coming Soon:</span> Fitur jadwal ekspor otomatis sedang dalam pengembangan. Saat ini Anda dapat melakukan ekspor manual menggunakan tombol di atas.</p>
+            <p class="text-xs text-amber-800"><span class="font-semibold">Segera Hadir:</span> Fitur jadwal ekspor otomatis sedang dalam pengembangan. Saat ini Anda dapat melakukan ekspor manual menggunakan tombol di atas.</p>
         </div>
     </div>
 </div>

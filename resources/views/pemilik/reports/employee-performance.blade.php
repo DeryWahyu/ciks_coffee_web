@@ -8,11 +8,17 @@
     {{-- Month Filter --}}
     <div class="bg-white rounded-2xl shadow-sm border border-latte/50 p-5 mb-6">
         <form method="GET" action="{{ route('pemilik.performance.employees') }}" class="flex flex-col sm:flex-row items-end gap-4">
-            <div class="flex-1 w-full sm:w-auto">
-                <label class="block text-xs font-semibold text-caramel uppercase tracking-wider mb-1.5">Periode</label>
-                <input type="month" name="month" value="{{ $month }}" class="w-full px-4 py-2.5 bg-cream-light border border-latte rounded-xl text-sm text-espresso focus:outline-none focus:ring-2 focus:ring-caramel/30 focus:border-caramel transition-all">
+            <div class="flex-1 w-full sm:w-auto flex flex-col sm:flex-row gap-4">
+                <div class="w-full sm:w-1/2">
+                    <label class="block text-xs font-semibold text-caramel uppercase tracking-wider mb-1.5">Dari Tanggal</label>
+                    <input type="date" name="start_date" value="{{ $startDate }}" class="w-full px-4 py-2.5 bg-cream-light border border-latte rounded-xl text-sm text-espresso focus:outline-none focus:ring-2 focus:ring-caramel/30 focus:border-caramel transition-all">
+                </div>
+                <div class="w-full sm:w-1/2">
+                    <label class="block text-xs font-semibold text-caramel uppercase tracking-wider mb-1.5">Sampai Tanggal</label>
+                    <input type="date" name="end_date" value="{{ $endDate }}" class="w-full px-4 py-2.5 bg-cream-light border border-latte rounded-xl text-sm text-espresso focus:outline-none focus:ring-2 focus:ring-caramel/30 focus:border-caramel transition-all">
+                </div>
             </div>
-            <button type="submit" class="px-6 py-2.5 bg-espresso text-cream font-semibold text-sm rounded-xl hover:bg-espresso-light transition-all duration-200 shadow-sm">Tampilkan</button>
+            <button type="submit" class="w-full sm:w-auto px-6 py-2.5 bg-espresso text-cream font-semibold text-sm rounded-xl hover:bg-espresso-light transition-all duration-200 shadow-sm">Tampilkan</button>
         </form>
     </div>
 
@@ -36,7 +42,7 @@
     <div class="bg-white rounded-2xl shadow-sm border border-latte/50 p-6">
         <h4 class="text-sm font-bold text-espresso mb-5 flex items-center gap-2">
             <svg class="w-4.5 h-4.5 text-caramel" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 01-.982-3.172M9.497 14.25a7.454 7.454 0 00.981-3.172M5.25 4.236c-.982.143-1.954.317-2.916.52A6.003 6.003 0 007.73 9.728M5.25 4.236V4.5c0 2.108.966 3.99 2.48 5.228M5.25 4.236V2.721C7.456 2.41 9.71 2.25 12 2.25c2.291 0 4.545.16 6.75.47v1.516M18.75 4.236c.982.143 1.954.317 2.916.52A6.003 6.003 0 0016.27 9.728M18.75 4.236V4.5c0 2.108-.966 3.99-2.48 5.228m0 0a6.01 6.01 0 01-2.27.793"/></svg>
-            Leaderboard — {{ $monthStart->translatedFormat('F Y') }}
+            Leaderboard — {{ \Carbon\Carbon::parse($startDate)->translatedFormat('d M Y') }} s/d {{ \Carbon\Carbon::parse($endDate)->translatedFormat('d M Y') }}
         </h4>
 
         @if($leaderboard->count() > 0)
@@ -63,7 +69,7 @@
                                     <span>{{ $emp->total_orders }} pesanan</span>
                                     <span>Avg Rp {{ number_format($emp->avg_order_value, 0, ',', '.') }}</span>
                                     <span class="font-medium text-espresso">{{ number_format($pct, 1) }}%</span>
-                                    <a href="{{ route('pemilik.performance.employee-detail', ['user' => $emp->user_id, 'month' => $month]) }}" class="ml-auto text-xs font-semibold text-espresso hover:text-caramel-dark transition-colors flex items-center gap-1">
+                                    <a href="{{ route('pemilik.performance.employee-detail', ['user' => $emp->user_id, 'start_date' => $startDate, 'end_date' => $endDate]) }}" class="ml-auto text-xs font-semibold text-espresso hover:text-caramel-dark transition-colors flex items-center gap-1">
                                         Lihat Detail
                                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/></svg>
                                     </a>

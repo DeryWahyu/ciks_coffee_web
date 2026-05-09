@@ -2,10 +2,10 @@
 
 @section('title', 'Detail Karyawan - ' . $user->name)
 @section('page-title', 'Detail Performa: ' . $user->name)
-@section('page-description', 'Rincian penjualan karyawan pada bulan ' . $monthStart->translatedFormat('F Y'))
+@section('page-description', 'Rincian penjualan karyawan pada ' . \Carbon\Carbon::parse($startDate)->translatedFormat('d M Y') . ' - ' . \Carbon\Carbon::parse($endDate)->translatedFormat('d M Y'))
 
 @section('page-actions')
-    <a href="{{ route('pemilik.performance.employees', ['month' => $month]) }}" class="px-4 py-2 text-sm font-semibold text-espresso bg-latte/30 rounded-xl hover:bg-latte/50 transition-all flex items-center gap-1.5">
+    <a href="{{ route('pemilik.performance.employees', ['start_date' => $startDate, 'end_date' => $endDate]) }}" class="px-4 py-2 text-sm font-semibold text-espresso bg-latte/30 rounded-xl hover:bg-latte/50 transition-all flex items-center gap-1.5">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5"/></svg>
         Kembali
     </a>
@@ -32,11 +32,32 @@
         </div>
     </div>
 
+    {{-- Filter & Header --}}
+    <div class="bg-white rounded-2xl shadow-sm border border-latte/50 p-4 sm:p-5 mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+            <h2 class="text-lg font-bold text-espresso">{{ $user->name }}</h2>
+            <p class="text-sm text-caramel-dark mt-0.5">Laporan Kinerja &middot; {{ \Carbon\Carbon::parse($startDate)->translatedFormat('d M Y') }} - {{ \Carbon\Carbon::parse($endDate)->translatedFormat('d M Y') }}</p>
+        </div>
+        <form method="GET" action="{{ route('pemilik.performance.employee-detail', $user->id) }}" class="flex flex-col sm:flex-row items-end gap-3 w-full md:w-auto">
+            <div class="w-full sm:w-auto flex flex-col sm:flex-row gap-3">
+                <div class="w-full sm:w-auto">
+                    <label class="block text-[0.65rem] font-semibold text-caramel uppercase tracking-wider mb-1">Dari Tanggal</label>
+                    <input type="date" name="start_date" value="{{ $startDate }}" class="w-full px-3 py-2 bg-cream-light border border-latte rounded-xl text-sm text-espresso focus:outline-none focus:ring-2 focus:ring-caramel/30 focus:border-caramel transition-all">
+                </div>
+                <div class="w-full sm:w-auto">
+                    <label class="block text-[0.65rem] font-semibold text-caramel uppercase tracking-wider mb-1">Sampai Tanggal</label>
+                    <input type="date" name="end_date" value="{{ $endDate }}" class="w-full px-3 py-2 bg-cream-light border border-latte rounded-xl text-sm text-espresso focus:outline-none focus:ring-2 focus:ring-caramel/30 focus:border-caramel transition-all">
+                </div>
+            </div>
+            <button type="submit" class="w-full sm:w-auto px-5 py-2 bg-espresso text-cream font-semibold text-sm rounded-xl hover:bg-espresso-light transition-all duration-200 shadow-sm">Filter</button>
+        </form>
+    </div>
+
     {{-- Products Sold Table --}}
     <div class="bg-white rounded-2xl shadow-sm border border-latte/50 p-6 mb-6">
         <h4 class="text-sm font-bold text-espresso mb-4 flex items-center gap-2">
             <svg class="w-4.5 h-4.5 text-caramel" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"/></svg>
-            Produk Yang Dijual — {{ $monthStart->translatedFormat('F Y') }}
+            Produk Yang Dijual
         </h4>
 
         @if($productsSold->count() > 0)
@@ -100,10 +121,25 @@
 
     {{-- Recent Orders --}}
     <div class="bg-white rounded-2xl shadow-sm border border-latte/50 p-6">
-        <h4 class="text-sm font-bold text-espresso mb-4 flex items-center gap-2">
-            <svg class="w-4.5 h-4.5 text-caramel" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            Riwayat Transaksi Terakhir (Maks 20)
-        </h4>
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-4">
+            <h4 class="text-sm font-bold text-espresso flex items-center gap-2">
+                <svg class="w-4.5 h-4.5 text-caramel" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                Riwayat Transaksi Terakhir (Maks 20)
+            </h4>
+            <form method="GET" action="{{ route('pemilik.performance.employee-detail', $user->id) }}" class="flex flex-col sm:flex-row items-end gap-3 w-full sm:w-auto">
+                <div class="w-full sm:w-auto flex flex-col sm:flex-row gap-3">
+                    <div class="w-full sm:w-auto">
+                        <label class="block text-[0.65rem] font-semibold text-caramel uppercase tracking-wider mb-1">Dari Tanggal</label>
+                        <input type="date" name="start_date" value="{{ $startDate }}" class="w-full px-3 py-2 bg-cream-light border border-latte rounded-xl text-sm text-espresso focus:outline-none focus:ring-2 focus:ring-caramel/30 focus:border-caramel transition-all">
+                    </div>
+                    <div class="w-full sm:w-auto">
+                        <label class="block text-[0.65rem] font-semibold text-caramel uppercase tracking-wider mb-1">Sampai Tanggal</label>
+                        <input type="date" name="end_date" value="{{ $endDate }}" class="w-full px-3 py-2 bg-cream-light border border-latte rounded-xl text-sm text-espresso focus:outline-none focus:ring-2 focus:ring-caramel/30 focus:border-caramel transition-all">
+                    </div>
+                </div>
+                <button type="submit" class="w-full sm:w-auto px-5 py-2 bg-espresso text-cream font-semibold text-sm rounded-xl hover:bg-espresso-light transition-all duration-200 shadow-sm">Filter</button>
+            </form>
+        </div>
 
         @if($recentOrders->count() > 0)
             {{-- Mobile: Cards --}}

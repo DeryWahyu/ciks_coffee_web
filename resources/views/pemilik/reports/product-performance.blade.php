@@ -8,9 +8,15 @@
     {{-- Month Filter --}}
     <div class="bg-white rounded-2xl shadow-sm border border-latte/50 p-5 mb-6">
         <form method="GET" action="{{ route('pemilik.performance.products') }}" class="flex flex-col sm:flex-row items-end gap-4">
-            <div class="flex-1 w-full sm:w-auto">
-                <label class="block text-xs font-semibold text-caramel uppercase tracking-wider mb-1.5">Periode</label>
-                <input type="month" name="month" value="{{ $month }}" class="w-full px-4 py-2.5 bg-cream-light border border-latte rounded-xl text-sm text-espresso focus:outline-none focus:ring-2 focus:ring-caramel/30 focus:border-caramel transition-all">
+            <div class="flex-1 w-full sm:w-auto flex flex-col sm:flex-row gap-4">
+                <div class="w-full sm:w-1/2">
+                    <label class="block text-xs font-semibold text-caramel uppercase tracking-wider mb-1.5">Dari Tanggal</label>
+                    <input type="date" name="start_date" value="{{ $startDate }}" class="w-full px-4 py-2.5 bg-cream-light border border-latte rounded-xl text-sm text-espresso focus:outline-none focus:ring-2 focus:ring-caramel/30 focus:border-caramel transition-all">
+                </div>
+                <div class="w-full sm:w-1/2">
+                    <label class="block text-xs font-semibold text-caramel uppercase tracking-wider mb-1.5">Sampai Tanggal</label>
+                    <input type="date" name="end_date" value="{{ $endDate }}" class="w-full px-4 py-2.5 bg-cream-light border border-latte rounded-xl text-sm text-espresso focus:outline-none focus:ring-2 focus:ring-caramel/30 focus:border-caramel transition-all">
+                </div>
             </div>
             <button type="submit" class="w-full sm:w-auto px-6 py-2.5 bg-espresso text-cream font-semibold text-sm rounded-xl hover:bg-espresso-light transition-all duration-200 shadow-sm">Tampilkan</button>
         </form>

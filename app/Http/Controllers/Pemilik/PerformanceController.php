@@ -16,14 +16,13 @@ class PerformanceController extends Controller
      */
     public function employees(Request $request)
     {
-        $month = $request->get('month', Carbon::now()->format('Y-m'));
-        $monthStart = Carbon::createFromFormat('Y-m', $month)->startOfMonth();
-        $monthEnd = Carbon::createFromFormat('Y-m', $month)->endOfMonth();
+        $startDate = $request->get('start_date', Carbon::now()->startOfMonth()->format('Y-m-d'));
+        $endDate = $request->get('end_date', Carbon::now()->endOfMonth()->format('Y-m-d'));
 
         // Revenue per employee (only karyawan, exclude pengguna/pemilik)
         $employeeStats = Order::whereIn('orders.status', ['selesai', 'diambil'])
-            ->whereDate('orders.created_at', '>=', $monthStart)
-            ->whereDate('orders.created_at', '<=', $monthEnd)
+            ->whereDate('orders.created_at', '>=', $startDate)
+            ->whereDate('orders.created_at', '<=', $endDate)
             ->join('users', 'orders.cashier_id', '=', 'users.id')
             ->where('users.role', 'karyawan')
             ->select(
@@ -57,7 +56,7 @@ class PerformanceController extends Controller
         $grandTotal = $employeeStats->sum('total_revenue');
 
         return view('pemilik.reports.employee-performance', compact(
-            'leaderboard', 'grandTotal', 'month', 'monthStart'
+            'leaderboard', 'grandTotal', 'startDate', 'endDate'
         ));
     }
 
@@ -66,17 +65,16 @@ class PerformanceController extends Controller
      */
     public function employeeDetail(Request $request, User $user)
     {
-        $month = $request->get('month', Carbon::now()->format('Y-m'));
-        $monthStart = Carbon::createFromFormat('Y-m', $month)->startOfMonth();
-        $monthEnd = Carbon::createFromFormat('Y-m', $month)->endOfMonth();
+        $startDate = $request->get('start_date', Carbon::now()->startOfMonth()->format('Y-m-d'));
+        $endDate = $request->get('end_date', Carbon::now()->endOfMonth()->format('Y-m-d'));
 
         // Products sold by this employee
         $productsSold = DB::table('order_items')
             ->join('orders', 'order_items.order_id', '=', 'orders.id')
             ->where('orders.cashier_id', $user->id)
             ->whereIn('orders.status', ['selesai', 'diambil'])
-            ->whereDate('orders.created_at', '>=', $monthStart)
-            ->whereDate('orders.created_at', '<=', $monthEnd)
+            ->whereDate('orders.created_at', '>=', $startDate)
+            ->whereDate('orders.created_at', '<=', $endDate)
             ->select(
                 'order_items.product_name',
                 'order_items.variant',
@@ -91,8 +89,8 @@ class PerformanceController extends Controller
         // Employee summary stats
         $summary = Order::where('cashier_id', $user->id)
             ->whereIn('status', ['selesai', 'diambil'])
-            ->whereDate('created_at', '>=', $monthStart)
-            ->whereDate('created_at', '<=', $monthEnd)
+            ->whereDate('created_at', '>=', $startDate)
+            ->whereDate('created_at', '<=', $endDate)
             ->selectRaw('COUNT(*) as total_orders, SUM(total) as total_revenue, AVG(total) as avg_order')
             ->first();
 
@@ -100,14 +98,14 @@ class PerformanceController extends Controller
         $recentOrders = Order::with('items')
             ->where('cashier_id', $user->id)
             ->whereIn('status', ['selesai', 'diambil'])
-            ->whereDate('created_at', '>=', $monthStart)
-            ->whereDate('created_at', '<=', $monthEnd)
+            ->whereDate('created_at', '>=', $startDate)
+            ->whereDate('created_at', '<=', $endDate)
             ->orderByDesc('created_at')
             ->limit(20)
             ->get();
 
         return view('pemilik.reports.employee-detail', compact(
-            'user', 'productsSold', 'summary', 'recentOrders', 'month', 'monthStart'
+            'user', 'productsSold', 'summary', 'recentOrders', 'startDate', 'endDate'
         ));
     }
 
@@ -116,17 +114,16 @@ class PerformanceController extends Controller
      */
     public function products(Request $request)
     {
-        $month = $request->get('month', Carbon::now()->format('Y-m'));
-        $monthStart = Carbon::createFromFormat('Y-m', $month)->startOfMonth();
-        $monthEnd = Carbon::createFromFormat('Y-m', $month)->endOfMonth();
+        $startDate = $request->get('start_date', Carbon::now()->startOfMonth()->format('Y-m-d'));
+        $endDate = $request->get('end_date', Carbon::now()->endOfMonth()->format('Y-m-d'));
 
         // Product performance: quantity sold + revenue
         $productStats = DB::table('order_items')
             ->join('orders', 'order_items.order_id', '=', 'orders.id')
             ->join('products', 'order_items.product_id', '=', 'products.id')
             ->whereIn('orders.status', ['selesai', 'diambil'])
-            ->whereDate('orders.created_at', '>=', $monthStart)
-            ->whereDate('orders.created_at', '<=', $monthEnd)
+            ->whereDate('orders.created_at', '>=', $startDate)
+            ->whereDate('orders.created_at', '<=', $endDate)
             ->select(
                 'order_items.product_id',
                 'order_items.product_name',
@@ -149,7 +146,7 @@ class PerformanceController extends Controller
         $top5 = $productStats->take(5);
 
         return view('pemilik.reports.product-performance', compact(
-            'productStats', 'totalProductsSold', 'totalRevenue', 'topProduct', 'top5', 'month', 'monthStart'
+            'productStats', 'totalProductsSold', 'totalRevenue', 'topProduct', 'top5', 'startDate', 'endDate'
         ));
     }
 }

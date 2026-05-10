@@ -150,6 +150,5 @@ Route::middleware(['auth', CheckRole::class . ':karyawan'])
         Route::get('/orders/{order}/detail', [OrderController::class, 'show'])->name('orders.show');
         Route::delete('/orders/{order}', [OrderController::class, 'destroy'])->name('orders.destroy');
 
-        // Pelanggan
-        Route::get('/pelanggan', [OrderController::class, 'customers'])->name('customers.index');
+
     });

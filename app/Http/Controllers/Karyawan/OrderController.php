@@ -150,9 +150,12 @@ class OrderController extends Controller
 
         $updateData = ['status' => $validated['status']];
         
-        // Claim the order by setting the cashier_id to the current user
-        // This ensures the order belongs to the employee who processes it
-        $updateData['cashier_id'] = $request->user()->id;
+        // Only allow claiming if it has no cashier, or if it's already claimed by this user
+        if (is_null($order->cashier_id)) {
+            $updateData['cashier_id'] = $request->user()->id;
+        } elseif ($order->cashier_id !== $request->user()->id) {
+            return back()->with('error', 'Pesanan ini sudah ditangani oleh karyawan lain.');
+        }
 
         $order->update($updateData);
 
@@ -162,8 +165,12 @@ class OrderController extends Controller
     /**
      * Delete an order.
      */
-    public function destroy(Order $order)
+    public function destroy(Request $request, Order $order)
     {
+        if (!is_null($order->cashier_id) && $order->cashier_id !== $request->user()->id) {
+            return back()->with('error', 'Anda tidak memiliki akses untuk menghapus pesanan ini.');
+        }
+
         $orderNumber = $order->order_number;
         $order->items()->delete();
         $order->delete();
@@ -206,7 +213,7 @@ class OrderController extends Controller
     {
         $userId = $request->user()->id;
         
-        $query = Order::where('cashier_id', $userId)->where('status', 'selesai');
+        $query = Order::where('cashier_id', $userId)->whereIn('status', ['selesai', 'diambil']);
 
         // Filter by date range
         if ($dateFrom = $request->get('date_from')) {

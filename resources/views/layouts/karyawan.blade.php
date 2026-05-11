@@ -172,6 +172,14 @@
                         <p class="text-green-700 text-sm">{{ session('success') }}</p>
                     </div>
                 @endif
+                @if (session('error'))
+                    <div class="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3" id="flash-error">
+                        <svg class="w-5 h-5 text-red-500 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                        </svg>
+                        <p class="text-red-700 text-sm">{{ session('error') }}</p>
+                    </div>
+                @endif
                 @yield('content')
             </div>
         </main>
@@ -180,12 +188,21 @@
     @stack('modals')
 
     <script>
-        const flashEl = document.getElementById('flash-success');
-        if (flashEl) {
+        const flashSuccess = document.getElementById('flash-success');
+        if (flashSuccess) {
             setTimeout(() => {
-                flashEl.style.transition = 'opacity 0.4s ease';
-                flashEl.style.opacity = '0';
-                setTimeout(() => flashEl.remove(), 400);
+                flashSuccess.style.transition = 'opacity 0.4s ease';
+                flashSuccess.style.opacity = '0';
+                setTimeout(() => flashSuccess.remove(), 400);
+            }, 4000);
+        }
+        
+        const flashError = document.getElementById('flash-error');
+        if (flashError) {
+            setTimeout(() => {
+                flashError.style.transition = 'opacity 0.4s ease';
+                flashError.style.opacity = '0';
+                setTimeout(() => flashError.remove(), 400);
             }, 4000);
         }
     </script>

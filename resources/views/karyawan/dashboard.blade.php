@@ -23,7 +23,7 @@
     </div>
 
     {{-- Quick Stats --}}
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-6">
+    <div class="grid grid-cols-1 sm:grid-cols-4 gap-5 mb-6">
         <div class="bg-white rounded-2xl shadow-sm border border-latte/50 p-5 hover:shadow-md transition-all duration-300">
             <div class="flex items-center justify-between mb-3">
                 <div class="w-10 h-10 bg-espresso/10 rounded-xl flex items-center justify-center">
@@ -33,7 +33,7 @@
                 </div>
                 <span class="text-[0.65rem] text-caramel font-semibold uppercase tracking-wider">Pesanan</span>
             </div>
-            <p class="text-2xl font-bold text-espresso">-</p>
+            <p class="text-2xl font-bold text-espresso">{{ $todayStats['total_orders'] }}</p>
             <p class="text-xs text-caramel-dark mt-1">Pesanan hari ini</p>
         </div>
 
@@ -46,7 +46,7 @@
                 </div>
                 <span class="text-[0.65rem] text-caramel font-semibold uppercase tracking-wider">Pending</span>
             </div>
-            <p class="text-2xl font-bold text-espresso">-</p>
+            <p class="text-2xl font-bold text-espresso">{{ $todayStats['pending_orders'] }}</p>
             <p class="text-xs text-caramel-dark mt-1">Menunggu proses</p>
         </div>
 
@@ -59,23 +59,140 @@
                 </div>
                 <span class="text-[0.65rem] text-caramel font-semibold uppercase tracking-wider">Selesai</span>
             </div>
-            <p class="text-2xl font-bold text-espresso">-</p>
+            <p class="text-2xl font-bold text-espresso">{{ $todayStats['completed_orders'] }}</p>
             <p class="text-xs text-caramel-dark mt-1">Pesanan selesai</p>
+        </div>
+        
+        <div class="bg-white rounded-2xl shadow-sm border border-latte/50 p-5 hover:shadow-md transition-all duration-300">
+            <div class="flex items-center justify-between mb-3">
+                <div class="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center">
+                    <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+                <span class="text-[0.65rem] text-caramel font-semibold uppercase tracking-wider">Penghasilan</span>
+            </div>
+            <p class="text-2xl font-bold text-espresso">Rp {{ number_format($todayStats['revenue'], 0, ',', '.') }}</p>
+            <p class="text-xs text-caramel-dark mt-1">Pendapatan hari ini</p>
         </div>
     </div>
 
-    {{-- Info Card --}}
-    <div class="bg-espresso/5 border border-espresso/10 rounded-2xl p-6">
-        <div class="flex items-start gap-3">
-            <svg class="w-5 h-5 text-espresso mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a.75.75 0 000 1.5h.253a.25.25 0 01.244.304l-.459 2.066A1.75 1.75 0 0010.747 15H11a.75.75 0 000-1.5h-.253a.25.25 0 01-.244-.304l.459-2.066A1.75 1.75 0 009.253 9H9z" clip-rule="evenodd"/>
-            </svg>
+    {{-- Revenue Chart --}}
+    <div class="bg-white rounded-2xl shadow-sm border border-latte/50 p-6 mb-6">
+        <div class="flex items-center justify-between mb-6">
             <div>
-                <h3 class="text-sm font-semibold text-espresso">Fitur Kasir Segera Hadir</h3>
-                <p class="text-sm text-caramel-dark mt-1">
-                    Fitur kasir dan manajemen pesanan sedang dalam pengembangan. Saat ini Anda dapat menggunakan dashboard ini untuk melihat ringkasan aktivitas.
-                </p>
+                <h3 class="text-lg font-bold text-espresso" style="font-family: 'Playfair Display', serif;">Grafik Pendapatan</h3>
+                <p class="text-sm text-caramel-dark mt-1">7 Hari Terakhir</p>
             </div>
+            <div class="w-10 h-10 bg-caramel/15 rounded-xl flex items-center justify-center">
+                <svg class="w-5 h-5 text-caramel-dark" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+                </svg>
+            </div>
+        </div>
+        <div class="w-full h-72">
+            <canvas id="revenueChart"></canvas>
         </div>
     </div>
 @endsection
+
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const ctx = document.getElementById('revenueChart').getContext('2d');
+        
+        // Gradient for chart area
+        let gradient = ctx.createLinearGradient(0, 0, 0, 300);
+        gradient.addColorStop(0, 'rgba(180, 117, 85, 0.4)'); // Caramel
+        gradient.addColorStop(1, 'rgba(180, 117, 85, 0.0)');
+        
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: {!! json_encode($chart['labels']) !!},
+                datasets: [{
+                    label: 'Pendapatan (Rp)',
+                    data: {!! json_encode($chart['data']) !!},
+                    borderColor: '#B47555', // Caramel color
+                    backgroundColor: gradient,
+                    borderWidth: 3,
+                    pointBackgroundColor: '#FFFFFF',
+                    pointBorderColor: '#B47555',
+                    pointBorderWidth: 2,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    fill: true,
+                    tension: 0.4 // Smooth curve
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: '#3C2A21',
+                        titleColor: '#F9F6F0',
+                        bodyColor: '#F9F6F0',
+                        padding: 12,
+                        cornerRadius: 8,
+                        displayColors: false,
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    label += new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(context.parsed.y);
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            display: false,
+                            drawBorder: false
+                        },
+                        ticks: {
+                            color: '#8c7d75',
+                            font: {
+                                family: "'Inter', sans-serif",
+                                size: 12
+                            }
+                        }
+                    },
+                    y: {
+                        grid: {
+                            color: '#f0e9e4',
+                            borderDash: [5, 5],
+                            drawBorder: false
+                        },
+                        ticks: {
+                            color: '#8c7d75',
+                            font: {
+                                family: "'Inter', sans-serif",
+                                size: 12
+                            },
+                            callback: function(value) {
+                                return 'Rp ' + (value / 1000) + 'k';
+                            }
+                        },
+                        beginAtZero: true
+                    }
+                },
+                interaction: {
+                    intersect: false,
+                    mode: 'index',
+                },
+            }
+        });
+    });
+</script>
+@endpush

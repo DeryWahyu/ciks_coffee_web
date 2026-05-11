@@ -4,25 +4,7 @@
 @section('page-description', 'Semua transaksi yang tercatat')
 
 @section('content')
-{{-- Stats Cards --}}
-<div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
-    <div class="bg-white rounded-2xl shadow-sm border border-latte/50 p-3 sm:p-4">
-        <p class="text-[0.6rem] sm:text-[0.65rem] text-caramel font-semibold uppercase tracking-wider mb-1">Total Transaksi</p>
-        <p class="text-lg sm:text-xl font-bold text-espresso">{{ number_format($stats['total_transactions']) }}</p>
-    </div>
-    <div class="bg-white rounded-2xl shadow-sm border border-latte/50 p-3 sm:p-4">
-        <p class="text-[0.6rem] sm:text-[0.65rem] text-caramel font-semibold uppercase tracking-wider mb-1">Total Pendapatan</p>
-        <p class="text-lg sm:text-xl font-bold text-espresso">Rp {{ number_format($stats['total_revenue'], 0, ',', '.') }}</p>
-    </div>
-    <div class="bg-white rounded-2xl shadow-sm border border-latte/50 p-3 sm:p-4">
-        <p class="text-[0.6rem] sm:text-[0.65rem] text-caramel font-semibold uppercase tracking-wider mb-1">Rata-rata</p>
-        <p class="text-lg sm:text-xl font-bold text-espresso">Rp {{ number_format($stats['avg_transaction'], 0, ',', '.') }}</p>
-    </div>
-    <div class="bg-white rounded-2xl shadow-sm border border-latte/50 p-3 sm:p-4">
-        <p class="text-[0.6rem] sm:text-[0.65rem] text-caramel font-semibold uppercase tracking-wider mb-1">Hari Ini</p>
-        <p class="text-lg sm:text-xl font-bold text-espresso">{{ $stats['today_count'] }}</p>
-    </div>
-</div>
+
 
 {{-- Filters --}}
 <div class="bg-white rounded-2xl shadow-sm border border-latte/50 p-4 sm:p-5 mb-6">

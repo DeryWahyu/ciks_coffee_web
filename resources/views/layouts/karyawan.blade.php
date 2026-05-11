@@ -80,6 +80,12 @@
                     </svg>
                     Riwayat Transaksi
                 </a>
+                <a href="{{ route('karyawan.income.index') }}" class="sidebar-link flex items-center gap-3 px-6 py-2.5 text-sm {{ request()->routeIs('karyawan.income.index') ? 'active text-espresso font-semibold' : 'text-espresso/70 hover:text-espresso' }}">
+                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Pendapatan Karyawan
+                </a>
 
 
             </nav>
@@ -131,6 +137,7 @@
                 <a href="{{ route('karyawan.pos.index') }}" class="block px-4 py-2.5 text-sm {{ request()->routeIs('karyawan.pos.*') ? 'text-cream font-semibold' : 'text-cream/70' }}">Point of Sales</a>
                 <a href="{{ route('karyawan.orders.index') }}" class="block px-4 py-2.5 text-sm {{ request()->routeIs('karyawan.orders.index') ? 'text-cream font-semibold' : 'text-cream/70' }}">Antrean Pesanan</a>
                 <a href="{{ route('karyawan.orders.history') }}" class="block px-4 py-2.5 text-sm {{ request()->routeIs('karyawan.orders.history') ? 'text-cream font-semibold' : 'text-cream/70' }}">Riwayat Transaksi</a>
+                <a href="{{ route('karyawan.income.index') }}" class="block px-4 py-2.5 text-sm {{ request()->routeIs('karyawan.income.index') ? 'text-cream font-semibold' : 'text-cream/70' }}">Pendapatan Karyawan</a>
 
 
                 <div class="border-t border-espresso/30 mt-2 pt-2 px-4">

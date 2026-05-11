@@ -15,8 +15,12 @@ class OrderController extends Controller
     public function index(Request $request)
     {
         $status = $request->get('status');
+        $userId = $request->user()->id;
 
-        $query = Order::with('items')->latest();
+        $query = Order::with('items')->where(function ($q) use ($userId) {
+            $q->where('cashier_id', $userId)
+              ->orWhereNull('cashier_id');
+        })->latest();
 
         if ($status && in_array($status, ['antrian_baru', 'sedang_dibuat', 'selesai'])) {
             $query->where('status', $status);
@@ -30,9 +34,15 @@ class OrderController extends Controller
         $orders = $query->paginate(15)->withQueryString();
 
         $counts = [
-            'antrian_baru' => Order::whereDate('created_at', today())->where('status', 'antrian_baru')->count(),
-            'sedang_dibuat' => Order::whereDate('created_at', today())->where('status', 'sedang_dibuat')->count(),
-            'selesai' => Order::whereDate('created_at', today())->where('status', 'selesai')->count(),
+            'antrian_baru' => Order::whereDate('created_at', today())
+                ->where(function ($q) use ($userId) { $q->where('cashier_id', $userId)->orWhereNull('cashier_id'); })
+                ->where('status', 'antrian_baru')->count(),
+            'sedang_dibuat' => Order::whereDate('created_at', today())
+                ->where(function ($q) use ($userId) { $q->where('cashier_id', $userId)->orWhereNull('cashier_id'); })
+                ->where('status', 'sedang_dibuat')->count(),
+            'selesai' => Order::whereDate('created_at', today())
+                ->where(function ($q) use ($userId) { $q->where('cashier_id', $userId)->orWhereNull('cashier_id'); })
+                ->where('status', 'selesai')->count(),
         ];
 
         return view('karyawan.orders.index', compact('orders', 'counts', 'status'));
@@ -43,7 +53,8 @@ class OrderController extends Controller
      */
     public function history(Request $request)
     {
-        $query = Order::with(['items', 'user'])->latest();
+        $userId = $request->user()->id;
+        $query = Order::with(['items', 'user'])->where('cashier_id', $userId)->latest();
 
         // Search by order number or customer name
         if ($search = $request->get('search')) {
@@ -74,7 +85,7 @@ class OrderController extends Controller
         $orders = $query->paginate(20)->withQueryString();
 
         // Summary stats
-        $statsQuery = Order::query();
+        $statsQuery = Order::query()->where('cashier_id', $userId);
         if ($search) {
             $statsQuery->where(function ($q) use ($search) {
                 $q->where('order_number', 'like', "%{$search}%")
@@ -90,7 +101,7 @@ class OrderController extends Controller
             'total_transactions' => $statsQuery->count(),
             'total_revenue' => $statsQuery->sum('total'),
             'avg_transaction' => $statsQuery->avg('total') ?? 0,
-            'today_count' => Order::whereDate('created_at', today())->count(),
+            'today_count' => Order::where('cashier_id', $userId)->whereDate('created_at', today())->count(),
         ];
 
         return view('karyawan.orders.history', compact('orders', 'stats'));
@@ -138,9 +149,10 @@ class OrderController extends Controller
         ]);
 
         $updateData = ['status' => $validated['status']];
-        if ($validated['status'] === 'selesai') {
-            $updateData['cashier_id'] = $request->user()->id;
-        }
+        
+        // Claim the order by setting the cashier_id to the current user
+        // This ensures the order belongs to the employee who processes it
+        $updateData['cashier_id'] = $request->user()->id;
 
         $order->update($updateData);
 
@@ -187,4 +199,39 @@ class OrderController extends Controller
     }
 
 
+    /**
+     * Show employee income page.
+     */
+    public function income(Request $request)
+    {
+        $userId = $request->user()->id;
+        
+        $query = Order::where('cashier_id', $userId)->where('status', 'selesai');
+
+        // Filter by date range
+        if ($dateFrom = $request->get('date_from')) {
+            $query->whereDate('created_at', '>=', $dateFrom);
+        }
+        if ($dateTo = $request->get('date_to')) {
+            $query->whereDate('created_at', '<=', $dateTo);
+        }
+
+        // Stats
+        $stats = [
+            'total_revenue' => (clone $query)->sum('total'),
+            'total_transactions' => (clone $query)->count(),
+            'avg_transaction' => (clone $query)->avg('total') ?? 0,
+            'today_revenue' => (clone $query)->whereDate('created_at', today())->sum('total'),
+        ];
+
+        // Group by date for the table
+        $incomeByDate = (clone $query)
+            ->selectRaw('DATE(created_at) as date, COUNT(*) as transactions, SUM(total) as revenue')
+            ->groupBy('date')
+            ->orderBy('date', 'desc')
+            ->paginate(15)
+            ->withQueryString();
+
+        return view('karyawan.income.index', compact('stats', 'incomeByDate'));
+    }
 }

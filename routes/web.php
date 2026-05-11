@@ -150,5 +150,8 @@ Route::middleware(['auth', CheckRole::class . ':karyawan'])
         Route::get('/orders/{order}/detail', [OrderController::class, 'show'])->name('orders.show');
         Route::delete('/orders/{order}', [OrderController::class, 'destroy'])->name('orders.destroy');
 
+        // Pendapatan Karyawan
+        Route::get('/pendapatan', [OrderController::class, 'income'])->name('income.index');
+
 
     });

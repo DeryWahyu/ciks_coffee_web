@@ -9,6 +9,9 @@
     <a href="{{ route('karyawan.orders.index') }}" class="px-4 py-2 text-xs font-semibold rounded-xl border transition-all {{ !$status ? 'bg-espresso text-cream border-espresso' : 'bg-white text-caramel border-latte/50 hover:border-caramel' }}">
         Semua
     </a>
+    <a href="{{ route('karyawan.orders.index', ['status' => 'menunggu_verifikasi']) }}" class="px-4 py-2 text-xs font-semibold rounded-xl border transition-all {{ $status === 'menunggu_verifikasi' ? 'bg-orange-500 text-white border-orange-500' : 'bg-white text-caramel border-latte/50 hover:border-caramel' }}">
+        Verifikasi ({{ $counts['menunggu_verifikasi'] }})
+    </a>
     <a href="{{ route('karyawan.orders.index', ['status' => 'antrian_baru']) }}" class="px-4 py-2 text-xs font-semibold rounded-xl border transition-all {{ $status === 'antrian_baru' ? 'bg-amber-500 text-white border-amber-500' : 'bg-white text-caramel border-latte/50 hover:border-caramel' }}">
         Antrean Baru ({{ $counts['antrian_baru'] }})
     </a>
@@ -23,7 +26,7 @@
 {{-- Orders List --}}
 <div class="space-y-4">
     @forelse ($orders as $order)
-        <div class="bg-white rounded-2xl shadow-sm border border-latte/50 p-5 hover:shadow-md transition-all duration-300">
+        <div class="bg-white rounded-2xl shadow-sm border border-latte/50 p-5 hover:shadow-md transition-all duration-300 {{ $order->status === 'menunggu_verifikasi' ? 'border-l-4 border-l-orange-400' : '' }}">
             <div class="flex flex-wrap items-start justify-between gap-4">
                 <div class="flex-1 min-w-0">
                     <div class="flex items-center gap-3 mb-2">
@@ -39,7 +42,22 @@
                     </div>
                 </div>
                 <div class="flex items-center gap-2 shrink-0">
-                    @if ($order->status === 'antrian_baru')
+                    @if ($order->status === 'menunggu_verifikasi')
+                        {{-- View Payment Proof & Verify --}}
+                        @if ($order->payment_proof)
+                            <button onclick="viewProof('{{ asset('storage/' . $order->payment_proof) }}', '{{ $order->order_number }}', '{{ $order->customer_name }}', '{{ $order->formatted_total }}')" class="px-3 py-2 text-xs font-semibold bg-orange-50 text-orange-600 hover:bg-orange-100 rounded-lg transition flex items-center gap-1.5">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                                Lihat Bukti
+                            </button>
+                        @endif
+                        <form method="POST" action="{{ route('karyawan.orders.verify', $order) }}">
+                            @csrf @method('PATCH')
+                            <button class="px-3 py-2 text-xs font-semibold bg-green-50 text-green-600 hover:bg-green-100 rounded-lg transition flex items-center gap-1.5">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                Validasi & Proses
+                            </button>
+                        </form>
+                    @elseif ($order->status === 'antrian_baru')
                         <form method="POST" action="{{ route('karyawan.orders.update-status', $order) }}">
                             @csrf @method('PATCH')
                             <input type="hidden" name="status" value="sedang_dibuat">
@@ -72,6 +90,37 @@
 @endsection
 
 @push('modals')
+{{-- Payment Proof Modal --}}
+<div id="proof-modal" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="closeProof()"></div>
+    <div class="absolute inset-0 overflow-y-auto flex items-center justify-center p-4 py-16">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md animate-fade-in my-auto">
+            <div class="flex items-center justify-between px-6 pt-6 pb-4 border-b border-latte/40">
+                <div>
+                    <h3 class="text-base font-bold text-espresso">Bukti Pembayaran QRIS</h3>
+                    <p id="proof-order-info" class="text-xs text-caramel mt-0.5"></p>
+                </div>
+                <button onclick="closeProof()" class="p-1 rounded-lg hover:bg-latte/30 text-caramel transition"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></button>
+            </div>
+            <div class="p-6">
+                <div class="bg-cream-light rounded-xl p-3 border border-latte/40 mb-4">
+                    <img id="proof-image" src="" alt="Bukti Pembayaran" class="w-full rounded-lg object-contain max-h-[400px]">
+                </div>
+                <div class="grid grid-cols-2 gap-3 text-xs">
+                    <div class="bg-latte/20 rounded-lg p-3">
+                        <p class="text-caramel font-medium mb-0.5">Pelanggan</p>
+                        <p id="proof-customer" class="text-espresso font-bold"></p>
+                    </div>
+                    <div class="bg-latte/20 rounded-lg p-3">
+                        <p class="text-caramel font-medium mb-0.5">Total</p>
+                        <p id="proof-total" class="text-espresso font-bold"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 {{-- Receipt Modal --}}
 <div id="receipt-modal" class="fixed inset-0 z-50 hidden">
     <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="closeReceipt()"></div>
@@ -111,6 +160,17 @@
 
 @push('scripts')
 <script>
+    // Payment Proof Modal
+    function viewProof(imageUrl, orderNumber, customerName, total) {
+        document.getElementById('proof-image').src = imageUrl;
+        document.getElementById('proof-order-info').textContent = orderNumber;
+        document.getElementById('proof-customer').textContent = customerName;
+        document.getElementById('proof-total').textContent = total;
+        document.getElementById('proof-modal').classList.remove('hidden');
+    }
+    function closeProof() { document.getElementById('proof-modal').classList.add('hidden'); }
+
+    // Receipt Modal
     function viewReceipt(orderId) {
         fetch(`/karyawan/orders/${orderId}/receipt`).then(r => r.json()).then(data => {
             document.getElementById('rcpt-number').textContent = data.order_number;

@@ -4,7 +4,7 @@
 @section('page-description', 'Kelola gambar QRIS untuk pembayaran digital pelanggan')
 
 @section('content')
-<div class="max-w-2xl">
+<div class="w-full">
     {{-- Current QRIS Preview --}}
     <div class="bg-white rounded-2xl shadow-sm border border-latte/50 p-6 mb-6">
         <h4 class="text-sm font-bold text-espresso mb-4 flex items-center gap-2">

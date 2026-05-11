@@ -10,10 +10,13 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
+use Illuminate\Support\Facades\Storage;
+
 class OrderController extends Controller
 {
     /**
      * Create a new order from mobile app (customer checkout).
+     * Accepts multipart/form-data with optional payment_proof image.
      */
     public function store(Request $request)
     {
@@ -25,11 +28,13 @@ class OrderController extends Controller
             'items.*.variant'    => 'nullable|in:base,lite',
             'items.*.quantity'   => 'required|integer|min:1',
             'items.*.price'      => 'required|numeric|min:0',
+            'payment_proof'  => 'nullable|image|mimes:jpg,jpeg,png,webp|max:3072',
         ], [
             'items.required' => 'Pesanan tidak boleh kosong.',
+            'payment_proof.max' => 'Ukuran bukti pembayaran maksimal 3MB.',
         ]);
 
-        $order = DB::transaction(function () use ($validated) {
+        $order = DB::transaction(function () use ($validated, $request) {
             $total = 0;
             $orderItems = [];
 
@@ -59,6 +64,18 @@ class OrderController extends Controller
                 : null;
             $changeAmount = $cashReceived ? max(0, $cashReceived - $total) : null;
 
+            // Handle payment proof upload
+            $paymentProofPath = null;
+            if ($request->hasFile('payment_proof')) {
+                $paymentProofPath = $request->file('payment_proof')
+                    ->store('payment_proofs', 'public');
+            }
+
+            // QRIS with proof → menunggu_verifikasi, otherwise → antrian_baru
+            $status = ($validated['payment_method'] === 'qris' && $paymentProofPath)
+                ? 'menunggu_verifikasi'
+                : 'antrian_baru';
+
             // customer_name is taken from the authenticated user
             $order = Order::create([
                 'order_number'   => Order::generateOrderNumber(),
@@ -68,7 +85,8 @@ class OrderController extends Controller
                 'total'          => $total,
                 'cash_received'  => $cashReceived,
                 'change_amount'  => $changeAmount,
-                'status'         => 'antrian_baru',
+                'payment_proof'  => $paymentProofPath,
+                'status'         => $status,
                 'paid_at'        => now(),
             ]);
 
@@ -76,16 +94,10 @@ class OrderController extends Controller
                 $order->items()->create($item);
             }
 
-            // Deduct ingredient stock
-            foreach ($validated['items'] as $item) {
-                $product = Product::with('ingredients')->find($item['product_id']);
-                $variant = $item['variant'] ?? null;
-                $ingredients = $product->ingredientsByVariant($variant);
-
-                foreach ($ingredients as $ingredient) {
-                    $deduction = $ingredient->pivot->quantity * $item['quantity'];
-                    $ingredient->decrement('stok', $deduction);
-                }
+            // Only deduct stock immediately for non-verification orders
+            // For menunggu_verifikasi, stock will be deducted upon approval
+            if ($status !== 'menunggu_verifikasi') {
+                $this->deductStock($validated['items']);
             }
 
             return $order;
@@ -100,13 +112,30 @@ class OrderController extends Controller
     }
 
     /**
+     * Deduct ingredient stock for the given items.
+     */
+    private function deductStock(array $items): void
+    {
+        foreach ($items as $item) {
+            $product = Product::with('ingredients')->find($item['product_id']);
+            $variant = $item['variant'] ?? null;
+            $ingredients = $product->ingredientsByVariant($variant);
+
+            foreach ($ingredients as $ingredient) {
+                $deduction = $ingredient->pivot->quantity * $item['quantity'];
+                $ingredient->decrement('stok', $deduction);
+            }
+        }
+    }
+
+    /**
      * Get all orders for the logged-in customer (grouped by status for tracking).
      */
     public function active(Request $request)
     {
         $orders = Order::with('items')
             ->where('user_id', $request->user()->id)
-            ->whereIn('status', ['antrian_baru', 'sedang_dibuat', 'selesai'])
+            ->whereIn('status', ['menunggu_verifikasi', 'antrian_baru', 'sedang_dibuat', 'selesai'])
             ->latest()
             ->get();
 
@@ -195,6 +224,9 @@ class OrderController extends Controller
             'formatted_total' => $order->formatted_total,
             'cash_received'   => $order->cash_received,
             'change_amount'   => $order->change_amount,
+            'payment_proof_url' => $order->payment_proof
+                ? asset('storage/' . $order->payment_proof)
+                : null,
             'status'          => $order->status,
             'status_label'    => $order->status_label,
             'paid_at'         => $order->paid_at?->format('d/m/Y H:i'),

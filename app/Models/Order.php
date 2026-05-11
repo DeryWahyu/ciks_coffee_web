@@ -20,6 +20,7 @@ class Order extends Model
         'total',
         'cash_received',
         'change_amount',
+        'payment_proof',
         'status',
         'paid_at',
     ];
@@ -73,6 +74,7 @@ class Order extends Model
     public function getStatusLabelAttribute(): string
     {
         return match ($this->status) {
+            'menunggu_verifikasi' => 'Menunggu Verifikasi',
             'antrian_baru' => 'Antrean Baru',
             'sedang_dibuat' => 'Sedang Dibuat',
             'selesai' => 'Selesai',
@@ -84,6 +86,7 @@ class Order extends Model
     public function getStatusColorAttribute(): string
     {
         return match ($this->status) {
+            'menunggu_verifikasi' => 'bg-orange-100 text-orange-700',
             'antrian_baru' => 'bg-amber-100 text-amber-700',
             'sedang_dibuat' => 'bg-blue-100 text-blue-700',
             'selesai' => 'bg-green-100 text-green-700',

@@ -20,7 +20,7 @@ class DashboardController extends Controller
                 ->whereDate('created_at', today())->count(),
             'pending_orders' => \App\Models\Order::where('cashier_id', $userId)
                 ->whereDate('created_at', today())
-                ->whereIn('status', ['antrian_baru', 'sedang_dibuat'])->count(),
+                ->whereIn('status', ['menunggu_verifikasi', 'antrian_baru', 'sedang_dibuat'])->count(),
             'completed_orders' => \App\Models\Order::where('cashier_id', $userId)
                 ->whereDate('created_at', today())
                 ->whereIn('status', ['selesai', 'diambil'])->count(),

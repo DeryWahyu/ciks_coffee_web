@@ -8,16 +8,9 @@
     {{-- Welcome Card --}}
     <div class="bg-white rounded-2xl shadow-sm border border-latte/50 p-6 mb-6">
         <div class="flex items-start gap-4">
-            <div class="w-12 h-12 bg-caramel/15 rounded-2xl flex items-center justify-center shrink-0">
-                <span class="text-2xl">☕</span>
-            </div>
             <div>
-                <h3 class="text-xl font-bold text-espresso" style="font-family: 'Playfair Display', serif;">
-                    Halo, {{ Auth::user()->name }}!
-                </h3>
-                <p class="text-sm text-caramel-dark mt-1">
-                    Selamat bekerja. Berikut ringkasan aktivitas Anda hari ini.
-                </p>
+                <h3 class="text-xl font-bold text-espresso">Selamat Datang, {{ Auth::user()->name }}!</h3>
+                <p class="text-sm text-caramel-dark mt-1">Berikut ringkasan aktivitas kerja Anda hari ini, {{ now()->translatedFormat('l, d F Y') }}.</p>
             </div>
         </div>
     </div>
@@ -81,8 +74,8 @@
     <div class="bg-white rounded-2xl shadow-sm border border-latte/50 p-6 mb-6">
         <div class="flex items-center justify-between mb-6">
             <div>
-                <h3 class="text-lg font-bold text-espresso" style="font-family: 'Playfair Display', serif;">Grafik Pendapatan</h3>
-                <p class="text-sm text-caramel-dark mt-1">7 Hari Terakhir</p>
+                <h3 class="text-sm font-bold text-espresso mb-1">Pendapatan 7 Hari Terakhir</h3>
+                <p class="text-xs text-caramel-dark mt-1">Grafik aktivitas penjualan</p>
             </div>
             <div class="w-10 h-10 bg-caramel/15 rounded-xl flex items-center justify-center">
                 <svg class="w-5 h-5 text-caramel-dark" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">

@@ -24,7 +24,7 @@ class DashboardController extends Controller
 
         $todayOrders = Order::whereDate('created_at', $today)->count();
         $todayRevenue = Order::whereIn('status', ['selesai', 'diambil'])->whereDate('created_at', $today)->sum('total');
-        $pendingOrders = Order::whereIn('status', ['antrian_baru', 'sedang_dibuat'])->count();
+        $pendingOrders = Order::whereIn('status', ['menunggu_verifikasi', 'antrian_baru', 'sedang_dibuat'])->count();
 
         // This month stats
         $monthStart = $today->copy()->startOfMonth();

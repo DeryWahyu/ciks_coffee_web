@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Karyawan;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use App\Models\Product;
 
 class OrderController extends Controller
 {
@@ -22,7 +22,7 @@ class OrderController extends Controller
               ->orWhereNull('cashier_id');
         })->latest();
 
-        if ($status && in_array($status, ['antrian_baru', 'sedang_dibuat', 'selesai'])) {
+        if ($status && in_array($status, ['menunggu_verifikasi', 'antrian_baru', 'sedang_dibuat', 'selesai'])) {
             $query->where('status', $status);
         }
 
@@ -34,6 +34,9 @@ class OrderController extends Controller
         $orders = $query->paginate(15)->withQueryString();
 
         $counts = [
+            'menunggu_verifikasi' => Order::whereDate('created_at', today())
+                ->where(function ($q) use ($userId) { $q->where('cashier_id', $userId)->orWhereNull('cashier_id'); })
+                ->where('status', 'menunggu_verifikasi')->count(),
             'antrian_baru' => Order::whereDate('created_at', today())
                 ->where(function ($q) use ($userId) { $q->where('cashier_id', $userId)->orWhereNull('cashier_id'); })
                 ->where('status', 'antrian_baru')->count(),
@@ -160,6 +163,39 @@ class OrderController extends Controller
         $order->update($updateData);
 
         return back()->with('success', "Pesanan #{$order->order_number} diperbarui ke \"{$order->status_label}\".");
+    }
+
+    /**
+     * Verify QRIS payment proof and move order to antrian_baru.
+     * Also deducts ingredient stock at this point.
+     */
+    public function verifyPayment(Request $request, Order $order)
+    {
+        if ($order->status !== 'menunggu_verifikasi') {
+            return back()->with('error', 'Pesanan ini tidak memerlukan verifikasi.');
+        }
+
+        // Claim the order
+        $order->update([
+            'status' => 'antrian_baru',
+            'cashier_id' => $request->user()->id,
+        ]);
+
+        // Deduct ingredient stock now that payment is verified
+        $order->load('items');
+        foreach ($order->items as $item) {
+            $product = Product::with('ingredients')->find($item->product_id);
+            if ($product) {
+                $variant = $item->variant;
+                $ingredients = $product->ingredientsByVariant($variant);
+                foreach ($ingredients as $ingredient) {
+                    $deduction = $ingredient->pivot->quantity * $item->quantity;
+                    $ingredient->decrement('stok', $deduction);
+                }
+            }
+        }
+
+        return back()->with('success', "Pembayaran #{$order->order_number} berhasil diverifikasi. Pesanan masuk antrean.");
     }
 
     /**

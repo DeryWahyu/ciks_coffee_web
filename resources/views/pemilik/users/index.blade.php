@@ -59,14 +59,19 @@
                         {{ ucfirst($user->role) }}
                     </span>
                 </div>
-                <div class="border-t border-latte/30 pt-3">
-                    <form method="POST" action="{{ route('pemilik.users.toggle-status', $user) }}">
+                <div class="border-t border-latte/30 pt-3 flex gap-2">
+                    <form method="POST" action="{{ route('pemilik.users.toggle-status', $user) }}" class="flex-1">
                         @csrf
                         @method('PATCH')
                         <button type="submit" class="w-full text-xs font-semibold px-4 py-2.5 rounded-xl transition-colors {{ $user->is_active ? 'text-red-600 bg-red-50 hover:bg-red-100' : 'text-green-600 bg-green-50 hover:bg-green-100' }}">
                             {{ $user->is_active ? 'Nonaktifkan' : 'Aktifkan' }}
                         </button>
                     </form>
+                    @if($user->role === 'karyawan')
+                    <button type="button" onclick="openResetModal({{ $user->id }}, '{{ addslashes($user->name) }}')" class="flex-1 w-full text-xs font-semibold px-4 py-2.5 rounded-xl transition-colors text-amber-600 bg-amber-50 hover:bg-amber-100">
+                        Reset Password
+                    </button>
+                    @endif
                 </div>
             </div>
         @empty
@@ -131,7 +136,7 @@
                                     {{ $user->is_active ? 'Aktif' : 'Nonaktif' }}
                                 </span>
                             </td>
-                            <td class="px-6 py-4 text-center">
+                            <td class="px-6 py-4 text-center flex items-center justify-center gap-2">
                                 <form method="POST" action="{{ route('pemilik.users.toggle-status', $user) }}" class="inline">
                                     @csrf
                                     @method('PATCH')
@@ -139,6 +144,13 @@
                                         {{ $user->is_active ? 'Nonaktifkan' : 'Aktifkan' }}
                                     </button>
                                 </form>
+                                @if($user->role === 'karyawan')
+                                <button type="button" onclick="openResetModal({{ $user->id }}, '{{ addslashes($user->name) }}')" class="text-xs font-medium p-1.5 rounded-lg transition-colors text-amber-600 hover:bg-amber-50" title="Reset Password">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" />
+                                    </svg>
+                                </button>
+                                @endif
                             </td>
                         </tr>
                     @empty
@@ -169,3 +181,75 @@
         @endif
     </div>
 @endsection
+
+{{-- 
+    NOTE: This modal is placed inside @push('modals') so it renders at the 
+    absolute bottom of the HTML body (via @stack('modals') in the layout), 
+    OUTSIDE any tables, lists, scrollable divs, or constrained parent containers.
+    This prevents z-index stacking and overflow clipping issues.
+--}}
+@push('modals')
+<div id="reset-password-modal" class="fixed inset-0 w-screen h-screen z-[9999] hidden" style="overflow: visible; clip: auto;">
+    {{-- Full-screen backdrop overlay --}}
+    <div class="fixed inset-0 w-screen h-screen bg-black/40 backdrop-blur-sm" onclick="closeResetModal()"></div>
+
+    {{-- Centered modal wrapper --}}
+    <div class="fixed inset-0 w-full h-full flex items-center justify-center p-4 overflow-y-auto">
+        <div class="relative z-10 bg-white rounded-2xl shadow-xl border border-latte/50 w-full max-w-md max-h-[90vh] overflow-y-auto animate-fade-in">
+            {{-- Modal Header --}}
+            <div class="sticky top-0 z-20 px-6 py-4 border-b border-latte/30 bg-white flex items-center justify-between rounded-t-2xl">
+                <h3 class="text-sm font-bold text-espresso">Reset Password</h3>
+                <button type="button" onclick="closeResetModal()" class="p-1 rounded-lg hover:bg-latte/30 text-caramel transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            {{-- Modal Body --}}
+            <div class="p-6">
+                <p class="text-xs text-caramel-dark mb-5">Atur ulang password untuk akun: <strong id="reset-user-name" class="text-espresso font-bold"></strong></p>
+                <form id="reset-password-form" method="POST" class="space-y-4">
+                    @csrf @method('PATCH')
+                    <div>
+                        <label for="password" class="block text-xs font-bold text-espresso uppercase tracking-wider mb-1.5">Password Baru <span class="text-red-500">*</span></label>
+                        <input type="password" name="password" id="password" required minlength="8" class="w-full px-4 py-2.5 text-sm bg-white border border-latte/60 rounded-xl focus:ring-2 focus:ring-caramel/30 focus:border-caramel outline-none transition" placeholder="Minimal 8 karakter">
+                    </div>
+                    <div>
+                        <label for="password_confirmation" class="block text-xs font-bold text-espresso uppercase tracking-wider mb-1.5">Konfirmasi Password <span class="text-red-500">*</span></label>
+                        <input type="password" name="password_confirmation" id="password_confirmation" required minlength="8" class="w-full px-4 py-2.5 text-sm bg-white border border-latte/60 rounded-xl focus:ring-2 focus:ring-caramel/30 focus:border-caramel outline-none transition" placeholder="Ulangi password baru">
+                    </div>
+                    <div class="pt-4 flex flex-col sm:flex-row gap-3">
+                        <button type="submit" class="w-full bg-espresso hover:bg-espresso-light text-cream text-sm font-semibold py-2.5 rounded-xl transition-all shadow-sm flex-1">
+                            Simpan
+                        </button>
+                        <button type="button" onclick="closeResetModal()" class="w-full bg-latte/20 hover:bg-latte/40 text-espresso text-sm font-semibold py-2.5 rounded-xl transition-all flex-1">
+                            Batal
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+@endpush
+
+@push('scripts')
+<script>
+    function openResetModal(userId, userName) {
+        document.getElementById('reset-user-name').textContent = userName;
+        document.getElementById('reset-password-form').action = `/pemilik/users/${userId}/reset-password`;
+        document.getElementById('reset-password-modal').classList.remove('hidden');
+    }
+
+    function closeResetModal() {
+        document.getElementById('reset-password-modal').classList.add('hidden');
+        document.getElementById('password').value = '';
+        document.getElementById('password_confirmation').value = '';
+    }
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeResetModal();
+    });
+</script>
+@endpush

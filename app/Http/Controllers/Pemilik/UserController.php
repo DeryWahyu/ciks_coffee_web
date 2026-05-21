@@ -76,4 +76,23 @@ class UserController extends Controller
         return redirect()->route('pemilik.users.index', ['tab' => $user->role])
             ->with('success', "Akun {$user->name} berhasil {$status}.");
     }
+
+    /**
+     * Reset user password to custom.
+     */
+    public function resetPassword(Request $request, User $user)
+    {
+        $request->validate([
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+        ], [
+            'password.required' => 'Password baru wajib diisi.',
+            'password.min' => 'Password minimal 8 karakter.',
+            'password.confirmed' => 'Konfirmasi password tidak cocok.',
+        ]);
+
+        $user->update(['password' => $request->password]);
+
+        return redirect()->route('pemilik.users.index', ['tab' => $user->role])
+            ->with('success', "Password untuk akun {$user->name} berhasil diubah.");
+    }
 }

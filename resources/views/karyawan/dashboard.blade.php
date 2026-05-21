@@ -16,7 +16,7 @@
     </div>
 
     {{-- Quick Stats --}}
-    <div class="grid grid-cols-1 sm:grid-cols-4 gap-5 mb-6">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-6">
         <div class="bg-white rounded-2xl shadow-sm border border-latte/50 p-5 hover:shadow-md transition-all duration-300">
             <div class="flex items-center justify-between mb-3">
                 <div class="w-10 h-10 bg-espresso/10 rounded-xl flex items-center justify-center">
@@ -83,7 +83,7 @@
                 </svg>
             </div>
         </div>
-        <div class="w-full h-72">
+        <div class="w-full h-64 sm:h-72">
             <canvas id="revenueChart"></canvas>
         </div>
     </div>

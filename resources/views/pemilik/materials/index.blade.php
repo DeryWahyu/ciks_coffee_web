@@ -9,24 +9,24 @@
         {{-- Add Ingredient Form --}}
         <div class="bg-white rounded-2xl shadow-sm border border-latte/50 p-6">
             <h3 class="text-sm font-bold text-espresso uppercase tracking-wider mb-4">Tambah Bahan Baku Baru</h3>
-            <form method="POST" action="{{ route('pemilik.materials.store') }}" class="flex flex-wrap items-end gap-3">
+            <form method="POST" action="{{ route('pemilik.materials.store') }}" class="flex flex-col sm:flex-row sm:items-end gap-3">
                 @csrf
-                <div class="flex-1 min-w-[180px]">
+                <div class="w-full sm:flex-1 sm:min-w-[180px]">
                     <label for="nama_bahan" class="block text-sm font-semibold text-espresso mb-1.5">Nama Bahan <span class="text-red-500">*</span></label>
                     <input type="text" name="nama_bahan" id="nama_bahan" value="{{ old('nama_bahan') }}" required class="w-full px-4 py-2.5 text-sm bg-white border border-latte/60 rounded-xl focus:ring-2 focus:ring-caramel/30 focus:border-caramel outline-none transition" placeholder="Contoh: Kopi Arabica">
                     @error('nama_bahan') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
                 </div>
-                <div class="w-32">
+                <div class="w-full sm:w-32">
                     <label for="satuan" class="block text-sm font-semibold text-espresso mb-1.5">Satuan <span class="text-red-500">*</span></label>
                     <input type="text" name="satuan" id="satuan" value="{{ old('satuan') }}" required class="w-full px-4 py-2.5 text-sm bg-white border border-latte/60 rounded-xl focus:ring-2 focus:ring-caramel/30 focus:border-caramel outline-none transition" placeholder="gram">
                     @error('satuan') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
                 </div>
-                <div class="w-32">
+                <div class="w-full sm:w-32">
                     <label for="stok" class="block text-sm font-semibold text-espresso mb-1.5">Stok Awal <span class="text-red-500">*</span></label>
                     <input type="number" name="stok" id="stok" value="{{ old('stok', 0) }}" required min="0" step="0.01" class="w-full px-4 py-2.5 text-sm bg-white border border-latte/60 rounded-xl focus:ring-2 focus:ring-caramel/30 focus:border-caramel outline-none transition" placeholder="0">
                     @error('stok') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
                 </div>
-                <button type="submit" class="inline-flex items-center gap-2 bg-espresso hover:bg-espresso-light text-cream text-sm font-semibold px-5 py-2.5 rounded-xl transition-all hover:shadow-md shrink-0">
+                <button type="submit" class="w-full sm:w-auto inline-flex justify-center items-center gap-2 bg-espresso hover:bg-espresso-light text-cream text-sm font-semibold px-5 py-2.5 rounded-xl transition-all hover:shadow-md shrink-0">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
                     Tambah
                 </button>
@@ -34,12 +34,12 @@
         </div>
 
         {{-- Search --}}
-        <form method="GET" action="{{ route('pemilik.materials.index') }}" class="flex items-center gap-3">
+        <form method="GET" action="{{ route('pemilik.materials.index') }}" class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
             <div class="relative flex-1">
                 <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-caramel" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
                 <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari bahan baku..." class="w-full pl-10 pr-4 py-2.5 text-sm bg-white border border-latte/60 rounded-xl focus:ring-2 focus:ring-caramel/30 focus:border-caramel outline-none transition">
             </div>
-            <button type="submit" class="bg-espresso/10 hover:bg-espresso/20 text-espresso text-sm font-medium px-4 py-2.5 rounded-xl transition">Cari</button>
+            <button type="submit" class="w-full sm:w-auto bg-espresso/10 hover:bg-espresso/20 text-espresso text-sm font-medium px-4 py-2.5 rounded-xl transition">Cari</button>
             @if(request('search'))
                 <a href="{{ route('pemilik.materials.index') }}" class="text-sm text-caramel hover:text-espresso transition">Reset</a>
             @endif
@@ -127,7 +127,7 @@
                     <label for="edit-nama" class="block text-sm font-semibold text-espresso mb-1.5">Nama Bahan</label>
                     <input type="text" name="nama_bahan" id="edit-nama" required class="w-full px-4 py-2.5 text-sm bg-white border border-latte/60 rounded-xl focus:ring-2 focus:ring-caramel/30 focus:border-caramel outline-none transition">
                 </div>
-                <div class="flex gap-3">
+                <div class="flex flex-col sm:flex-row gap-3">
                     <div class="flex-1">
                         <label for="edit-satuan" class="block text-sm font-semibold text-espresso mb-1.5">Satuan</label>
                         <input type="text" name="satuan" id="edit-satuan" required class="w-full px-4 py-2.5 text-sm bg-white border border-latte/60 rounded-xl focus:ring-2 focus:ring-caramel/30 focus:border-caramel outline-none transition">
@@ -138,8 +138,8 @@
                     </div>
                 </div>
                 <div class="flex items-center gap-3 pt-2">
-                    <button type="submit" class="bg-espresso hover:bg-espresso-light text-cream text-sm font-semibold px-5 py-2.5 rounded-xl transition-all">Simpan</button>
-                    <button type="button" onclick="closeEditModal()" class="text-sm text-caramel hover:text-espresso transition font-medium px-4 py-2.5">Batal</button>
+                    <button type="submit" class="w-full sm:w-auto bg-espresso hover:bg-espresso-light text-cream text-sm font-semibold px-5 py-2.5 rounded-xl transition-all">Simpan</button>
+                    <button type="button" onclick="closeEditModal()" class="w-full sm:w-auto text-center text-sm text-caramel hover:text-espresso transition font-medium px-4 py-2.5 border border-transparent hover:border-latte/60 rounded-xl">Batal</button>
                 </div>
             </form>
         </div>

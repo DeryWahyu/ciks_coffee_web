@@ -71,6 +71,7 @@ Route::middleware(['auth', CheckRole::class . ':pemilik'])
         Route::get('/users/create', [UserController::class, 'create'])->name('users.create');
         Route::post('/users', [UserController::class, 'store'])->name('users.store');
         Route::patch('/users/{user}/toggle-status', [UserController::class, 'toggleStatus'])->name('users.toggle-status');
+        Route::patch('/users/{user}/reset-password', [UserController::class, 'resetPassword'])->name('users.reset-password');
 
         // Kelola Data Produk & Harga
         Route::get('/products', [ProductController::class, 'index'])->name('products.index');

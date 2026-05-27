@@ -141,7 +141,7 @@ class OrderController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $orders->map(fn($order) => $this->formatOrder($order)),
+            'data' => $orders->map(fn(Order $order) => $this->formatOrder($order)),
         ]);
     }
 
@@ -158,7 +158,7 @@ class OrderController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $orders->map(fn($order) => $this->formatOrder($order)),
+            'data' => $orders->map(fn(Order $order) => $this->formatOrder($order)),
         ]);
     }
 

@@ -96,9 +96,9 @@
         .image-overlay {
             background: linear-gradient(
                 to right,
-                rgba(27, 15, 11, 0.3) 0%,
-                rgba(27, 15, 11, 0.1) 50%,
-                rgba(27, 15, 11, 0.4) 100%
+                rgba(27, 15, 11, 0.6) 0%,
+                rgba(27, 15, 11, 0.45) 50%,
+                rgba(27, 15, 11, 0.7) 100%
             );
         }
     </style>
@@ -108,7 +108,7 @@
         {{-- Left Side - Coffee Shop Image --}}
         <div class="hidden lg:flex lg:w-1/2 relative overflow-hidden">
             <img
-                src="{{ asset('images/coffee-shop-bg.png') }}"
+                src="{{ asset('images/background-Login.png') }}"
                 alt="Ciks Coffee Interior"
                 class="absolute inset-0 w-full h-full object-cover"
                 id="login-bg-image"

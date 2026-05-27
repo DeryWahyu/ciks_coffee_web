@@ -547,19 +547,28 @@
 
         fetch('/karyawan/pos/checkout', {
             method: 'POST',
-            headers: {'Content-Type':'application/json','X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content},
+            headers: {'Content-Type':'application/json', 'Accept':'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content},
             body: JSON.stringify({
                 customer_name: name, payment_method: method, cash_received: method === 'cash' ? cash : null,
                 items: cart.map(i => ({product_id: i.id, variant: i.variant, quantity: i.qty, price: i.price}))
             })
-        }).then(r => r.json()).then(data => {
+        }).then(async r => {
+            if (!r.ok) {
+                const errData = await r.json();
+                if (errData.errors) {
+                    throw new Error(Object.values(errData.errors)[0][0]);
+                }
+                throw new Error(errData.message || 'Gagal memproses pesanan.');
+            }
+            return r.json();
+        }).then(data => {
             btn.disabled = false; btn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>Bayar Sekarang';
             if (data.success) {
                 closeCheckout();
                 cart = []; renderCart();
                 showReceipt(data.order);
-            } else { alert('Gagal memproses pesanan.'); }
-        }).catch(() => { btn.disabled = false; btn.textContent = 'Bayar Sekarang'; alert('Terjadi kesalahan.'); });
+            } else { alert(data.message || 'Gagal memproses pesanan.'); }
+        }).catch((err) => { btn.disabled = false; btn.textContent = 'Bayar Sekarang'; alert(err.message || 'Terjadi kesalahan koneksi.'); });
     }
 
     function showReceipt(order) {

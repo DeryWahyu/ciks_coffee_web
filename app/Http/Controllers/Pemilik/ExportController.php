@@ -24,7 +24,7 @@ class ExportController extends Controller
      */
     private function buildQuery(Request $request)
     {
-        $query = Order::with(['items', 'user'])
+        $query = Order::with(['items', 'user', 'cashier'])
             ->whereIn('status', ['selesai', 'diambil']);
 
         if ($request->filled('date_from')) {
@@ -71,7 +71,7 @@ class ExportController extends Controller
                     $order->order_number,
                     $order->created_at->format('d/m/Y H:i'),
                     $order->customer_name,
-                    $order->user?->name ?? '-',
+                    $order->cashier?->name ?? '-',
                     strtoupper($order->payment_method),
                     $items,
                     $order->total,
@@ -119,7 +119,7 @@ class ExportController extends Controller
             $sheet->setCellValue("B{$row}", $order->order_number);
             $sheet->setCellValue("C{$row}", $order->created_at->format('d/m/Y H:i'));
             $sheet->setCellValue("D{$row}", $order->customer_name);
-            $sheet->setCellValue("E{$row}", $order->user?->name ?? '-');
+            $sheet->setCellValue("E{$row}", $order->cashier?->name ?? '-');
             $sheet->setCellValue("F{$row}", strtoupper($order->payment_method));
             $sheet->setCellValue("G{$row}", $items);
             $sheet->setCellValue("H{$row}", (float) $order->total);

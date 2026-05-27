@@ -65,7 +65,7 @@ class DashboardController extends Controller
             ->get();
 
         // Recent 5 orders
-        $recentOrders = Order::with('user')
+        $recentOrders = Order::with(['user', 'cashier'])
             ->latest()
             ->limit(5)
             ->get();

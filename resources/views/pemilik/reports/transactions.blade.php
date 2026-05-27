@@ -78,7 +78,7 @@
                 </div>
                 <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-caramel-dark mb-2">
                     <span><span class="font-medium text-espresso">{{ $order->customer_name }}</span></span>
-                    <span>Kasir: {{ $order->user->name ?? '-' }}</span>
+                    <span>Kasir: {{ $order->cashier->name ?? '-' }}</span>
                     <span>{{ $order->created_at->format('d/m/Y H:i') }}</span>
                 </div>
                 <div class="flex flex-wrap gap-1.5">

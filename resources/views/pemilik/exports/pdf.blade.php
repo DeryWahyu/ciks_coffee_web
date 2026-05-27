@@ -56,7 +56,7 @@
                 <td>{{ $order->order_number }}</td>
                 <td>{{ $order->created_at->format('d/m/Y H:i') }}</td>
                 <td>{{ $order->customer_name }}</td>
-                <td>{{ $order->user?->name ?? '-' }}</td>
+                <td>{{ $order->cashier?->name ?? '-' }}</td>
                 <td>{{ strtoupper($order->payment_method) }}</td>
                 <td>
                     @foreach($order->items as $item)

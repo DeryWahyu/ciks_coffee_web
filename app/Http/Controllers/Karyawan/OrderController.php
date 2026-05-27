@@ -57,7 +57,7 @@ class OrderController extends Controller
     public function history(Request $request)
     {
         $userId = $request->user()->id;
-        $query = Order::with(['items', 'user'])->where('cashier_id', $userId)->latest();
+        $query = Order::with(['items', 'user', 'cashier'])->where('cashier_id', $userId)->latest();
 
         // Search by order number or customer name
         if ($search = $request->get('search')) {
@@ -115,7 +115,7 @@ class OrderController extends Controller
      */
     public function show(Order $order)
     {
-        $order->load(['items', 'user']);
+        $order->load(['items', 'user', 'cashier']);
 
         return response()->json([
             'id' => $order->id,
@@ -131,7 +131,7 @@ class OrderController extends Controller
             'status_color' => $order->status_color,
             'paid_at' => $order->paid_at?->format('d/m/Y H:i'),
             'created_at' => $order->created_at->format('d/m/Y H:i'),
-            'cashier' => $order->user->name ?? '-',
+            'cashier' => $order->cashier->name ?? '-',
             'items' => $order->items->map(fn($i) => [
                 'product_name' => $i->product_name,
                 'variant' => $i->variant,
@@ -219,7 +219,7 @@ class OrderController extends Controller
      */
     public function receipt(Order $order)
     {
-        $order->load('items', 'user');
+        $order->load(['items', 'user', 'cashier']);
 
         return response()->json([
             'order_number' => $order->order_number,
@@ -231,7 +231,7 @@ class OrderController extends Controller
             'change_amount' => $order->change_amount,
             'status_label' => $order->status_label,
             'paid_at' => $order->paid_at?->format('d/m/Y H:i'),
-            'cashier' => $order->user->name,
+            'cashier' => $order->cashier->name ?? '-',
             'items' => $order->items->map(fn($i) => [
                 'product_name' => $i->product_name,
                 'quantity' => $i->quantity,

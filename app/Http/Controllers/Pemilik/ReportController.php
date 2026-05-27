@@ -85,7 +85,7 @@ class ReportController extends Controller
      */
     public function transactions(Request $request)
     {
-        $query = Order::with(['items', 'user'])->latest();
+        $query = Order::with(['items', 'user', 'cashier'])->latest();
 
         if ($search = $request->get('search')) {
             $query->where(function ($q) use ($search) {

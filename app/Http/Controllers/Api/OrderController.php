@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 use Illuminate\Support\Facades\Storage;
-
+use Illuminate\Validation\ValidationException;
 class OrderController extends Controller
 {
     /**
@@ -59,10 +59,34 @@ class OrderController extends Controller
                 ];
             }
 
-            $cashReceived = $validated['payment_method'] === 'cash'
-                ? ($validated['cash_received'] ?? $total)
-                : null;
+            if ($validated['payment_method'] === 'cash') {
+                $cashReceived = $validated['cash_received'] ?? $total;
+                if ($cashReceived < $total) {
+                    throw ValidationException::withMessages([
+                        'cash_received' => 'Uang diterima kurang dari total belanja.'
+                    ]);
+                }
+            } else {
+                $cashReceived = null;
+            }
+
             $changeAmount = $cashReceived ? max(0, $cashReceived - $total) : null;
+
+            // Validate Stock BEFORE creating order
+            foreach ($validated['items'] as $item) {
+                $product = Product::with('ingredients')->find($item['product_id']);
+                $variant = $item['variant'] ?? null;
+                $ingredients = $product->ingredientsByVariant($variant);
+
+                foreach ($ingredients as $ingredient) {
+                    $required = $ingredient->pivot->quantity * $item['quantity'];
+                    if ($ingredient->stok < $required) {
+                        throw ValidationException::withMessages([
+                            'items' => "Stok bahan {$ingredient->nama_bahan} tidak cukup untuk produk {$product->name}."
+                        ]);
+                    }
+                }
+            }
 
             // Handle payment proof upload
             $paymentProofPath = null;

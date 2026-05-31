@@ -110,7 +110,7 @@
 
             @if ($ingredients->hasPages())
                 <div class="px-6 py-4 border-t border-latte/30">
-                    {{ $ingredients->links() }}
+                    {{ $ingredients->links('components.pagination') }}
                 </div>
             @endif
         </div>

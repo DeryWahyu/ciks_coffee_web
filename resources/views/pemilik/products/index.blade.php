@@ -131,6 +131,6 @@
     </div>
 
     @if ($products->hasPages())
-        <div class="mt-6">{{ $products->links() }}</div>
+        <div class="mt-6">{{ $products->links('components.pagination') }}</div>
     @endif
 @endsection

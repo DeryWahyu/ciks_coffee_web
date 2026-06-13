@@ -205,6 +205,14 @@ class ProductController extends Controller
      */
     public function destroy(Product $product)
     {
+        // Check if the product has transaction history
+        $hasTransactions = \DB::table('order_items')->where('product_id', $product->id)->exists();
+
+        if ($hasTransactions) {
+            return redirect()->route('pemilik.products.index')
+                ->with('error', 'Produk tidak dapat dihapus karena sudah memiliki riwayat transaksi/pesanan. Anda dapat menonaktifkan produk ini sebagai gantinya.');
+        }
+
         if ($product->image) {
             Storage::disk('public')->delete($product->image);
         }

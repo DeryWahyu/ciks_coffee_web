@@ -19,7 +19,7 @@ class TenProductsSeeder extends Seeder
                 'description' => 'Espresso premium dengan biji kopi pilihan.',
                 'price' => 15000,
                 'price_lite' => 12000,
-                'image' => 'products/espresso.jpg',
+                'image' => 'images/seed_produk/espresso.jpg',
                 'is_active' => true,
                 'ingredients' => [
                     'base' => [1 => 18], // Biji Kopi Espresso
@@ -32,7 +32,7 @@ class TenProductsSeeder extends Seeder
                 'description' => 'Espresso dengan susu UHT hangat dan busa lembut.',
                 'price' => 22000,
                 'price_lite' => 18000,
-                'image' => 'products/cappuccino.jpg',
+                'image' => 'images/seed_produk/cappuccino.jpg',
                 'is_active' => true,
                 'ingredients' => [
                     'base' => [1 => 18, 2 => 150], // Biji Kopi Espresso, Susu UHT
@@ -45,7 +45,7 @@ class TenProductsSeeder extends Seeder
                 'description' => 'Es kopi susu kekinian dengan rasa manis gula aren asli.',
                 'price' => 18000,
                 'price_lite' => 15000,
-                'image' => 'products/kopi_susu_aren.jpg',
+                'image' => 'images/seed_produk/kopi_susu_aren.jpg',
                 'is_active' => true,
                 'ingredients' => [
                     'base' => [1 => 18, 2 => 120],
@@ -58,7 +58,7 @@ class TenProductsSeeder extends Seeder
                 'description' => 'Minuman susu krim dengan bubuk matcha Jepang berkualitas tinggi.',
                 'price' => 20000,
                 'price_lite' => null,
-                'image' => 'products/matcha_latte.jpg',
+                'image' => 'images/seed_produk/matcha_latte.jpg',
                 'is_active' => true,
                 'ingredients' => [
                     'base' => [2 => 200], // Susu UHT
@@ -70,7 +70,7 @@ class TenProductsSeeder extends Seeder
                 'description' => 'Susu cokelat segar diblender dengan es krim cokelat lembut.',
                 'price' => 22000,
                 'price_lite' => null,
-                'image' => 'products/chocolate_milkshake.jpg',
+                'image' => 'images/seed_produk/chocolate_milkshake.jpg',
                 'is_active' => true,
                 'ingredients' => [
                     'base' => [2 => 200],
@@ -82,7 +82,7 @@ class TenProductsSeeder extends Seeder
                 'description' => 'Kentang goreng renyah disajikan dengan saus sambal dan mayones.',
                 'price' => 15000,
                 'price_lite' => null,
-                'image' => 'products/french_fries.jpg',
+                'image' => 'images/seed_produk/french_fries.jpg',
                 'is_active' => true,
                 'ingredients' => [
                     'base' => [3 => 1, 4 => 2, 5 => 100], // Kentang Frozen, Garam, Minyak Goreng
@@ -94,7 +94,7 @@ class TenProductsSeeder extends Seeder
                 'description' => 'Pastry khas Perancis yang renyah dengan isian cokelat melimpah.',
                 'price' => 18000,
                 'price_lite' => null,
-                'image' => 'products/croissant.jpg',
+                'image' => 'images/seed_produk/croissant.jpg',
                 'is_active' => true,
                 'ingredients' => [
                     'base' => [4 => 1],
@@ -106,7 +106,7 @@ class TenProductsSeeder extends Seeder
                 'description' => 'Minuman lemon segar bersoda yang melepas dahaga.',
                 'price' => 16000,
                 'price_lite' => null,
-                'image' => 'products/lemon_squash.jpg',
+                'image' => 'images/seed_produk/lemon_squash.jpg',
                 'is_active' => true,
                 'ingredients' => [
                     'base' => [4 => 2],
@@ -118,7 +118,7 @@ class TenProductsSeeder extends Seeder
                 'description' => 'Teh manis dingin dengan buah leci segar.',
                 'price' => 15000,
                 'price_lite' => null,
-                'image' => 'products/lychee_tea.jpg',
+                'image' => 'images/seed_produk/lychee_tea.jpg',
                 'is_active' => true,
                 'ingredients' => [
                     'base' => [4 => 1],
@@ -130,7 +130,7 @@ class TenProductsSeeder extends Seeder
                 'description' => 'Nasi goreng khas Ciks Coffee dengan telur mata sapi dan kerupuk.',
                 'price' => 25000,
                 'price_lite' => null,
-                'image' => 'products/nasi_goreng.jpg',
+                'image' => 'images/seed_produk/nasi_goreng.jpg',
                 'is_active' => true,
                 'ingredients' => [
                     'base' => [4 => 2, 5 => 20], // Garam, Minyak Goreng

@@ -61,5 +61,6 @@ jobs:
             docker run -d \
               --name ciks-coffee-web \
               --restart unless-stopped \
+              --network npm-network \
               $IMAGE_NAME
             

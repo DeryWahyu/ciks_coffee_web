@@ -26,7 +26,7 @@ class ProductController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Product::with('category')->where('is_active', true);
+        $query = Product::with(['category', 'ingredients'])->where('is_active', true);
 
         if ($request->has('category_id') && $request->category_id != 'all') {
             $query->where('category_id', $request->category_id);
@@ -38,9 +38,12 @@ class ProductController extends Controller
 
         $products = $query->latest()->get();
 
-        // Map products to include the relative image URL
+        // Map products to include the relative image URL + ketersediaan stok bahan
         $products->map(function ($product) {
             $product->image_url = $product->image ? 'storage/' . $product->image : null;
+            $reason = null;
+            $product->is_available = $product->isAvailable($reason);
+            $product->unavailable_reason = $product->is_available ? null : $reason;
             return $product;
         });
 

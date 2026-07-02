@@ -1,4 +1,4 @@
-# Stage 1: Build PHP dependencies
+﻿# Stage 1: Build PHP dependencies
 FROM composer:2.7 AS vendor
 WORKDIR /app
 COPY composer.json composer.lock ./
@@ -26,13 +26,18 @@ RUN apt-get update && apt-get install -y \
     libpng-dev \
     libonig-dev \
     libxml2-dev \
+    libzip-dev \
     zip \
     unzip \
     curl \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Install PHP extensions
-RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd
+# Install PHP extensions (zip required by PhpSpreadsheet Xlsx writer)
+RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip
+
+# PHP configuration for export features (Excel/PDF require more memory & time)
+RUN echo "memory_limit = 512M" > /usr/local/etc/php/conf.d/zz-export.ini \
+    && echo "max_execution_time = 120" >> /usr/local/etc/php/conf.d/zz-export.ini
 
 # Copy PHP dependencies from vendor stage
 COPY --from=vendor /app/vendor/ /var/www/html/vendor/

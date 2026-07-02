@@ -57,6 +57,42 @@ class Product extends Model
     }
 
     /**
+     * Cek ketersediaan produk berdasarkan stok bahan baku.
+     *
+     * Produk dianggap tersedia bila untuk setiap varian yang dijual
+     * (coffee: base selalu, lite bila ada price_lite; non-coffee: default)
+     * seluruh bahannya cukup untuk 1 porsi. Variabel $reason akan berisi
+     * keterangan bahan yang kurang (untuk pesan ke klien).
+     */
+    public function isAvailable(?string &$reason = null): bool
+    {
+        $variantsToCheck = [];
+        $isCoffee = $this->category && $this->category->isCoffee();
+
+        if ($isCoffee) {
+            $variantsToCheck[] = 'base';
+            if ($this->price_lite !== null) {
+                $variantsToCheck[] = 'lite';
+            }
+        } else {
+            $variantsToCheck[] = null;
+        }
+
+        foreach ($variantsToCheck as $variant) {
+            $ingredients = $this->ingredientsByVariant($variant);
+            foreach ($ingredients as $ingredient) {
+                if ($ingredient->stok < $ingredient->pivot->quantity) {
+                    $variantLabel = $variant ? ' (' . ucfirst($variant) . ')' : '';
+                    $reason = "Bahan {$ingredient->nama_bahan} kurang untuk {$this->name}{$variantLabel}.";
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    /**
      * Check if product has lite pricing (coffee only).
      */
     public function hasLitePrice(): bool

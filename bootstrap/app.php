@@ -21,6 +21,9 @@ return Application::configure(basePath: dirname(__DIR__))
                 default => '/login',
             };
         });
+
+        // Trust reverse proxy (Nginx Proxy Manager) agar skema HTTPS & host terdeteksi
+        $middleware->trustProxies(at: '*');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

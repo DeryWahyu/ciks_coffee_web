@@ -47,7 +47,7 @@
             </div>
         </div>
         <p class="text-xs text-caramel-dark mb-4">Format ringan yang dapat dibuka di Excel, Google Sheets, dan aplikasi spreadsheet lainnya.</p>
-        <button onclick="exportData('csv')" class="w-full py-2.5 bg-green-600 text-white font-semibold text-sm rounded-xl hover:bg-green-700 transition-all flex items-center justify-center gap-2">
+        <button onclick="exportData('csv', this)" class="w-full py-2.5 bg-green-600 text-white font-semibold text-sm rounded-xl hover:bg-green-700 transition-all flex items-center justify-center gap-2">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
             Unduh CSV
         </button>
@@ -65,7 +65,7 @@
             </div>
         </div>
         <p class="text-xs text-caramel-dark mb-4">Format Excel lengkap dengan header berwarna, auto-width kolom, dan format angka otomatis.</p>
-        <button onclick="exportData('excel')" class="w-full py-2.5 bg-emerald-600 text-white font-semibold text-sm rounded-xl hover:bg-emerald-700 transition-all flex items-center justify-center gap-2">
+        <button onclick="exportData('excel', this)" class="w-full py-2.5 bg-emerald-600 text-white font-semibold text-sm rounded-xl hover:bg-emerald-700 transition-all flex items-center justify-center gap-2">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
             Unduh Excel
         </button>
@@ -83,7 +83,7 @@
             </div>
         </div>
         <p class="text-xs text-caramel-dark mb-4">Laporan PDF landscape dengan branding Ciks Coffee, siap untuk dicetak atau di-share.</p>
-        <button onclick="exportData('pdf')" class="w-full py-2.5 bg-red-600 text-white font-semibold text-sm rounded-xl hover:bg-red-700 transition-all flex items-center justify-center gap-2">
+        <button onclick="exportData('pdf', this)" class="w-full py-2.5 bg-red-600 text-white font-semibold text-sm rounded-xl hover:bg-red-700 transition-all flex items-center justify-center gap-2">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
             Unduh PDF
         </button>
@@ -132,7 +132,7 @@
 
 @push('scripts')
 <script>
-function exportData(format) {
+async function exportData(format, btn) {
     const params = new URLSearchParams();
     const dateFrom = document.getElementById('date_from').value;
     const dateTo = document.getElementById('date_to').value;
@@ -148,8 +148,43 @@ function exportData(format) {
         pdf: "{{ route('pemilik.exports.pdf') }}"
     };
 
-    const url = baseUrls[format] + '?' + params.toString();
-    window.location.href = url;
+    const exportPath = new URL(baseUrls[format], window.location.origin).pathname;
+    const fullUrl = window.location.origin + exportPath + '?' + params.toString();
+
+    const originalHtml = btn ? btn.innerHTML : null;
+    if (btn) { btn.disabled = true; btn.innerHTML = 'Memproses...'; }
+
+    try {
+        const res = await fetch(fullUrl, { credentials: 'same-origin' });
+        const contentType = res.headers.get('Content-Type') || '';
+
+        if (!res.ok || contentType.indexOf('text/html') !== -1) {
+            let msg = 'Gagal mengekspor data (status ' + res.status + ').';
+            if (contentType.indexOf('text/html') !== -1) {
+                msg = 'Sesi telah berakhir. Silakan muat ulang halaman lalu coba lagi.';
+            }
+            alert(msg);
+            return;
+        }
+
+        const blob = await res.blob();
+        let filename = 'laporan.' + format;
+        const disposition = res.headers.get('Content-Disposition') || '';
+        const match = disposition.match(/filename\*?=(?:UTF-8'')?"?([^";]+)"?/i);
+        if (match) filename = decodeURIComponent(match[1]);
+
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(a.href);
+    } catch (e) {
+        alert('Terjadi kesalahan saat mengekspor: ' + e.message);
+    } finally {
+        if (btn) { btn.disabled = false; btn.innerHTML = originalHtml; }
+    }
 }
 
 function resetFilters() {

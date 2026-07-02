@@ -104,7 +104,7 @@ class ExportController extends Controller
 
         $headers = ['No', 'No. Order', 'Tanggal', 'Pelanggan', 'Kasir', 'Metode Bayar', 'Item', 'Total (Rp)'];
         foreach ($headers as $col => $h) {
-            $sheet->setCellValue([\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col + 1) . '1'], $h);
+            $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col + 1) . '1', $h);
         }
         $sheet->getStyle('A1:H1')->applyFromArray($headerStyle);
 

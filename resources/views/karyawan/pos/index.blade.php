@@ -413,6 +413,34 @@
     }
 
     // === Cart ===
+    function getActiveIngredients(variant) {
+        if (!currentProduct || !currentProduct.ingredients) return [];
+        if (currentProduct.is_coffee) {
+            return currentProduct.ingredients[variant] || [];
+        }
+        return currentProduct.ingredients['default'] || [];
+    }
+
+    // Validasi stok bahan baku: cek kecukupan stok untuk kuantitas yang diminta,
+    // termasuk qty item+varian yang sama yang sudah ada di keranjang (akumulatif).
+    function validateIngredientStock(variant, requestedQty) {
+        const ingredients = getActiveIngredients(variant);
+        const cartKey = `${currentProduct.id}-${variant || 'default'}`;
+        const existingQty = (cart.find(i => i.key === cartKey)?.qty) || 0;
+        const totalQty = existingQty + requestedQty;
+
+        for (const ing of ingredients) {
+            const required = (parseFloat(ing.quantity) || 0) * totalQty;
+            if (parseFloat(ing.stok) < required) {
+                const need = required.toFixed(2).replace(/\.00$/, '');
+                const have = (parseFloat(ing.stok)).toFixed(2).replace(/\.00$/, '');
+                return `Stok bahan "${ing.nama_bahan}" tidak cukup untuk ${totalQty}x ${currentProduct.name}.` +
+                       `\nDibutuhkan: ${need} ${ing.satuan}, tersedia: ${have} ${ing.satuan}.`;
+            }
+        }
+        return null;
+    }
+
     function addToCartFromModal() {
         if (!currentProduct) return;
         const qty = parseInt(document.getElementById('modal-qty').value) || 1;
@@ -421,6 +449,13 @@
         if (currentProduct.is_coffee && currentProduct.price_lite) {
             variant = document.querySelector('input[name="variant"]:checked')?.value || 'base';
             price = variant === 'lite' ? parseFloat(currentProduct.price_lite) : parseFloat(currentProduct.price);
+        }
+
+        // Validasi stok bahan baku SEBELUM menambahkan ke keranjang
+        const stockError = validateIngredientStock(variant, qty);
+        if (stockError) {
+            alert(stockError);
+            return; // tahan modal tetap terbuka agar karyawan bisa sesuaikan jumlah
         }
 
         const cartKey = `${currentProduct.id}-${variant || 'default'}`;

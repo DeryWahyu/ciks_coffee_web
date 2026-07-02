@@ -18,7 +18,7 @@
         @if($qrisImage)
             <div class="flex flex-col items-center">
                 <div class="relative group">
-                    <img src="{{ asset('storage/' . $qrisImage) }}"
+                    <img src="{{ '/storage/' . $qrisImage }}"
                          alt="QRIS Ciks Coffee"
                          class="w-64 h-64 object-contain rounded-xl border-2 border-latte/40 bg-cream-light p-2">
                     <div class="absolute inset-0 bg-black/40 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">

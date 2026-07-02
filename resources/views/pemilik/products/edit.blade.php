@@ -49,7 +49,7 @@
                                 <p class="text-xs text-caramel">Klik untuk ganti gambar</p>
                                 <p class="text-[0.65rem] text-caramel/60 mt-1">JPG, PNG, WebP — Maks 2MB</p>
                             </div>
-                            <img id="image-preview" class="{{ $product->image ? '' : 'hidden' }} w-full h-full object-cover rounded-xl" src="{{ $product->image ? asset('storage/' . $product->image) : '' }}" alt="Preview">
+                            <img id="image-preview" class="{{ $product->image ? '' : 'hidden' }} w-full h-full object-cover rounded-xl" src="{{ $product->image ? '/storage/' . $product->image : '' }}" alt="Preview">
                         </div>
                     </div>
                     @error('image') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror

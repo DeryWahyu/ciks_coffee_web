@@ -1,6 +1,10 @@
 #!/bin/bash
 set -e
 
+# Buat symlink public/storage -> storage/app/public (agar gambar ter-serve langsung oleh nginx,
+# sama seperti junction di lingkungan lokal Windows). Idempoten: aman dijalankan berulang.
+php /var/www/html/artisan storage:link --no-interaction || true
+
 # Pastikan permission storage dan bootstrap/cache benar
 chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache

@@ -37,6 +37,10 @@ class Order extends Model
 
     /**
      * Generate unique order number: CK-YYYYMMDD-XXXX
+     *
+     * Uses lockForUpdate to prevent race conditions when called
+     * inside a DB transaction. The caller (controller) is responsible
+     * for wrapping the call in DB::transaction().
      */
     public static function generateOrderNumber(): string
     {
@@ -44,6 +48,7 @@ class Order extends Model
         $prefix = "CK-{$today}-";
 
         $lastOrder = static::where('order_number', 'like', $prefix . '%')
+            ->lockForUpdate()
             ->orderByDesc('order_number')
             ->first();
 

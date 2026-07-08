@@ -179,7 +179,7 @@ class PosController extends Controller
             }
 
             return $order;
-        });
+        }, 3);
 
         $order->load('items');
 

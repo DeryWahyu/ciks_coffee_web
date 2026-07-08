@@ -57,6 +57,18 @@ class Product extends Model
     }
 
     /**
+     * Get ingredients for a specific variant with a pessimistic lock.
+     *
+     * Must be called inside a DB::transaction() so the lock is held
+     * until commit, preventing concurrent reads from passing a stale
+     * stock check.
+     */
+    public function ingredientsByVariantLocked(?string $variant)
+    {
+        return $this->ingredients()->wherePivot('variant', $variant)->lockForUpdate()->get();
+    }
+
+    /**
      * Cek ketersediaan produk berdasarkan stok bahan baku.
      *
      * Produk dianggap tersedia bila untuk setiap varian yang dijual

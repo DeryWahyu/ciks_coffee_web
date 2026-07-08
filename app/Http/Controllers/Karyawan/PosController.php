@@ -133,11 +133,11 @@ class PosController extends Controller
 
             $changeAmount = $cashReceived ? max(0, $cashReceived - $total) : null;
 
-            // Validate Stock BEFORE creating order
+            // Validate Stock BEFORE creating order (locked to prevent race condition)
             foreach ($validated['items'] as $item) {
-                $product = Product::with('ingredients')->find($item['product_id']);
+                $product = Product::find($item['product_id']);
                 $variant = $item['variant'] ?? null;
-                $ingredients = $product->ingredientsByVariant($variant);
+                $ingredients = $product->ingredientsByVariantLocked($variant);
 
                 foreach ($ingredients as $ingredient) {
                     $required = $ingredient->pivot->quantity * $item['quantity'];
@@ -166,11 +166,11 @@ class PosController extends Controller
                 $order->items()->create($item);
             }
 
-            // Deduct ingredient stock
+            // Deduct ingredient stock (rows already locked above)
             foreach ($validated['items'] as $item) {
-                $product = Product::with('ingredients')->find($item['product_id']);
+                $product = Product::find($item['product_id']);
                 $variant = $item['variant'] ?? null;
-                $ingredients = $product->ingredientsByVariant($variant);
+                $ingredients = $product->ingredientsByVariantLocked($variant);
 
                 foreach ($ingredients as $ingredient) {
                     $deduction = $ingredient->pivot->quantity * $item['quantity'];

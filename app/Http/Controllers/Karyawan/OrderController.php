@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Order;
 use Illuminate\Http\Request;
 use App\Models\Product;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class OrderController extends Controller
 {
@@ -175,25 +177,44 @@ class OrderController extends Controller
             return back()->with('error', 'Pesanan ini tidak memerlukan verifikasi.');
         }
 
-        // Claim the order
-        $order->update([
-            'status' => 'antrian_baru',
-            'cashier_id' => $request->user()->id,
-        ]);
-
-        // Deduct ingredient stock now that payment is verified
-        $order->load('items');
-        foreach ($order->items as $item) {
-            $product = Product::with('ingredients')->find($item->product_id);
-            if ($product) {
-                $variant = $item->variant;
-                $ingredients = $product->ingredientsByVariant($variant);
-                foreach ($ingredients as $ingredient) {
-                    $deduction = $ingredient->pivot->quantity * $item->quantity;
-                    $ingredient->decrement('stok', $deduction);
+        DB::transaction(function () use ($order, $request) {
+            // Validate stock with lock before deducting
+            $order->load('items');
+            foreach ($order->items as $item) {
+                $product = Product::find($item->product_id);
+                if ($product) {
+                    $variant = $item->variant;
+                    $ingredients = $product->ingredientsByVariantLocked($variant);
+                    foreach ($ingredients as $ingredient) {
+                        $required = $ingredient->pivot->quantity * $item->quantity;
+                        if ($ingredient->stok < $required) {
+                            throw ValidationException::withMessages([
+                                'items' => "Stok bahan {$ingredient->nama_bahan} tidak cukup untuk produk {$product->name}."
+                            ]);
+                        }
+                    }
                 }
             }
-        }
+
+            // Deduct ingredient stock now that validation passed
+            foreach ($order->items as $item) {
+                $product = Product::find($item->product_id);
+                if ($product) {
+                    $variant = $item->variant;
+                    $ingredients = $product->ingredientsByVariantLocked($variant);
+                    foreach ($ingredients as $ingredient) {
+                        $deduction = $ingredient->pivot->quantity * $item->quantity;
+                        $ingredient->decrement('stok', $deduction);
+                    }
+                }
+            }
+
+            // Claim the order
+            $order->update([
+                'status' => 'antrian_baru',
+                'cashier_id' => $request->user()->id,
+            ]);
+        }, 3);
 
         return back()->with('success', "Pembayaran #{$order->order_number} berhasil diverifikasi. Pesanan masuk antrean.");
     }

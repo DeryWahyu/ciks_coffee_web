@@ -27,7 +27,6 @@ class OrderController extends Controller
             'items.*.product_id' => 'required|exists:products,id',
             'items.*.variant'    => 'nullable|in:base,lite',
             'items.*.quantity'   => 'required|integer|min:1',
-            'items.*.price'      => 'required|numeric|min:0',
             'payment_proof'  => 'nullable|image|mimes:jpg,jpeg,png,webp|max:3072',
         ], [
             'items.required' => 'Pesanan tidak boleh kosong.',
@@ -40,10 +39,11 @@ class OrderController extends Controller
 
             foreach ($validated['items'] as $item) {
                 $product = Product::find($item['product_id']);
-                $subtotal = $item['price'] * $item['quantity'];
+                $variantLabel = $item['variant'] ?? null;
+                $unitPrice = ($variantLabel === 'lite' && $product->price_lite !== null) ? $product->price_lite : $product->price;
+                $subtotal = $unitPrice * $item['quantity'];
                 $total += $subtotal;
 
-                $variantLabel = $item['variant'] ?? null;
                 $productName = $product->name;
                 if ($variantLabel) {
                     $productName .= ' (' . ucfirst($variantLabel) . ')';
@@ -54,7 +54,7 @@ class OrderController extends Controller
                     'product_name' => $productName,
                     'variant'      => $variantLabel,
                     'quantity'     => $item['quantity'],
-                    'price'        => $item['price'],
+                    'price'        => $unitPrice,
                     'subtotal'     => $subtotal,
                 ];
             }

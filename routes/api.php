@@ -7,8 +7,8 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\OrderController;
 
-Route::post('/register', [AuthController::class, 'register']);
-Route::post('/login', [AuthController::class, 'login']);
+Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:5,1');
+Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
 
 // Public routes for fetching products and categories (can be accessed without auth if needed, but let's put it outside auth:sanctum for now or inside if we only want logged-in users to see them. Since the user said "setelah berhasil login", let's put it inside auth:sanctum to be secure).
 Route::middleware('auth:sanctum')->group(function () {
@@ -34,14 +34,16 @@ Route::middleware('auth:sanctum')->group(function () {
 // Serve storage files with CORS for Flutter Web local development
 Route::get('/image/{path}', function ($path) {
     $filePath = storage_path('app/public/' . $path);
-    
-    if (!file_exists($filePath)) {
+    $realPath = realpath($filePath);
+    $basePath = realpath(storage_path('app/public'));
+
+    if (!$realPath || !$basePath || !str_starts_with($realPath, $basePath . DIRECTORY_SEPARATOR)) {
         abort(404);
     }
-    
-    $file = file_get_contents($filePath);
-    $type = mime_content_type($filePath);
-    
+
+    $file = file_get_contents($realPath);
+    $type = mime_content_type($realPath);
+
     return Response::make($file, 200, [
         'Content-Type' => $type,
         'Access-Control-Allow-Origin' => '*',

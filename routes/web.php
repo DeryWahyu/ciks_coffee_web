@@ -24,14 +24,16 @@ use Illuminate\Support\Facades\Response;
 // Serve storage files with CORS for Flutter Web local development
 Route::get('/storage/{path}', function ($path) {
     $filePath = storage_path('app/public/' . $path);
-    
-    if (!file_exists($filePath)) {
+    $realPath = realpath($filePath);
+    $basePath = realpath(storage_path('app/public'));
+
+    if (!$realPath || !$basePath || !str_starts_with($realPath, $basePath . DIRECTORY_SEPARATOR)) {
         abort(404);
     }
-    
-    $file = file_get_contents($filePath);
-    $type = mime_content_type($filePath);
-    
+
+    $file = file_get_contents($realPath);
+    $type = mime_content_type($realPath);
+
     return Response::make($file, 200, [
         'Content-Type' => $type,
         'Access-Control-Allow-Origin' => '*',
@@ -47,7 +49,7 @@ Route::get('/storage/{path}', function ($path) {
 Route::middleware('guest')->group(function () {
     Route::get('/', fn() => redirect()->route('login'));
     Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
-    Route::post('/login', [LoginController::class, 'login']);
+    Route::post('/login', [LoginController::class, 'login'])->middleware('throttle:5,1');
 });
 
 Route::post('/logout', [LoginController::class, 'logout'])

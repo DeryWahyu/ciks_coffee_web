@@ -48,11 +48,21 @@ class LoginController extends Controller
                 ])->onlyInput('email');
             }
 
+            // Only pemilik and karyawan may use the web interface
+            if (!in_array($user->role, ['pemilik', 'karyawan'])) {
+                Auth::logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+
+                return back()->withErrors([
+                    'email' => 'Akun Anda tidak memiliki akses ke panel web.',
+                ])->onlyInput('email');
+            }
+
             // Redirect based on role
             return match ($user->role) {
                 'pemilik' => redirect()->intended(route('pemilik.dashboard')),
                 'karyawan' => redirect()->intended(route('karyawan.dashboard')),
-                default => redirect()->route('login'),
             };
         }
 

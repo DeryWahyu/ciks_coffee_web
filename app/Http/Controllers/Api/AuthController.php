@@ -23,7 +23,7 @@ class AuthController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'phone' => $request->phone,
-            'password' => Hash::make($request->password),
+            'password' => $request->password,
             'role' => User::ROLE_PENGGUNA,
         ]);
 
@@ -52,8 +52,17 @@ class AuthController extends Controller
             ]);
         }
 
-        // Only allow 'pengguna' to login via this mobile API, or allow any role if needed.
-        // I will allow any role just in case they want to make an employee app later, but default users are 'pengguna'.
+        if ($user->role !== User::ROLE_PENGGUNA) {
+            throw ValidationException::withMessages([
+                'email' => ['Akun ini tidak dapat digunakan untuk login di aplikasi mobile.'],
+            ]);
+        }
+
+        if (!$user->is_active) {
+            throw ValidationException::withMessages([
+                'email' => ['Akun Anda telah dinonaktifkan.'],
+            ]);
+        }
 
         $token = $user->createToken('auth_token')->plainTextToken;
 

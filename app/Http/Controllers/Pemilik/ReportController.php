@@ -135,7 +135,7 @@ class ReportController extends Controller
      */
     public function receipt(Order $order)
     {
-        $order->load('items', 'user');
+        $order->load('items', 'user', 'cashier');
 
         return response()->json([
             'order_number' => $order->order_number,
@@ -147,7 +147,7 @@ class ReportController extends Controller
             'change_amount' => $order->change_amount,
             'status_label' => $order->status_label,
             'paid_at' => $order->paid_at?->format('d/m/Y H:i'),
-            'cashier' => $order->user->name ?? '-',
+            'cashier' => $order->cashier->name ?? '-',
             'items' => $order->items->map(fn($i) => [
                 'product_name' => $i->product_name,
                 'quantity' => $i->quantity,

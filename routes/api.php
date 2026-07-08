@@ -46,7 +46,7 @@ Route::get('/image/{path}', function ($path) {
 
     return Response::make($file, 200, [
         'Content-Type' => $type,
-        'Access-Control-Allow-Origin' => '*',
+        'Access-Control-Allow-Origin' => config('app.url'),
         'Access-Control-Allow-Methods' => 'GET, OPTIONS',
     ]);
 })->where('path', '.*');

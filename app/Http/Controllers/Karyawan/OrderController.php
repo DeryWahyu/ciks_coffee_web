@@ -117,6 +117,10 @@ class OrderController extends Controller
      */
     public function show(Order $order)
     {
+        if ($order->cashier_id !== null && $order->cashier_id !== request()->user()->id) {
+            abort(403, 'Anda tidak memiliki akses ke pesanan ini.');
+        }
+
         $order->load(['items', 'user', 'cashier']);
 
         return response()->json([
@@ -240,6 +244,10 @@ class OrderController extends Controller
      */
     public function receipt(Order $order)
     {
+        if ($order->cashier_id !== null && $order->cashier_id !== request()->user()->id) {
+            abort(403, 'Anda tidak memiliki akses ke pesanan ini.');
+        }
+
         $order->load(['items', 'user', 'cashier']);
 
         return response()->json([

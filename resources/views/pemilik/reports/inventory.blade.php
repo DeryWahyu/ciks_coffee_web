@@ -10,8 +10,8 @@
 
 @section('content')
 {{-- Summary Cards --}}
-<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-    <div class="bg-white rounded-2xl shadow-sm border border-latte/50 p-5 relative overflow-hidden group">
+<div class="mb-4 grid grid-cols-1 gap-4 sm:mb-6 md:grid-cols-3">
+    <div class="group relative overflow-hidden rounded-2xl border border-latte/50 bg-white p-4 shadow-sm sm:p-5">
         <div class="absolute -right-4 -top-4 w-24 h-24 bg-latte/20 rounded-full group-hover:scale-110 transition-transform duration-500"></div>
         <div class="relative z-10">
             <div class="w-10 h-10 bg-latte/30 rounded-xl flex items-center justify-center mb-3">
@@ -22,7 +22,7 @@
         </div>
     </div>
     
-    <div class="bg-white rounded-2xl shadow-sm border border-latte/50 p-5 relative overflow-hidden group">
+    <div class="group relative overflow-hidden rounded-2xl border border-latte/50 bg-white p-4 shadow-sm sm:p-5">
         <div class="absolute -right-4 -top-4 w-24 h-24 bg-red-50 rounded-full group-hover:scale-110 transition-transform duration-500"></div>
         <div class="relative z-10">
             <div class="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center mb-3">
@@ -33,7 +33,7 @@
         </div>
     </div>
 
-    <div class="bg-white rounded-2xl shadow-sm border border-latte/50 p-5 relative overflow-hidden group">
+    <div class="group relative overflow-hidden rounded-2xl border border-latte/50 bg-white p-4 shadow-sm sm:p-5">
         <div class="absolute -right-4 -top-4 w-24 h-24 bg-green-50 rounded-full group-hover:scale-110 transition-transform duration-500"></div>
         <div class="relative z-10">
             <div class="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center mb-3">
@@ -45,25 +45,27 @@
     </div>
 </div>
 
-<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+<div class="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">
     {{-- Chart Section --}}
-    <div class="bg-white rounded-2xl shadow-sm border border-latte/50 p-5 lg:col-span-2">
-        <h3 class="font-bold text-espresso mb-4">Grafik 10 Bahan Baku dengan Stok Terendah</h3>
-        <div class="relative h-72 w-full">
-            <canvas id="inventoryChart"></canvas>
+    <div class="rounded-2xl border border-latte/50 bg-white p-4 shadow-sm sm:p-5 lg:col-span-2">
+        <h3 class="mb-4 text-sm font-bold leading-6 text-espresso sm:text-base">Grafik 10 Bahan Baku dengan Stok Terendah</h3>
+        <div class="overflow-x-auto overscroll-x-contain pb-1">
+            <div class="relative h-64 min-w-[520px] sm:h-72">
+                <canvas id="inventoryChart"></canvas>
+            </div>
         </div>
     </div>
 
     {{-- Details Table --}}
-    <div class="bg-white rounded-2xl shadow-sm border border-latte/50 overflow-hidden flex flex-col lg:col-span-2">
-        <div class="p-5 border-b border-latte/40 flex items-center justify-between">
+    <div class="flex flex-col overflow-hidden rounded-2xl border border-latte/50 bg-white shadow-sm lg:col-span-2">
+        <div class="flex flex-col gap-2 border-b border-latte/40 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
             <h3 class="font-bold text-espresso">Status Semua Bahan Baku</h3>
         </div>
-        <div class="p-0 overflow-x-auto">
+        <div class="overflow-x-auto overscroll-x-contain p-0">
             @if($ingredients->isEmpty())
                 <div class="p-8 text-center text-caramel-dark text-sm">Tidak ada data bahan baku.</div>
             @else
-                <table class="w-full text-left border-collapse min-w-[500px]">
+                <table class="min-w-[560px] w-full border-collapse text-left">
                     <thead>
                         <tr class="bg-latte/10 text-caramel border-b border-latte/40">
                             <th class="py-3 px-5 text-xs font-semibold uppercase tracking-wider">Nama Bahan</th>

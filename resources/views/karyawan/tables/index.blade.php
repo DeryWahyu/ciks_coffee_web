@@ -36,6 +36,7 @@
     @media (max-width:374px) { .status-choice-grid { grid-template-columns:1fr; } .table-current-status { align-items:flex-start; flex-direction:column; } }
     @media (min-width:640px) and (max-width:767px) { .table-stat-grid { grid-template-columns:repeat(3,minmax(0,1fr)); } .table-hero { padding:1.5rem; } .table-floor-scroll { padding:1rem; } .table-floor-canvas,.table-floor-empty { width:100%; min-width:0; } .table-modal-backdrop { align-items:center; } }
     @media (min-width:768px) { .table-stat-grid { grid-template-columns:repeat(5,minmax(0,1fr)); } .table-hero { padding:1.5rem; } .table-floor-scroll { padding:1rem; } .table-floor-canvas,.table-floor-empty { width:100%; min-width:0; } .table-modal-backdrop { align-items:center; } }
+    .floor-marker { font-family:var(--font-sans); }
 </style>
 @endpush
 

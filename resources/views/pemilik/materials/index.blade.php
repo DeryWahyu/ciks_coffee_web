@@ -5,28 +5,28 @@
 @section('page-description', 'Atur stok dan data bahan baku')
 
 @section('content')
-    <div class="w-full space-y-6">
+    <div class="w-full space-y-4 sm:space-y-6">
         {{-- Add Ingredient Form --}}
-        <div class="bg-white rounded-2xl shadow-sm border border-latte/50 p-6">
+        <div class="bg-white rounded-2xl shadow-sm border border-latte/50 p-4 sm:p-6">
             <h3 class="text-sm font-bold text-espresso uppercase tracking-wider mb-4">Tambah Bahan Baku Baru</h3>
-            <form method="POST" action="{{ route('pemilik.materials.store') }}" class="flex flex-col sm:flex-row sm:items-end gap-3">
+            <form method="POST" action="{{ route('pemilik.materials.store') }}" class="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:items-end xl:grid-cols-[minmax(0,1fr)_8rem_8rem_auto]">
                 @csrf
-                <div class="w-full sm:flex-1 sm:min-w-[180px]">
+                <div class="w-full">
                     <label for="nama_bahan" class="block text-sm font-semibold text-espresso mb-1.5">Nama Bahan <span class="text-red-500">*</span></label>
                     <input type="text" name="nama_bahan" id="nama_bahan" value="{{ old('nama_bahan') }}" required class="w-full px-4 py-2.5 text-sm bg-white border border-latte/60 rounded-xl focus:ring-2 focus:ring-caramel/30 focus:border-caramel outline-none transition" placeholder="Contoh: Kopi Arabica">
                     @error('nama_bahan') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
                 </div>
-                <div class="w-full sm:w-32">
+                <div class="w-full">
                     <label for="satuan" class="block text-sm font-semibold text-espresso mb-1.5">Satuan <span class="text-red-500">*</span></label>
                     <input type="text" name="satuan" id="satuan" value="{{ old('satuan') }}" required class="w-full px-4 py-2.5 text-sm bg-white border border-latte/60 rounded-xl focus:ring-2 focus:ring-caramel/30 focus:border-caramel outline-none transition" placeholder="gram">
                     @error('satuan') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
                 </div>
-                <div class="w-full sm:w-32">
+                <div class="w-full">
                     <label for="stok" class="block text-sm font-semibold text-espresso mb-1.5">Stok Awal <span class="text-red-500">*</span></label>
                     <input type="number" name="stok" id="stok" value="{{ old('stok', 0) }}" required min="0" step="0.01" class="w-full px-4 py-2.5 text-sm bg-white border border-latte/60 rounded-xl focus:ring-2 focus:ring-caramel/30 focus:border-caramel outline-none transition" placeholder="0">
                     @error('stok') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
                 </div>
-                <button type="submit" class="w-full sm:w-auto inline-flex justify-center items-center gap-2 bg-espresso hover:bg-espresso-light text-cream text-sm font-semibold px-5 py-2.5 rounded-xl transition-all hover:shadow-md shrink-0">
+                <button type="submit" class="inline-flex w-full justify-center items-center gap-2 rounded-xl bg-espresso px-5 py-2.5 text-sm font-semibold text-cream transition-all hover:bg-espresso-light hover:shadow-md sm:col-span-2 xl:col-span-1 xl:w-auto">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
                     Tambah
                 </button>
@@ -47,20 +47,20 @@
 
         {{-- Ingredients Table --}}
         <div class="bg-white rounded-2xl shadow-sm border border-latte/50 overflow-hidden">
-            <div class="overflow-x-auto">
-                <table class="w-full" id="materials-table">
+            <div class="overflow-x-auto overscroll-x-contain">
+                <table class="w-full min-w-[620px]" id="materials-table">
                     <thead>
                         <tr class="border-b border-latte/40">
-                            <th class="text-left px-6 py-4 text-xs font-bold text-espresso uppercase tracking-wider">Nama Bahan</th>
-                            <th class="text-left px-6 py-4 text-xs font-bold text-espresso uppercase tracking-wider">Satuan</th>
-                            <th class="text-right px-6 py-4 text-xs font-bold text-espresso uppercase tracking-wider">Stok</th>
-                            <th class="text-center px-6 py-4 text-xs font-bold text-espresso uppercase tracking-wider">Aksi</th>
+                            <th class="px-4 py-4 text-left text-xs font-bold uppercase tracking-wider text-espresso sm:px-6">Nama Bahan</th>
+                            <th class="px-4 py-4 text-left text-xs font-bold uppercase tracking-wider text-espresso sm:px-6">Satuan</th>
+                            <th class="px-4 py-4 text-right text-xs font-bold uppercase tracking-wider text-espresso sm:px-6">Stok</th>
+                            <th class="px-4 py-4 text-center text-xs font-bold uppercase tracking-wider text-espresso sm:px-6">Aksi</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-latte/20">
                         @forelse ($ingredients as $item)
                             <tr class="hover:bg-cream/30 transition-colors" id="ingredient-{{ $item->id }}">
-                                <td class="px-6 py-4">
+                                <td class="px-4 py-4 sm:px-6">
                                     <div class="flex items-center gap-3">
                                         <div class="w-8 h-8 bg-espresso/10 rounded-lg flex items-center justify-center">
                                             <svg class="w-4 h-4 text-espresso" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375"/></svg>
@@ -68,8 +68,8 @@
                                         <span class="text-sm font-medium text-espresso">{{ $item->nama_bahan }}</span>
                                     </div>
                                 </td>
-                                <td class="px-6 py-4 text-sm text-caramel-dark">{{ $item->satuan }}</td>
-                                <td class="px-6 py-4 text-right">
+                                <td class="px-4 py-4 text-sm text-caramel-dark sm:px-6">{{ $item->satuan }}</td>
+                                <td class="px-4 py-4 text-right sm:px-6">
                                     <span class="text-sm font-semibold {{ $item->stok <= 10 ? 'text-red-600' : 'text-espresso' }}">
                                         {{ number_format($item->stok, $item->stok == intval($item->stok) ? 0 : 2, ',', '.') }}
                                     </span>
@@ -77,7 +77,7 @@
                                         <span class="ml-1 text-[0.6rem] font-bold text-red-500 uppercase">Low</span>
                                     @endif
                                 </td>
-                                <td class="px-6 py-4 text-center">
+                                <td class="px-4 py-4 text-center sm:px-6">
                                     <div class="flex items-center justify-center gap-1">
                                         <button onclick="editIngredient({{ $item->id }}, '{{ addslashes($item->nama_bahan) }}', '{{ $item->satuan }}', {{ $item->stok }})" class="p-2 rounded-lg text-caramel hover:bg-espresso/5 hover:text-espresso transition" title="Edit">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"/></svg>
@@ -109,7 +109,7 @@
             </div>
 
             @if ($ingredients->hasPages())
-                <div class="px-6 py-4 border-t border-latte/30">
+                <div class="border-t border-latte/30 px-4 py-4 sm:px-6">
                     {{ $ingredients->links('components.pagination') }}
                 </div>
             @endif
@@ -119,7 +119,7 @@
     {{-- Edit Modal --}}
     <div id="edit-modal" class="fixed inset-0 z-50 hidden">
         <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="closeEditModal()"></div>
-        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl shadow-xl border border-latte/50 p-6 w-full max-w-md">
+        <div class="fixed left-3 right-3 top-1/2 max-h-[calc(100dvh-1.5rem)] -translate-y-1/2 overflow-y-auto rounded-2xl border border-latte/50 bg-white p-4 shadow-xl sm:left-1/2 sm:right-auto sm:w-full sm:max-w-md sm:-translate-x-1/2 sm:p-6">
             <h3 class="text-sm font-bold text-espresso uppercase tracking-wider mb-4">Edit Bahan Baku</h3>
             <form id="edit-form" method="POST" class="space-y-4">
                 @csrf @method('PUT')
@@ -137,7 +137,7 @@
                         <input type="number" name="stok" id="edit-stok" required min="0" step="0.01" class="w-full px-4 py-2.5 text-sm bg-white border border-latte/60 rounded-xl focus:ring-2 focus:ring-caramel/30 focus:border-caramel outline-none transition">
                     </div>
                 </div>
-                <div class="flex items-center gap-3 pt-2">
+                <div class="flex flex-col gap-3 pt-2 sm:flex-row sm:items-center">
                     <button type="submit" class="w-full sm:w-auto bg-espresso hover:bg-espresso-light text-cream text-sm font-semibold px-5 py-2.5 rounded-xl transition-all">Simpan</button>
                     <button type="button" onclick="closeEditModal()" class="w-full sm:w-auto text-center text-sm text-caramel hover:text-espresso transition font-medium px-4 py-2.5 border border-transparent hover:border-latte/60 rounded-xl">Batal</button>
                 </div>

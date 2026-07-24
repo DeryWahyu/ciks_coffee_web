@@ -70,7 +70,7 @@ class AnalyticsController extends Controller
             $rev = Order::whereIn('status', ['selesai', 'diambil'])->whereDate('created_at', $date)->sum('total');
             $cnt = Order::whereIn('status', ['selesai', 'diambil'])->whereDate('created_at', $date)->count();
             $salesTrend->push([
-                'date' => $date->format($days <= 14 ? 'd M' : 'd/m'),
+                'date' => $days <= 14 ? $date->translatedFormat('d M') : $date->format('d/m'),
                 'revenue' => (float)$rev,
                 'orders' => $cnt,
             ]);

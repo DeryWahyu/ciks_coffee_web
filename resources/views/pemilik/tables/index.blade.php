@@ -185,7 +185,7 @@
         if (!value) return 'Belum ada pembaruan.';
         const date = new Date(value);
         if (Number.isNaN(date.getTime())) return 'Waktu tidak tersedia.';
-        return new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeStyle: 'short' }).format(date);
+        return new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Jakarta' }).format(date);
     }
 
     function showToast(message, type = 'info') {

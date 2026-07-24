@@ -166,7 +166,7 @@
         if (!value) return 'Belum ada pembaruan status.';
         const date = new Date(value);
         if (Number.isNaN(date.getTime())) return 'Waktu pembaruan tidak tersedia.';
-        return new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeStyle: 'short' }).format(date);
+        return new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Jakarta' }).format(date);
     }
 
     function setLoading(isLoading) {

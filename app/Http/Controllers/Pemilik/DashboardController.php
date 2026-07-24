@@ -46,7 +46,7 @@ class DashboardController extends Controller
                 ->whereDate('created_at', $date)
                 ->count();
             $last7Days->push([
-                'date' => $date->format('d M'),
+                'date' => $date->translatedFormat('d M'),
                 'day' => $date->translatedFormat('D'),
                 'revenue' => (float) $revenue,
                 'orders' => $orders,

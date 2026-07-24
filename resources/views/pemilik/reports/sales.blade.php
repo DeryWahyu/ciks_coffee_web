@@ -80,7 +80,7 @@
                     <tbody class="divide-y divide-latte/30">
                         @foreach($salesByDate as $sale)
                         <tr class="hover:bg-latte/5 transition-colors">
-                            <td class="py-3 px-5 text-sm text-espresso font-medium">{{ \Carbon\Carbon::parse($sale->date)->format('d M Y') }}</td>
+                            <td class="py-3 px-5 text-sm text-espresso font-medium">{{ \Carbon\Carbon::parse($sale->date)->translatedFormat('d M Y') }}</td>
                             <td class="py-3 px-5 text-sm text-espresso text-center">{{ $sale->orders_count }}</td>
                             <td class="py-3 px-5 text-sm font-semibold text-green-600 text-right">Rp {{ number_format($sale->revenue, 0, ',', '.') }}</td>
                         </tr>

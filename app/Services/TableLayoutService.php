@@ -136,12 +136,15 @@ class TableLayoutService
                 'width' => $attributes['width'],
                 'height' => $attributes['height'],
                 'rotation' => $attributes['rotation'] ?? 0,
+                // Do not rely on database-level defaults here. Older deployed
+                // schemas may have drifted even though a new table must always
+                // start as available at version 1.
+                'status' => CoffeeTable::STATUS_AVAILABLE,
                 'is_active' => $attributes['is_active'] ?? true,
+                'version' => 1,
             ]);
 
-            // MySQL applies status/version defaults at insert time, but those
-            // values are not hydrated on the in-memory model automatically.
-            // Reload before presenting the response to the owner UI.
+            // Reload relations before presenting the response to the owner UI.
             return $table->fresh(['floorLayout', 'statusUpdatedBy']);
         }, 3);
     }

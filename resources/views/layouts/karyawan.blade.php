@@ -72,6 +72,12 @@
                     </svg>
                     Antrean Pesanan
                 </a>
+                <a href='{{ route('karyawan.tables.index') }}' class='sidebar-link flex items-center gap-3 px-6 py-2.5 text-sm {{ request()->routeIs('karyawan.tables.*') ? 'active text-espresso font-semibold' : 'text-espresso/70 hover:text-espresso' }}'>
+                    <svg class='w-5 h-5 shrink-0' fill='none' stroke='currentColor' viewBox='0 0 24 24' stroke-width='1.5'>
+                        <path stroke-linecap='round' stroke-linejoin='round' d='M4.5 21V5.25A2.25 2.25 0 016.75 3h10.5a2.25 2.25 0 012.25 2.25V21M3 21h18M8.25 7.5h.008v.008H8.25V7.5zm3.75 0h.008v.008H12V7.5zm3.75 0h.008v.008H15.75V7.5zM8.25 11.25h.008v.008H8.25v-.008zm3.75 0h.008v.008H12v-.008zm3.75 0h.008v.008H15.75v-.008zM8.25 15h.008v.008H8.25V15zm3.75 0h.008v.008H12V15zm3.75 0h.008v.008H15.75V15z'/>
+                    </svg>
+                    Ketersediaan Meja
+                </a>
 
                 <div class="sidebar-section-title mt-4">Riwayat & Data</div>
                 <a href="{{ route('karyawan.orders.history') }}" class="sidebar-link flex items-center gap-3 px-6 py-2.5 text-sm {{ request()->routeIs('karyawan.orders.history') ? 'active text-espresso font-semibold' : 'text-espresso/70 hover:text-espresso' }}">
@@ -136,6 +142,7 @@
                 <a href="{{ route('karyawan.dashboard') }}" class="block px-4 py-2.5 text-sm {{ request()->routeIs('karyawan.dashboard') ? 'text-cream font-semibold' : 'text-cream/70' }}">Dashboard</a>
                 <a href="{{ route('karyawan.pos.index') }}" class="block px-4 py-2.5 text-sm {{ request()->routeIs('karyawan.pos.*') ? 'text-cream font-semibold' : 'text-cream/70' }}">Point of Sales</a>
                 <a href="{{ route('karyawan.orders.index') }}" class="block px-4 py-2.5 text-sm {{ request()->routeIs('karyawan.orders.index') ? 'text-cream font-semibold' : 'text-cream/70' }}">Antrean Pesanan</a>
+                <a href='{{ route('karyawan.tables.index') }}' class='block px-4 py-2.5 text-sm {{ request()->routeIs('karyawan.tables.*') ? 'text-cream font-semibold' : 'text-cream/70' }}'>Ketersediaan Meja</a>
                 <a href="{{ route('karyawan.orders.history') }}" class="block px-4 py-2.5 text-sm {{ request()->routeIs('karyawan.orders.history') ? 'text-cream font-semibold' : 'text-cream/70' }}">Riwayat Transaksi</a>
                 <a href="{{ route('karyawan.income.index') }}" class="block px-4 py-2.5 text-sm {{ request()->routeIs('karyawan.income.index') ? 'text-cream font-semibold' : 'text-cream/70' }}">Pendapatan Karyawan</a>
 

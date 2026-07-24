@@ -12,8 +12,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Alter the enum column to include the new 'diambil' status.
-        DB::statement("ALTER TABLE orders MODIFY COLUMN status ENUM('antrian_baru', 'sedang_dibuat', 'selesai', 'diambil') DEFAULT 'antrian_baru'");
+        // SQLite stores this as a flexible text affinity and cannot MODIFY a
+        // column. MySQL needs the explicit enum alteration used in production.
+        if (DB::getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE orders MODIFY COLUMN status ENUM('antrian_baru', 'sedang_dibuat', 'selesai', 'diambil') DEFAULT 'antrian_baru'");
+        }
     }
 
     /**
@@ -21,7 +24,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        // Revert back to the original enum if needed.
-        DB::statement("ALTER TABLE orders MODIFY COLUMN status ENUM('antrian_baru', 'sedang_dibuat', 'selesai') DEFAULT 'antrian_baru'");
+        if (DB::getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE orders MODIFY COLUMN status ENUM('antrian_baru', 'sedang_dibuat', 'selesai') DEFAULT 'antrian_baru'");
+        }
     }
 };

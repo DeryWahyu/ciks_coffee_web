@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Response;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\OrderController;
+use App\Http\Controllers\Api\TableLayoutController;
 
 Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:5,1');
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
@@ -20,6 +21,10 @@ Route::middleware('auth:sanctum')->group(function () {
     // Products and Categories
     Route::get('/categories', [ProductController::class, 'categories']);
     Route::get('/products', [ProductController::class, 'index']);
+
+    // Table availability for the authenticated mobile customer (read-only).
+    Route::get('/table-layout', [TableLayoutController::class, 'index'])
+        ->middleware('throttle:60,1');
 
     // Mobile Orders (Customer)
     Route::post('/orders', [OrderController::class, 'store']);

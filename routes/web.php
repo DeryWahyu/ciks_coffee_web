@@ -12,9 +12,11 @@ use App\Http\Controllers\Pemilik\AnalyticsController;
 use App\Http\Controllers\Pemilik\ExportController;
 use App\Http\Controllers\Pemilik\CustomerController;
 use App\Http\Controllers\Pemilik\SettingController;
+use App\Http\Controllers\Pemilik\TableController as PemilikTableController;
 use App\Http\Controllers\Karyawan\DashboardController as KaryawanDashboardController;
 use App\Http\Controllers\Karyawan\PosController;
 use App\Http\Controllers\Karyawan\OrderController;
+use App\Http\Controllers\Karyawan\TableController as KaryawanTableController;
 use App\Http\Controllers\Pemilik\PerformanceController;
 
 use App\Http\Middleware\CheckRole;
@@ -120,6 +122,16 @@ Route::middleware(['auth', CheckRole::class . ':pemilik'])
         // Pelanggan
         Route::get('/customers', [CustomerController::class, 'index'])->name('customers.index');
 
+        // Manajemen meja (sumber data untuk antarmuka Tahap 4)
+        Route::get('/meja', [PemilikTableController::class, 'index'])->name('tables.index');
+        Route::get('/meja/data', [PemilikTableController::class, 'layout'])->name('tables.data');
+        Route::get('/meja/riwayat', [PemilikTableController::class, 'history'])->name('tables.history');
+        Route::put('/meja/layout/{floorLayout}', [PemilikTableController::class, 'updateLayout'])->name('tables.layout.update');
+        Route::post('/meja', [PemilikTableController::class, 'store'])->name('tables.store');
+        Route::put('/meja/{coffeeTable}', [PemilikTableController::class, 'update'])->name('tables.update');
+        Route::patch('/meja/{coffeeTable}/status', [PemilikTableController::class, 'updateStatus'])->name('tables.status.update');
+        Route::patch('/meja/{coffeeTable}/toggle-active', [PemilikTableController::class, 'updateActiveState'])->name('tables.toggle-active');
+
         // Pengaturan
         Route::get('/settings/qris', [SettingController::class, 'qris'])->name('settings.qris');
         Route::post('/settings/qris', [SettingController::class, 'updateQris'])->name('settings.qris.update');
@@ -157,5 +169,9 @@ Route::middleware(['auth', CheckRole::class . ':karyawan'])
         // Pendapatan Karyawan
         Route::get('/pendapatan', [OrderController::class, 'income'])->name('income.index');
 
+        // Ketersediaan meja (sumber data untuk antarmuka Tahap 3)
+        Route::get('/meja', [KaryawanTableController::class, 'index'])->name('tables.index');
+        Route::get('/meja/data', [KaryawanTableController::class, 'layout'])->name('tables.data');
+        Route::patch('/meja/{coffeeTable}/status', [KaryawanTableController::class, 'updateStatus'])->name('tables.status.update');
 
     });

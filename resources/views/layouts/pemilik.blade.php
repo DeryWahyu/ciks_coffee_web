@@ -67,7 +67,7 @@
                 </a>
 
                 {{-- Kelola Data Dropdown --}}
-                @php $kelolaOpen = request()->routeIs('pemilik.users.*') || request()->routeIs('pemilik.products.*') || request()->routeIs('pemilik.categories.*') || request()->routeIs('pemilik.materials.*'); @endphp
+                @php $kelolaOpen = request()->routeIs('pemilik.users.*') || request()->routeIs('pemilik.products.*') || request()->routeIs('pemilik.categories.*') || request()->routeIs('pemilik.materials.*') || request()->routeIs('pemilik.tables.*'); @endphp
                 <div class="mt-4">
                     <button id="btn-kelola" onclick="toggleDropdown('kelola')" class="dropdown-toggle w-full flex items-center justify-between px-6 py-2 sidebar-section-title !py-2.5 !px-5 rounded-lg mx-1" style="width:calc(100% - 0.5rem)">
                         <span>Kelola Data</span>
@@ -85,6 +85,10 @@
                         <a href="{{ route('pemilik.materials.index') }}" class="sidebar-link flex items-center gap-3 pl-8 pr-6 py-2 text-sm {{ request()->routeIs('pemilik.materials.*') ? 'active text-espresso font-semibold' : 'text-espresso/70 hover:text-espresso' }}">
                             <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375"/></svg>
                             Bahan Baku
+                        </a>
+                        <a href='{{ route('pemilik.tables.index') }}' class='sidebar-link flex items-center gap-3 pl-8 pr-6 py-2 text-sm {{ request()->routeIs('pemilik.tables.*') ? 'active text-espresso font-semibold' : 'text-espresso/70 hover:text-espresso' }}'>
+                            <svg class='w-4 h-4 shrink-0' fill='none' stroke='currentColor' viewBox='0 0 24 24' stroke-width='1.5'><path stroke-linecap='round' stroke-linejoin='round' d='M4.5 21V5.25A2.25 2.25 0 016.75 3h10.5a2.25 2.25 0 012.25 2.25V21M3 21h18M8.25 7.5h.008v.008H8.25V7.5zm3.75 0h.008v.008H12V7.5zm3.75 0h.008v.008H15.75V7.5zM8.25 11.25h.008v.008H8.25v-.008zm3.75 0h.008v.008H12v-.008zm3.75 0h.008v.008H15.75v-.008zM8.25 15h.008v.008H8.25V15zm3.75 0h.008v.008H12V15zm3.75 0h.008v.008H15.75V15z'/></svg>
+                            Manajemen Meja
                         </a>
 
                     </div>
@@ -228,6 +232,7 @@
             {{-- Mobile Menu --}}
             <div id="mobile-menu" class="hidden bg-espresso-light border-t border-espresso/30 pb-3">
                 <a href="{{ route('pemilik.dashboard') }}" class="block px-4 py-2.5 text-sm {{ request()->routeIs('pemilik.dashboard') ? 'text-cream font-semibold' : 'text-cream/70' }}">Dasbor</a>
+                <a href='{{ route('pemilik.tables.index') }}' class='block px-4 py-2.5 text-sm {{ request()->routeIs('pemilik.tables.*') ? 'text-cream font-semibold' : 'text-cream/70' }}'>Manajemen Meja</a>
                 <a href="{{ route('pemilik.users.index') }}" class="block px-4 py-2.5 text-sm {{ request()->routeIs('pemilik.users.*') ? 'text-cream font-semibold' : 'text-cream/70' }}">Data Karyawan</a>
                 <a href="{{ route('pemilik.products.index') }}" class="block px-4 py-2.5 text-sm {{ request()->routeIs('pemilik.products.*') ? 'text-cream font-semibold' : 'text-cream/70' }}">Produk & Harga</a>
                 <a href="{{ route('pemilik.materials.index') }}" class="block px-4 py-2.5 text-sm {{ request()->routeIs('pemilik.materials.*') ? 'text-cream font-semibold' : 'text-cream/70' }}">Bahan Baku</a>

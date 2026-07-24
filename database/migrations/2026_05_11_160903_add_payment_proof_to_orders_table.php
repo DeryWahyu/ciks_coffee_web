@@ -17,8 +17,10 @@ return new class extends Migration
             $table->string('payment_proof')->nullable()->after('change_amount');
         });
 
-        // Update status enum to include 'menunggu_verifikasi'
-        DB::statement("ALTER TABLE orders MODIFY COLUMN status ENUM('menunggu_verifikasi', 'antrian_baru', 'sedang_dibuat', 'selesai', 'diambil') DEFAULT 'antrian_baru'");
+        // SQLite accepts the status as text; only MySQL requires an enum ALTER.
+        if (DB::getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE orders MODIFY COLUMN status ENUM('menunggu_verifikasi', 'antrian_baru', 'sedang_dibuat', 'selesai', 'diambil') DEFAULT 'antrian_baru'");
+        }
     }
 
     /**
@@ -30,6 +32,8 @@ return new class extends Migration
             $table->dropColumn('payment_proof');
         });
 
-        DB::statement("ALTER TABLE orders MODIFY COLUMN status ENUM('antrian_baru', 'sedang_dibuat', 'selesai', 'diambil') DEFAULT 'antrian_baru'");
+        if (DB::getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE orders MODIFY COLUMN status ENUM('antrian_baru', 'sedang_dibuat', 'selesai', 'diambil') DEFAULT 'antrian_baru'");
+        }
     }
 };

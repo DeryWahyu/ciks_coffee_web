@@ -159,18 +159,18 @@
         {{-- Main Content --}}
         <main class="flex-1 lg:ml-64 min-h-screen">
             <header class="bg-white/80 backdrop-blur-md border-b border-latte/40 sticky top-0 z-20 mt-[52px] lg:mt-0">
-                <div class="px-6 lg:px-8 py-4 flex items-center justify-between">
+                <div class="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-4 lg:px-8">
                     <div>
                         <h2 class="text-lg font-bold text-espresso">
                             @yield('page-title', 'Dashboard')
                         </h2>
                         <p class="text-xs text-caramel mt-0.5">@yield('page-description', '')</p>
                     </div>
-                    <div class="flex items-center gap-3">@yield('page-actions')</div>
+                    <div class="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end sm:gap-3">@yield('page-actions')</div>
                 </div>
             </header>
 
-            <div class="px-6 lg:px-8 py-6 animate-fade-in">
+            <div class="animate-fade-in px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
                 @if (session('success'))
                     <div class="mb-6 p-4 bg-green-50 border border-green-200 rounded-xl flex items-center gap-3" id="flash-success">
                         <svg class="w-5 h-5 text-green-500 shrink-0" fill="currentColor" viewBox="0 0 20 20">

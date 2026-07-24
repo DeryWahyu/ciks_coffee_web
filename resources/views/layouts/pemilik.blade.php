@@ -259,7 +259,7 @@
         <main class="flex-1 lg:ml-64 min-h-screen" id="main-content">
             {{-- Top Bar --}}
             <header class="bg-white/80 backdrop-blur-md border-b border-latte/40 sticky top-0 z-20 mt-[52px] lg:mt-0">
-                <div class="px-6 lg:px-8 py-4 flex items-center justify-between">
+                <div class="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-4 lg:px-8">
                     <div class="flex items-center gap-3">
                         <button onclick="toggleSidebar()" id="sidebar-toggle" class="hidden lg:flex w-9 h-9 items-center justify-center rounded-xl border border-latte/60 hover:bg-latte/20 transition-all duration-200 text-espresso" title="Toggle Sidebar">
                             <svg class="w-4 h-4 transition-transform duration-300" id="toggle-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/></svg>
@@ -271,14 +271,14 @@
                             <p class="text-xs text-caramel mt-0.5">@yield('page-description', '')</p>
                         </div>
                     </div>
-                    <div class="flex items-center gap-3">
+                    <div class="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end sm:gap-3">
                         @yield('page-actions')
                     </div>
                 </div>
             </header>
 
             {{-- Page Content --}}
-            <div class="px-6 lg:px-8 py-6 animate-fade-in">
+            <div class="animate-fade-in px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
                 {{-- Flash Messages --}}
                 @if (session('success'))
                     <div class="mb-6 p-4 bg-green-50 border border-green-200 rounded-xl flex items-center gap-3" id="flash-success">

@@ -4,20 +4,33 @@
 @section('page-title', 'Dashboard Karyawan')
 @section('page-description', 'Selamat bekerja di Ciks Coffee!')
 
+@push('styles')
+<style>
+    .employee-dashboard { display:grid; min-width:0; gap:1rem; }
+    .employee-dashboard-card,.employee-dashboard-metric { min-width:0; }
+    .employee-dashboard-stats { display:grid; grid-template-columns:minmax(0,1fr); gap:1rem; }
+    .employee-dashboard-value { overflow-wrap:anywhere; }
+    .employee-dashboard-chart { min-width:0; height:14rem; }
+    @media (min-width:640px) { .employee-dashboard { gap:1.5rem; } .employee-dashboard-stats { grid-template-columns:repeat(2,minmax(0,1fr)); gap:1.25rem; } .employee-dashboard-chart { height:18rem; } }
+    @media (min-width:1280px) { .employee-dashboard-stats { grid-template-columns:repeat(4,minmax(0,1fr)); } }
+</style>
+@endpush
+
 @section('content')
+<div class="employee-dashboard">
     {{-- Welcome Card --}}
-    <div class="mb-4 rounded-2xl border border-latte/50 bg-white p-4 shadow-sm sm:mb-6 sm:p-6">
+    <section class="employee-dashboard-card rounded-2xl border border-latte/50 bg-white p-4 shadow-sm sm:p-6">
         <div class="flex items-start gap-4">
             <div>
                 <h3 class="break-words text-lg font-bold text-espresso sm:text-xl">Selamat Datang, {{ Auth::user()->name }}!</h3>
                 <p class="mt-1 text-xs leading-5 text-caramel-dark sm:text-sm">Berikut ringkasan aktivitas kerja Anda hari ini, {{ now()->translatedFormat('l, d F Y') }}.</p>
             </div>
         </div>
-    </div>
+    </section>
 
     {{-- Quick Stats --}}
-    <div class="mb-4 grid grid-cols-1 gap-4 sm:mb-6 sm:grid-cols-2 sm:gap-5 lg:grid-cols-4">
-        <div class="rounded-2xl border border-latte/50 bg-white p-4 shadow-sm transition-all duration-300 hover:shadow-md sm:p-5">
+    <section class="employee-dashboard-stats">
+        <div class="employee-dashboard-metric rounded-2xl border border-latte/50 bg-white p-4 shadow-sm transition-all duration-300 hover:shadow-md sm:p-5">
             <div class="mb-3 flex items-start justify-between gap-3">
                 <div class="w-10 h-10 bg-espresso/10 rounded-xl flex items-center justify-center">
                     <svg class="w-5 h-5 text-espresso" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
@@ -26,11 +39,11 @@
                 </div>
                 <span class="text-[0.65rem] text-caramel font-semibold uppercase tracking-wider">Pesanan</span>
             </div>
-            <p class="break-words text-xl font-bold text-espresso sm:text-2xl">{{ $todayStats['total_orders'] }}</p>
+            <p class="employee-dashboard-value break-words text-xl font-bold text-espresso sm:text-2xl">{{ $todayStats['total_orders'] }}</p>
             <p class="text-xs text-caramel-dark mt-1">Pesanan hari ini</p>
         </div>
 
-        <div class="rounded-2xl border border-latte/50 bg-white p-4 shadow-sm transition-all duration-300 hover:shadow-md sm:p-5">
+        <div class="employee-dashboard-metric rounded-2xl border border-latte/50 bg-white p-4 shadow-sm transition-all duration-300 hover:shadow-md sm:p-5">
             <div class="mb-3 flex items-start justify-between gap-3">
                 <div class="w-10 h-10 bg-caramel/15 rounded-xl flex items-center justify-center">
                     <svg class="w-5 h-5 text-caramel-dark" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
@@ -39,11 +52,11 @@
                 </div>
                 <span class="text-[0.65rem] text-caramel font-semibold uppercase tracking-wider">Pending</span>
             </div>
-            <p class="break-words text-xl font-bold text-espresso sm:text-2xl">{{ $todayStats['pending_orders'] }}</p>
+            <p class="employee-dashboard-value break-words text-xl font-bold text-espresso sm:text-2xl">{{ $todayStats['pending_orders'] }}</p>
             <p class="text-xs text-caramel-dark mt-1">Menunggu proses</p>
         </div>
 
-        <div class="rounded-2xl border border-latte/50 bg-white p-4 shadow-sm transition-all duration-300 hover:shadow-md sm:p-5">
+        <div class="employee-dashboard-metric rounded-2xl border border-latte/50 bg-white p-4 shadow-sm transition-all duration-300 hover:shadow-md sm:p-5">
             <div class="mb-3 flex items-start justify-between gap-3">
                 <div class="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center">
                     <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
@@ -52,11 +65,11 @@
                 </div>
                 <span class="text-[0.65rem] text-caramel font-semibold uppercase tracking-wider">Selesai</span>
             </div>
-            <p class="break-words text-xl font-bold text-espresso sm:text-2xl">{{ $todayStats['completed_orders'] }}</p>
+            <p class="employee-dashboard-value break-words text-xl font-bold text-espresso sm:text-2xl">{{ $todayStats['completed_orders'] }}</p>
             <p class="text-xs text-caramel-dark mt-1">Pesanan selesai</p>
         </div>
         
-        <div class="rounded-2xl border border-latte/50 bg-white p-4 shadow-sm transition-all duration-300 hover:shadow-md sm:p-5">
+        <div class="employee-dashboard-metric rounded-2xl border border-latte/50 bg-white p-4 shadow-sm transition-all duration-300 hover:shadow-md sm:p-5">
             <div class="mb-3 flex items-start justify-between gap-3">
                 <div class="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center">
                     <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
@@ -65,13 +78,13 @@
                 </div>
                 <span class="text-[0.65rem] text-caramel font-semibold uppercase tracking-wider">Penghasilan</span>
             </div>
-            <p class="break-words text-xl font-bold text-espresso sm:text-2xl">Rp {{ number_format($todayStats['revenue'], 0, ',', '.') }}</p>
+            <p class="employee-dashboard-value break-words text-xl font-bold text-espresso sm:text-2xl">Rp {{ number_format($todayStats['revenue'], 0, ',', '.') }}</p>
             <p class="text-xs text-caramel-dark mt-1">Pendapatan hari ini</p>
         </div>
-    </div>
+    </section>
 
     {{-- Revenue Chart --}}
-    <div class="mb-4 rounded-2xl border border-latte/50 bg-white p-4 shadow-sm sm:mb-6 sm:p-6">
+    <section class="employee-dashboard-card rounded-2xl border border-latte/50 bg-white p-4 shadow-sm sm:p-6">
         <div class="mb-4 flex items-start justify-between gap-3 sm:mb-6">
             <div>
                 <h3 class="text-sm font-bold text-espresso mb-1">Pendapatan 7 Hari Terakhir</h3>
@@ -83,10 +96,11 @@
                 </svg>
             </div>
         </div>
-        <div class="h-56 w-full sm:h-72">
+        <div class="employee-dashboard-chart w-full">
             <canvas id="revenueChart"></canvas>
         </div>
-    </div>
+    </section>
+</div>
 @endsection
 
 @push('scripts')

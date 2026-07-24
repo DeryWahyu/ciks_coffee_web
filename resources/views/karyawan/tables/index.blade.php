@@ -36,7 +36,6 @@
     @media (max-width:374px) { .status-choice-grid { grid-template-columns:1fr; } .table-current-status { align-items:flex-start; flex-direction:column; } }
     @media (min-width:640px) and (max-width:767px) { .table-stat-grid { grid-template-columns:repeat(3,minmax(0,1fr)); } .table-hero { padding:1.5rem; } .table-floor-scroll { padding:1rem; } .table-floor-canvas,.table-floor-empty { width:100%; min-width:0; } .table-modal-backdrop { align-items:center; } }
     @media (min-width:768px) { .table-stat-grid { grid-template-columns:repeat(5,minmax(0,1fr)); } .table-hero { padding:1.5rem; } .table-floor-scroll { padding:1rem; } .table-floor-canvas,.table-floor-empty { width:100%; min-width:0; } .table-modal-backdrop { align-items:center; } }
-    .floor-marker { font-family:var(--font-sans); }
 </style>
 @endpush
 
@@ -45,7 +44,7 @@
     <section class='table-hero'>
         <div class='table-hero-copy'>
             <p class='text-[0.68rem] font-extrabold uppercase tracking-[0.16em] text-caramel'>Operasional Kedai</p>
-            <h3 id='layout-name' class='mt-1 font-serif text-2xl font-bold text-espresso'>Ketersediaan meja</h3>
+            <h3 id='layout-name' class='mt-1 font-sans text-2xl font-bold text-espresso'>Ketersediaan meja</h3>
             <p id='layout-description' class='mt-2 max-w-2xl text-sm leading-6 text-caramel-dark'>Memuat denah area dan status meja terbaru.</p>
             <p id='layout-last-updated' class='table-last-updated'>Menunggu data denah...</p>
         </div>

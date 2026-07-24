@@ -129,6 +129,7 @@ Route::middleware(['auth', CheckRole::class . ':pemilik'])
         Route::put('/meja/layout/{floorLayout}', [PemilikTableController::class, 'updateLayout'])->name('tables.layout.update');
         Route::post('/meja', [PemilikTableController::class, 'store'])->name('tables.store');
         Route::put('/meja/{coffeeTable}', [PemilikTableController::class, 'update'])->name('tables.update');
+        Route::delete('/meja/{coffeeTable}', [PemilikTableController::class, 'destroy'])->name('tables.destroy');
         Route::patch('/meja/{coffeeTable}/status', [PemilikTableController::class, 'updateStatus'])->name('tables.status.update');
         Route::patch('/meja/{coffeeTable}/toggle-active', [PemilikTableController::class, 'updateActiveState'])->name('tables.toggle-active');
 

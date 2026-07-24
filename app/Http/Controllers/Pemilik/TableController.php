@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Pemilik;
 use App\Exceptions\TableVersionConflictException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreCoffeeTableRequest;
+use App\Http\Requests\DeleteCoffeeTableRequest;
 use App\Http\Requests\UpdateCoffeeTableRequest;
 use App\Http\Requests\UpdateFloorLayoutRequest;
 use App\Http\Requests\UpdateTableActiveRequest;
@@ -160,6 +161,37 @@ class TableController extends Controller
             'success' => true,
             'message' => 'Konfigurasi meja berhasil diperbarui.',
             'data' => TableLayoutPresenter::table($updatedTable),
+        ]);
+    }
+
+    /**
+     * Permanently remove a table that has not entered the status audit trail.
+     */
+    public function destroy(
+        DeleteCoffeeTableRequest $request,
+        CoffeeTable $coffeeTable,
+        TableLayoutService $tableLayoutService,
+    ): JsonResponse {
+        Gate::forUser($request->user())->authorize('delete', $coffeeTable);
+
+        try {
+            $tableLayoutService->deleteTable(
+                $coffeeTable,
+                $request->user(),
+                $request->validated('version'),
+            );
+        } catch (TableVersionConflictException $exception) {
+            return $this->conflictResponse($exception);
+        } catch (InvalidArgumentException $exception) {
+            return response()->json([
+                'success' => false,
+                'message' => $exception->getMessage(),
+            ], 422);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Meja berhasil dihapus.',
         ]);
     }
 

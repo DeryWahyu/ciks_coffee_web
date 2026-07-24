@@ -42,6 +42,14 @@ class CoffeeTablePolicy
     }
 
     /**
+     * Permanent deletion is reserved for the owner.
+     */
+    public function delete(User $user, CoffeeTable $coffeeTable): bool
+    {
+        return $user->is_active && $user->isPemilik();
+    }
+
+    /**
      * Archiving remains reversible and owner-only.
      */
     public function toggleActive(User $user, CoffeeTable $coffeeTable): bool

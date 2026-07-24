@@ -168,4 +168,118 @@ class TableAvailabilityFeatureTest extends TestCase
 
         $this->assertDatabaseMissing('coffee_tables', ['code' => 'M98']);
     }
+
+    public function test_only_owner_can_delete_a_table_without_status_history(): void
+    {
+        $layout = $this->createFloorLayout();
+        $table = $this->createCoffeeTable($layout);
+        $owner = $this->createTableUser(User::ROLE_PEMILIK);
+        $employee = $this->createTableUser(User::ROLE_KARYAWAN);
+
+        $this->actingAs($employee)
+            ->deleteJson('/pemilik/meja/' . $table->id, ['version' => 1])
+            ->assertForbidden();
+
+        $this->actingAs($owner)
+            ->deleteJson('/pemilik/meja/' . $table->id, ['version' => 1])
+            ->assertOk()
+            ->assertJsonPath('success', true);
+
+        $this->assertDatabaseMissing('coffee_tables', ['id' => $table->id]);
+    }
+
+    public function test_owner_must_archive_a_table_that_has_status_history(): void
+    {
+        $layout = $this->createFloorLayout();
+        $table = $this->createCoffeeTable($layout);
+        $owner = $this->createTableUser(User::ROLE_PEMILIK);
+
+        $this->actingAs($owner)
+            ->patchJson('/pemilik/meja/' . $table->id . '/status', [
+                'status' => CoffeeTable::STATUS_OCCUPIED,
+                'version' => 1,
+            ])
+            ->assertOk();
+
+        $this->actingAs($owner)
+            ->deleteJson('/pemilik/meja/' . $table->id, ['version' => 2])
+            ->assertUnprocessable()
+            ->assertJsonPath('success', false);
+
+        $this->assertDatabaseHas('coffee_tables', ['id' => $table->id]);
+    }
+
+    public function test_owner_can_save_custom_positions_for_layout_background_elements(): void
+    {
+        $layout = $this->createFloorLayout([
+            'background_config' => [
+                'show_grid' => true,
+                'elements' => [
+                    ['type' => 'counter', 'label' => 'Kasir & Bar', 'position_x' => 50, 'position_y' => 5],
+                    ['type' => 'window', 'label' => 'Jendela', 'position_x' => 96, 'position_y' => 40],
+                    ['type' => 'entrance', 'label' => 'Pintu Masuk', 'position_x' => 50, 'position_y' => 96],
+                ],
+            ],
+        ]);
+        $table = $this->createCoffeeTable($layout);
+        $owner = $this->createTableUser(User::ROLE_PEMILIK);
+
+        $this->actingAs($owner)
+            ->putJson('/pemilik/meja/layout/' . $layout->id, [
+                'background_config' => [
+                    'show_grid' => true,
+                    'elements' => [
+                        ['type' => 'counter', 'label' => 'Kasir & Bar', 'position_x' => 14, 'position_y' => 12],
+                        ['type' => 'window', 'label' => 'Jendela', 'position_x' => 92, 'position_y' => 48],
+                        ['type' => 'entrance', 'label' => 'Pintu Masuk', 'position_x' => 43, 'position_y' => 94],
+                    ],
+                ],
+                'tables' => [[
+                    'id' => $table->id,
+                    'position_x' => $table->position_x,
+                    'position_y' => $table->position_y,
+                    'width' => $table->width,
+                    'height' => $table->height,
+                    'rotation' => $table->rotation,
+                    'version' => $table->version,
+                ]],
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.layout.background_config.elements.0.position_x', 14)
+            ->assertJsonPath('data.layout.background_config.elements.2.position_y', 94);
+
+        $layout->refresh();
+        $this->assertSame(14, $layout->background_config['elements'][0]['position_x']);
+        $this->assertSame(94, $layout->background_config['elements'][2]['position_y']);
+    }
+
+    public function test_owner_layout_rejects_an_unknown_background_element_type(): void
+    {
+        $layout = $this->createFloorLayout();
+        $table = $this->createCoffeeTable($layout);
+        $owner = $this->createTableUser(User::ROLE_PEMILIK);
+
+        $this->actingAs($owner)
+            ->putJson('/pemilik/meja/layout/' . $layout->id, [
+                'background_config' => [
+                    'elements' => [[
+                        'type' => 'sofa',
+                        'label' => 'Sofa',
+                        'position_x' => 40,
+                        'position_y' => 40,
+                    ]],
+                ],
+                'tables' => [[
+                    'id' => $table->id,
+                    'position_x' => $table->position_x,
+                    'position_y' => $table->position_y,
+                    'width' => $table->width,
+                    'height' => $table->height,
+                    'rotation' => $table->rotation,
+                    'version' => $table->version,
+                ]],
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('background_config.elements.0.type');
+    }
 }

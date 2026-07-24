@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
 class UpdateFloorLayoutRequest extends FormRequest
@@ -23,6 +24,13 @@ class UpdateFloorLayoutRequest extends FormRequest
             'canvas_width' => ['sometimes', 'integer', 'between:400,2400'],
             'canvas_height' => ['sometimes', 'integer', 'between:400,2400'],
             'background_config' => ['sometimes', 'nullable', 'array'],
+            'background_config.show_grid' => ['sometimes', 'boolean'],
+            'background_config.elements' => ['sometimes', 'array', 'max:20'],
+            'background_config.elements.*' => ['required', 'array'],
+            'background_config.elements.*.type' => ['required', 'string', Rule::in(['counter', 'window', 'entrance'])],
+            'background_config.elements.*.label' => ['required', 'string', 'max:80'],
+            'background_config.elements.*.position_x' => ['required', 'numeric', 'between:0,100'],
+            'background_config.elements.*.position_y' => ['required', 'numeric', 'between:0,100'],
             'tables' => ['required', 'array', 'min:1', 'max:100'],
             'tables.*.id' => ['required', 'integer', 'distinct', 'exists:coffee_tables,id'],
             'tables.*.position_x' => ['required', 'numeric', 'between:0,100'],

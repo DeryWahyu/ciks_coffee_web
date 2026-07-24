@@ -231,6 +231,38 @@ class TableLayoutService
     }
 
     /**
+     * Remove a newly-created table only when it has no immutable audit records.
+     * Existing operational tables must be archived instead, so their history is retained.
+     *
+     * @throws AuthorizationException
+     * @throws InvalidArgumentException
+     * @throws TableVersionConflictException
+     */
+    public function deleteTable(CoffeeTable $coffeeTable, User $actor, int $expectedVersion): void
+    {
+        $this->assertActorCanManage($actor);
+
+        DB::transaction(function () use ($coffeeTable, $expectedVersion): void {
+            $lockedTable = CoffeeTable::query()
+                ->whereKey($coffeeTable->getKey())
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if ($lockedTable->version !== $expectedVersion) {
+                throw new TableVersionConflictException($lockedTable);
+            }
+
+            if ($lockedTable->statusHistories()->exists()) {
+                throw new InvalidArgumentException(
+                    'Meja tidak dapat dihapus karena sudah memiliki riwayat status. Arsipkan meja untuk menjaga riwayat tersebut.'
+                );
+            }
+
+            $lockedTable->delete();
+        }, 3);
+    }
+
+    /**
      * @param array<string, mixed> $geometry
      *
      * @throws InvalidArgumentException

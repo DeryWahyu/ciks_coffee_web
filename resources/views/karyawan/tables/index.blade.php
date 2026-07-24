@@ -36,6 +36,13 @@
     @media (max-width:374px) { .status-choice-grid { grid-template-columns:1fr; } .table-current-status { align-items:flex-start; flex-direction:column; } }
     @media (min-width:640px) and (max-width:767px) { .table-stat-grid { grid-template-columns:repeat(3,minmax(0,1fr)); } .table-hero { padding:1.5rem; } .table-floor-scroll { padding:1rem; } .table-floor-canvas,.table-floor-empty { width:100%; min-width:0; } .table-modal-backdrop { align-items:center; } }
     @media (min-width:768px) { .table-stat-grid { grid-template-columns:repeat(5,minmax(0,1fr)); } .table-hero { padding:1.5rem; } .table-floor-scroll { padding:1rem; } .table-floor-canvas,.table-floor-empty { width:100%; min-width:0; } .table-modal-backdrop { align-items:center; } }
+    /* Furnitur coffee shop: warna status tetap jelas, dengan meja bernuansa kayu dan kursi sesuai kapasitas. */
+    .floor-table { --table-soft:var(--unavailable-soft); overflow:visible; isolation:isolate; border:3px solid var(--table-color); background:radial-gradient(circle at 28% 22%,rgba(255,234,197,.72) 0 7%,transparent 8%),repeating-linear-gradient(145deg,rgba(255,236,204,.17) 0 3px,rgba(93,58,26,.12) 4px 8px),linear-gradient(135deg,#c88955,#774027); box-shadow:0 8px 16px rgba(62,39,35,.22),inset 0 0 0 2px rgba(255,239,210,.22); }
+    .floor-table.status-available { --table-soft:var(--available-soft); } .floor-table.status-occupied { --table-soft:var(--occupied-soft); } .floor-table.status-reserved { --table-soft:var(--reserved-soft); } .floor-table.status-unavailable { --table-soft:var(--unavailable-soft); }
+    .floor-table::after { content:''; position:absolute; z-index:0; inset:4px; border:1px solid rgba(92,49,28,.42); border-radius:inherit; box-shadow:inset 0 0 0 1px rgba(255,239,210,.18); pointer-events:none; } .floor-table::before,.floor-table-code,.floor-table-capacity { position:relative; z-index:2; } .floor-table::before { border:1.5px solid rgba(255,255,255,.92); box-shadow:0 0 0 3px rgba(62,39,35,.22); } .floor-table-code { color:#1f1713; text-shadow:0 1px 0 rgba(255,255,255,.48); } .floor-table-capacity { color:rgba(31,23,19,.86); }
+    .floor-chairs { position:absolute; inset:0; z-index:1; pointer-events:none; } .floor-chair { position:absolute; width:clamp(.48rem,1.25vw,.9rem); height:clamp(.42rem,1.05vw,.76rem); border:1.5px solid #64371f; border-radius:.14rem .14rem .28rem .28rem; background:linear-gradient(135deg,#f0c288,#ae6439); box-shadow:0 2px 3px rgba(62,39,35,.28); transform:translate(-50%,-50%) rotate(var(--chair-rotation,0deg)); } .floor-chair::before { content:''; position:absolute; left:-11%; top:-78%; width:122%; height:72%; border:1.5px solid #64371f; border-bottom:0; border-radius:.28rem .28rem 0 0; background:linear-gradient(135deg,#e7ad71,#8f4b2c); } .floor-chair::after { content:''; position:absolute; left:16%; bottom:-48%; width:68%; height:44%; border-left:1.5px solid #64371f; border-right:1.5px solid #64371f; }
+    /* Skala furnitur mengikuti sisi terpendek setiap meja, termasuk pada meja kecil. */
+    .floor-table { container-type:size; gap:clamp(.02rem,3cqmin,.18rem); } .floor-table::before { width:clamp(.18rem,10cqmin,.48rem); height:clamp(.18rem,10cqmin,.48rem); box-shadow:0 0 0 clamp(1px,5cqmin,4px) rgba(62,39,35,.22); } .floor-table-code,.floor-table-name,.floor-table-capacity { position:relative; z-index:2; max-width:88%; line-height:1; } .floor-table-code { font-size:clamp(.28rem,15cqmin,.8rem); } .floor-table-name { overflow:hidden; color:rgba(31,23,19,.9); font-size:clamp(.22rem,11cqmin,.6rem); font-weight:750; text-align:center; text-overflow:ellipsis; white-space:nowrap; } .floor-table-capacity { font-size:clamp(.2rem,10cqmin,.63rem); } .floor-chair { width:clamp(.21rem,20cqmin,1rem); height:clamp(.18rem,16cqmin,.84rem); border-width:clamp(.5px,3cqmin,1.5px); box-shadow:0 clamp(.3px,2cqmin,2px) clamp(.4px,3cqmin,3px) rgba(62,39,35,.28); } .floor-chair::before { border-width:clamp(.5px,3cqmin,1.5px); border-bottom:0; } .floor-chair::after { border-left-width:clamp(.5px,3cqmin,1.5px); border-right-width:clamp(.5px,3cqmin,1.5px); }
 </style>
 @endpush
 
@@ -193,6 +200,25 @@
         elements.canvas.appendChild(markerElement);
     }
 
+    function renderChairs(tableElement, capacity) {
+        const chairs = document.createElement('span');
+        const seatCount = Math.max(1, Math.min(20, Math.round(Number(capacity) || 1)));
+        chairs.className = 'floor-chairs';
+        chairs.setAttribute('aria-hidden', 'true');
+        for (let index = 0; index < seatCount; index += 1) {
+            const angle = (Math.PI * 2 * index) / seatCount - Math.PI / 2;
+            const chair = document.createElement('span');
+            chair.className = 'floor-chair';
+            chair.style.setProperty('--chair-x', (50 + Math.cos(angle) * 66) + '%');
+            chair.style.setProperty('--chair-y', (50 + Math.sin(angle) * 70) + '%');
+            chair.style.setProperty('--chair-rotation', (angle * 180 / Math.PI + 90) + 'deg');
+            chair.style.left = 'var(--chair-x)';
+            chair.style.top = 'var(--chair-y)';
+            chairs.appendChild(chair);
+        }
+        tableElement.appendChild(chairs);
+    }
+
     function renderTable(table) {
         const shapes = ['round', 'square', 'rectangle'];
         const statuses = ['available', 'occupied', 'reserved', 'unavailable'];
@@ -200,6 +226,7 @@
         const status = statuses.includes(table.status) ? table.status : 'unavailable';
         const tableElement = document.createElement('button');
         const code = document.createElement('span');
+        const name = document.createElement('span');
         const capacity = document.createElement('span');
         tableElement.type = 'button';
         tableElement.className = 'floor-table shape-' + shape + ' status-' + status;
@@ -208,13 +235,16 @@
         tableElement.style.width = Number(table.width) + '%';
         tableElement.style.height = Number(table.height) + '%';
         tableElement.style.setProperty('--table-rotation', Number(table.rotation ?? 0) + 'deg');
-        tableElement.setAttribute('aria-label', table.code + ', ' + table.capacity + ' kursi, status ' + statusLabel(status) + '. Tekan untuk memperbarui status.');
+        tableElement.setAttribute('aria-label', table.code + ', ' + table.name + ', ' + table.capacity + ' kursi, status ' + statusLabel(status) + '. Tekan untuk memperbarui status.');
         tableElement.title = table.name + ' · ' + statusLabel(status);
         code.className = 'floor-table-code';
         code.textContent = table.code;
+        name.className = 'floor-table-name';
+        name.textContent = table.name;
         capacity.className = 'floor-table-capacity';
         capacity.textContent = table.capacity + ' kursi';
-        tableElement.append(code, capacity);
+        renderChairs(tableElement, table.capacity);
+        tableElement.append(code, name, capacity);
         tableElement.addEventListener('click', () => openModal(table.id));
         elements.canvas.appendChild(tableElement);
     }

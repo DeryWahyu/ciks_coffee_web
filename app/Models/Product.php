@@ -7,6 +7,21 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
+/**
+ * @property int $id
+ * @property int $category_id
+ * @property string $name
+ * @property string|null $description
+ * @property string|null $image
+ * @property string $price
+ * @property string|null $price_lite
+ * @property bool $is_active
+ * @property \Illuminate\Support\Carbon|null $created_at
+ * @property \Illuminate\Support\Carbon|null $updated_at
+ * @property-read string $formatted_price
+ * @property-read string|null $formatted_price_lite
+ * @property-read \App\Models\Category|null $category
+ */
 class Product extends Model
 {
     use HasFactory;
@@ -126,7 +141,7 @@ class Product extends Model
     public function getFormattedPriceLiteAttribute(): ?string
     {
         return $this->price_lite
-            ? 'Rp ' . number_format($this->price_lite, 0, ',', '.')
+            ? 'Rp ' . number_format((float) $this->price_lite, 0, ',', '.')
             : null;
     }
 }

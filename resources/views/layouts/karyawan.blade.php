@@ -25,6 +25,15 @@
             font-size: 0.65rem; font-weight: 700; letter-spacing: 0.15em;
             text-transform: uppercase; color: #A1887F; padding: 0.75rem 1.5rem 0.4rem;
         }
+        #sidebar { transition: transform 0.35s cubic-bezier(.4,0,.2,1), opacity 0.3s ease; }
+        #sidebar.collapsed { transform: translateX(-100%); }
+        #main-content { transition: margin-left 0.35s cubic-bezier(.4,0,.2,1); }
+        .dropdown-toggle { cursor: pointer; transition: all 0.2s ease; }
+        .dropdown-toggle:hover { background-color: rgba(161, 136, 127, 0.1); }
+        .dropdown-icon { transition: transform 0.3s ease; }
+        .dropdown-toggle.open .dropdown-icon { transform: rotate(180deg); }
+        .dropdown-menu { max-height: 0; overflow: hidden; transition: max-height 0.35s cubic-bezier(.4,0,.2,1); }
+        .dropdown-menu.open { max-height: 500px; }
     </style>
     @stack('styles')
 </head>
@@ -57,41 +66,78 @@
                     </svg>
                     Dashboard
                 </a>
+                {{-- Operasional Dropdown --}}
+                @php $operasionalOpen = request()->routeIs('karyawan.pos.*') || request()->routeIs('karyawan.orders.index') || request()->routeIs('karyawan.tables.*'); @endphp
+                <div class="mt-4">
+                    <button id="btn-operasional" onclick="toggleDropdown('operasional')" class="dropdown-toggle w-full flex items-center justify-between px-6 py-2 sidebar-section-title !py-2.5 !px-5 rounded-lg mx-1" style="width:calc(100% - 0.5rem)">
+                        <span>Operasional</span>
+                        <svg class="dropdown-icon w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
+                    </button>
+                    <div id="dropdown-operasional" class="dropdown-menu">
+                        <a href="{{ route('karyawan.pos.index') }}" class="sidebar-link flex items-center gap-3 pl-8 pr-6 py-2 text-sm {{ request()->routeIs('karyawan.pos.*') ? 'active text-espresso font-semibold' : 'text-espresso/70 hover:text-espresso' }}">
+                            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121 0 2.09-.773 2.21-1.886L21 5.25H6.228M16.5 18.75a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM8.25 18.75a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z"/>
+                            </svg>
+                            Point of Sales
+                        </a>
+                        <a href="{{ route('karyawan.orders.index') }}" class="sidebar-link flex items-center gap-3 pl-8 pr-6 py-2 text-sm {{ request()->routeIs('karyawan.orders.index') ? 'active text-espresso font-semibold' : 'text-espresso/70 hover:text-espresso' }}">
+                            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"/>
+                            </svg>
+                            Antrean Pesanan
+                        </a>
+                        <a href="{{ route('karyawan.tables.index') }}" class="sidebar-link flex items-center gap-3 pl-8 pr-6 py-2 text-sm {{ request()->routeIs('karyawan.tables.*') ? 'active text-espresso font-semibold' : 'text-espresso/70 hover:text-espresso' }}">
+                            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 21V5.25A2.25 2.25 0 016.75 3h10.5a2.25 2.25 0 012.25 2.25V21M3 21h18M8.25 7.5h.008v.008H8.25V7.5zm3.75 0h.008v.008H12V7.5zm3.75 0h.008v.008H15.75V7.5zM8.25 11.25h.008v.008H8.25v-.008zm3.75 0h.008v.008H12v-.008zm3.75 0h.008v.008H15.75v-.008zM8.25 15h.008v.008H8.25V15zm3.75 0h.008v.008H12V15zm3.75 0h.008v.008H15.75V15z"/>
+                            </svg>
+                            Ketersediaan Meja
+                        </a>
+                    </div>
+                </div>
 
-                {{-- Operasional --}}
-                <div class="sidebar-section-title mt-4">Operasional</div>
-                <a href="{{ route('karyawan.pos.index') }}" class="sidebar-link flex items-center gap-3 px-6 py-2.5 text-sm {{ request()->routeIs('karyawan.pos.*') ? 'active text-espresso font-semibold' : 'text-espresso/70 hover:text-espresso' }}">
-                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121 0 2.09-.773 2.21-1.886L21 5.25H6.228M16.5 18.75a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM8.25 18.75a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z"/>
-                    </svg>
-                    Point of Sales
-                </a>
-                <a href="{{ route('karyawan.orders.index') }}" class="sidebar-link flex items-center gap-3 px-6 py-2.5 text-sm {{ request()->routeIs('karyawan.orders.index') ? 'active text-espresso font-semibold' : 'text-espresso/70 hover:text-espresso' }}">
-                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"/>
-                    </svg>
-                    Antrean Pesanan
-                </a>
-                <a href='{{ route('karyawan.tables.index') }}' class='sidebar-link flex items-center gap-3 px-6 py-2.5 text-sm {{ request()->routeIs('karyawan.tables.*') ? 'active text-espresso font-semibold' : 'text-espresso/70 hover:text-espresso' }}'>
-                    <svg class='w-5 h-5 shrink-0' fill='none' stroke='currentColor' viewBox='0 0 24 24' stroke-width='1.5'>
-                        <path stroke-linecap='round' stroke-linejoin='round' d='M4.5 21V5.25A2.25 2.25 0 016.75 3h10.5a2.25 2.25 0 012.25 2.25V21M3 21h18M8.25 7.5h.008v.008H8.25V7.5zm3.75 0h.008v.008H12V7.5zm3.75 0h.008v.008H15.75V7.5zM8.25 11.25h.008v.008H8.25v-.008zm3.75 0h.008v.008H12v-.008zm3.75 0h.008v.008H15.75v-.008zM8.25 15h.008v.008H8.25V15zm3.75 0h.008v.008H12V15zm3.75 0h.008v.008H15.75V15z'/>
-                    </svg>
-                    Ketersediaan Meja
-                </a>
+                {{-- Riwayat & Data Dropdown --}}
+                @php $riwayatOpen = request()->routeIs('karyawan.orders.history') || request()->routeIs('karyawan.income.*'); @endphp
+                <div class="mt-1">
+                    <button id="btn-riwayat" onclick="toggleDropdown('riwayat')" class="dropdown-toggle w-full flex items-center justify-between px-6 py-2 sidebar-section-title !py-2.5 !px-5 rounded-lg mx-1" style="width:calc(100% - 0.5rem)">
+                        <span>Riwayat &amp; Data</span>
+                        <svg class="dropdown-icon w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
+                    </button>
+                    <div id="dropdown-riwayat" class="dropdown-menu">
+                        <a href="{{ route('karyawan.orders.history') }}" class="sidebar-link flex items-center gap-3 pl-8 pr-6 py-2 text-sm {{ request()->routeIs('karyawan.orders.history') ? 'active text-espresso font-semibold' : 'text-espresso/70 hover:text-espresso' }}">
+                            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            Riwayat Transaksi
+                        </a>
+                        <a href="{{ route('karyawan.income.index') }}" class="sidebar-link flex items-center gap-3 pl-8 pr-6 py-2 text-sm {{ request()->routeIs('karyawan.income.index') ? 'active text-espresso font-semibold' : 'text-espresso/70 hover:text-espresso' }}">
+                            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            Pendapatan Karyawan
+                        </a>
+                    </div>
+                </div>
 
-                <div class="sidebar-section-title mt-4">Riwayat & Data</div>
-                <a href="{{ route('karyawan.orders.history') }}" class="sidebar-link flex items-center gap-3 px-6 py-2.5 text-sm {{ request()->routeIs('karyawan.orders.history') ? 'active text-espresso font-semibold' : 'text-espresso/70 hover:text-espresso' }}">
-                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                    Riwayat Transaksi
-                </a>
-                <a href="{{ route('karyawan.income.index') }}" class="sidebar-link flex items-center gap-3 px-6 py-2.5 text-sm {{ request()->routeIs('karyawan.income.index') ? 'active text-espresso font-semibold' : 'text-espresso/70 hover:text-espresso' }}">
-                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    Pendapatan Karyawan
-                </a>
+                <script>
+                    (function() {
+                        const menus = [
+                            { id: 'operasional', defaultOpen: {{ $operasionalOpen ? 'true' : 'false' }} },
+                            { id: 'riwayat', defaultOpen: {{ $riwayatOpen ? 'true' : 'false' }} }
+                        ];
+
+                        menus.forEach(menu => {
+                            const state = localStorage.getItem('dropdown_' + menu.id);
+                            const isOpen = state === 'open' || (state === null && menu.defaultOpen);
+
+                            if (isOpen) {
+                                const btn = document.getElementById('btn-' + menu.id);
+                                const dropdown = document.getElementById('dropdown-' + menu.id);
+                                if (btn) btn.classList.add('open');
+                                if (dropdown) dropdown.classList.add('open');
+                            }
+                        });
+                    })();
+                </script>
 
 
             </nav>
@@ -136,14 +182,19 @@
         </div>
 
         {{-- Main Content --}}
-        <main class="flex-1 lg:ml-64 min-h-screen">
+        <main class="flex-1 lg:ml-64 min-h-screen" id="main-content">
             <header class="bg-white/80 backdrop-blur-md border-b border-latte/40 sticky top-0 z-20 mt-[52px] lg:mt-0">
                 <div class="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-4 lg:px-8">
-                    <div>
-                        <h2 class="text-lg font-bold text-espresso">
-                            @yield('page-title', 'Dashboard')
-                        </h2>
-                        <p class="text-xs text-caramel mt-0.5">@yield('page-description', '')</p>
+                    <div class="flex items-center gap-3">
+                        <button onclick="toggleSidebar()" id="sidebar-toggle" class="hidden lg:flex w-9 h-9 items-center justify-center rounded-xl border border-latte/60 hover:bg-latte/20 transition-all duration-200 text-espresso" title="Buka/tutup sidebar" aria-label="Buka/tutup sidebar">
+                            <svg class="w-4 h-4 transition-transform duration-300" id="toggle-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/></svg>
+                        </button>
+                        <div>
+                            <h2 class="text-lg font-bold text-espresso">
+                                @yield('page-title', 'Dashboard')
+                            </h2>
+                            <p class="text-xs text-caramel mt-0.5">@yield('page-description', '')</p>
+                        </div>
                     </div>
                     <div class="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end sm:gap-3">
                         @yield('page-actions')
@@ -210,6 +261,31 @@
                 flashError.style.opacity = '0';
                 setTimeout(() => flashError.remove(), 400);
             }, 4000);
+        }
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const main = document.getElementById('main-content');
+            const collapsed = sidebar.classList.toggle('collapsed');
+            main.style.marginLeft = collapsed ? '0' : '';
+            localStorage.setItem('sidebarCollapsed', collapsed);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (localStorage.getItem('sidebarCollapsed') === 'true') {
+                const sidebar = document.getElementById('sidebar');
+                const main = document.getElementById('main-content');
+                sidebar.classList.add('collapsed');
+                main.style.marginLeft = '0';
+            }
+        });
+
+        function toggleDropdown(name) {
+            const menu = document.getElementById('dropdown-' + name);
+            const button = document.getElementById('btn-' + name) || menu.previousElementSibling;
+            const isOpen = menu.classList.toggle('open');
+            if (button) button.classList.toggle('open');
+            localStorage.setItem('dropdown_' + name, isOpen ? 'open' : 'closed');
         }
     </script>
     @stack('scripts')

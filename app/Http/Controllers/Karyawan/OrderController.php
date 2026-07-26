@@ -3,11 +3,11 @@
 namespace App\Http\Controllers\Karyawan;
 
 use App\Http\Controllers\Controller;
+use App\Models\Ingredient;
 use App\Models\Order;
-use Illuminate\Http\Request;
 use App\Models\Product;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\ValidationException;
 
 class OrderController extends Controller
 {
@@ -154,21 +154,38 @@ class OrderController extends Controller
     public function updateStatus(Request $request, Order $order)
     {
         $validated = $request->validate([
-            'status' => 'required|in:antrian_baru,sedang_dibuat,selesai',
+            'status' => 'required|in:sedang_dibuat,selesai',
         ]);
 
-        $updateData = ['status' => $validated['status']];
-        
-        // Only allow claiming if it has no cashier, or if it's already claimed by this user
-        if (is_null($order->cashier_id)) {
-            $updateData['cashier_id'] = $request->user()->id;
-        } elseif ($order->cashier_id !== $request->user()->id) {
-            return back()->with('error', 'Pesanan ini sudah ditangani oleh karyawan lain.');
+        try {
+            $updatedOrder = DB::transaction(function () use ($order, $validated, $request) {
+                $lockedOrder = Order::query()->lockForUpdate()->findOrFail($order->id);
+
+                $allowedTransitions = [
+                    'antrian_baru' => 'sedang_dibuat',
+                    'sedang_dibuat' => 'selesai',
+                ];
+
+                if (($allowedTransitions[$lockedOrder->status] ?? null) !== $validated['status']) {
+                    throw new \DomainException('Perubahan status pesanan tidak valid. Pesanan harus diproses sesuai urutan.');
+                }
+
+                if ($lockedOrder->cashier_id !== null && $lockedOrder->cashier_id !== $request->user()->id) {
+                    throw new \DomainException('Pesanan ini sudah ditangani oleh karyawan lain.');
+                }
+
+                $lockedOrder->update([
+                    'status' => $validated['status'],
+                    'cashier_id' => $lockedOrder->cashier_id ?? $request->user()->id,
+                ]);
+
+                return $lockedOrder->fresh();
+            }, 3);
+        } catch (\DomainException $exception) {
+            return back()->with('error', $exception->getMessage());
         }
 
-        $order->update($updateData);
-
-        return back()->with('success', "Pesanan #{$order->order_number} diperbarui ke \"{$order->status_label}\".");
+        return back()->with('success', "Pesanan #{$updatedOrder->order_number} diperbarui ke \"{$updatedOrder->status_label}\".");
     }
 
     /**
@@ -177,66 +194,75 @@ class OrderController extends Controller
      */
     public function verifyPayment(Request $request, Order $order)
     {
-        if ($order->status !== 'menunggu_verifikasi') {
-            return back()->with('error', 'Pesanan ini tidak memerlukan verifikasi.');
-        }
+        try {
+            $verifiedOrder = DB::transaction(function () use ($order, $request) {
+                $lockedOrder = Order::query()
+                    ->with('items')
+                    ->lockForUpdate()
+                    ->findOrFail($order->id);
 
-        DB::transaction(function () use ($order, $request) {
-            // Validate stock with lock before deducting
-            $order->load('items');
-            foreach ($order->items as $item) {
-                $product = Product::find($item->product_id);
-                if ($product) {
-                    $variant = $item->variant;
-                    $ingredients = $product->ingredientsByVariantLocked($variant);
-                    foreach ($ingredients as $ingredient) {
-                        $required = $ingredient->pivot->quantity * $item->quantity;
-                        if ($ingredient->stok < $required) {
-                            throw ValidationException::withMessages([
-                                'items' => "Stok bahan {$ingredient->nama_bahan} tidak cukup untuk produk {$product->name}."
-                            ]);
-                        }
+                if (
+                    $lockedOrder->status !== 'menunggu_verifikasi'
+                    || $lockedOrder->payment_method !== 'qris'
+                    || empty($lockedOrder->payment_proof)
+                ) {
+                    throw new \DomainException('Pesanan ini tidak dapat diverifikasi.');
+                }
+
+                if ($lockedOrder->cashier_id !== null && $lockedOrder->cashier_id !== $request->user()->id) {
+                    throw new \DomainException('Pesanan ini sudah ditangani oleh karyawan lain.');
+                }
+
+                $requirements = [];
+
+                foreach ($lockedOrder->items as $item) {
+                    $product = Product::query()->lockForUpdate()->find($item->product_id);
+
+                    if (!$product) {
+                        throw new \DomainException("Produk untuk item {$item->product_name} tidak ditemukan.");
+                    }
+
+                    foreach ($product->ingredientsByVariant($item->variant) as $ingredient) {
+                        $required = (float) $ingredient->pivot->quantity * $item->quantity;
+                        $requirements[$ingredient->id] = ($requirements[$ingredient->id] ?? 0) + $required;
                     }
                 }
-            }
 
-            // Deduct ingredient stock now that validation passed
-            foreach ($order->items as $item) {
-                $product = Product::find($item->product_id);
-                if ($product) {
-                    $variant = $item->variant;
-                    $ingredients = $product->ingredientsByVariantLocked($variant);
-                    foreach ($ingredients as $ingredient) {
-                        $deduction = $ingredient->pivot->quantity * $item->quantity;
-                        $ingredient->decrement('stok', $deduction);
+                $ingredients = Ingredient::query()
+                    ->whereIn('id', array_keys($requirements))
+                    ->orderBy('id')
+                    ->lockForUpdate()
+                    ->get()
+                    ->keyBy('id');
+
+                foreach ($requirements as $ingredientId => $required) {
+                    $ingredient = $ingredients->get($ingredientId);
+
+                    if (!$ingredient) {
+                        throw new \DomainException('Salah satu bahan pesanan tidak ditemukan.');
+                    }
+
+                    if ((float) $ingredient->stok < $required) {
+                        throw new \DomainException("Stok bahan {$ingredient->nama_bahan} tidak cukup untuk memverifikasi pesanan ini.");
                     }
                 }
-            }
 
-            // Claim the order
-            $order->update([
-                'status' => 'antrian_baru',
-                'cashier_id' => $request->user()->id,
-            ]);
-        }, 3);
+                foreach ($requirements as $ingredientId => $required) {
+                    $ingredients->get($ingredientId)->decrement('stok', $required);
+                }
 
-        return back()->with('success', "Pembayaran #{$order->order_number} berhasil diverifikasi. Pesanan masuk antrean.");
-    }
+                $lockedOrder->update([
+                    'status' => 'antrian_baru',
+                    'cashier_id' => $request->user()->id,
+                ]);
 
-    /**
-     * Delete an order.
-     */
-    public function destroy(Request $request, Order $order)
-    {
-        if (!is_null($order->cashier_id) && $order->cashier_id !== $request->user()->id) {
-            return back()->with('error', 'Anda tidak memiliki akses untuk menghapus pesanan ini.');
+                return $lockedOrder->fresh();
+            }, 3);
+        } catch (\DomainException $exception) {
+            return back()->with('error', $exception->getMessage());
         }
 
-        $orderNumber = $order->order_number;
-        $order->items()->delete();
-        $order->delete();
-
-        return back()->with('success', "Transaksi #{$orderNumber} berhasil dihapus.");
+        return back()->with('success', "Pembayaran #{$verifiedOrder->order_number} berhasil diverifikasi. Pesanan masuk antrean.");
     }
 
     /**

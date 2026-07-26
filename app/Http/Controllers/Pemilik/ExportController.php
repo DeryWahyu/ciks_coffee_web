@@ -7,10 +7,38 @@ use App\Models\Order;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
 
 class ExportController extends Controller
 {
+    /**
+     * Prefix text that spreadsheet applications could evaluate as a formula.
+     */
+    private function safeSpreadsheetText(?string $value): string
+    {
+        $value = (string) $value;
+
+        return preg_match('/^\s*[=+\-@]/u', $value) ? "'{$value}" : $value;
+    }
+
+    private function itemSummary(Order $order): string
+    {
+        $items = $order->items->map(fn($item) =>
+            $item->product_name . ($item->variant ? " ({$item->variant})" : '') . " x{$item->quantity}"
+        )->join(', ');
+
+        return $this->safeSpreadsheetText($items);
+    }
+
+    private function setSpreadsheetTextCell($sheet, string $coordinate, ?string $value): void
+    {
+        $sheet->setCellValueExplicit(
+            $coordinate,
+            $this->safeSpreadsheetText($value),
+            DataType::TYPE_STRING,
+        );
+    }
+
     /**
      * Display export page with filter options.
      */
@@ -62,18 +90,14 @@ class ExportController extends Controller
             fputcsv($file, ['No', 'No. Order', 'Tanggal', 'Pelanggan', 'Kasir', 'Metode Bayar', 'Item', 'Total']);
 
             foreach ($orders as $i => $order) {
-                $items = $order->items->map(fn($item) =>
-                    $item->product_name . ($item->variant ? " ({$item->variant})" : '') . " x{$item->quantity}"
-                )->join(', ');
-
                 fputcsv($file, [
                     $i + 1,
-                    $order->order_number,
-                    $order->created_at->format('d/m/Y H:i'),
-                    $order->customer_name,
-                    $order->cashier?->name ?? '-',
-                    strtoupper($order->payment_method),
-                    $items,
+                    $this->safeSpreadsheetText($order->order_number),
+                    $this->safeSpreadsheetText($order->created_at->format('d/m/Y H:i')),
+                    $this->safeSpreadsheetText($order->customer_name),
+                    $this->safeSpreadsheetText($order->cashier?->name ?? '-'),
+                    $this->safeSpreadsheetText(strtoupper($order->payment_method)),
+                    $this->itemSummary($order),
                     $order->total,
                 ]);
             }
@@ -111,17 +135,13 @@ class ExportController extends Controller
         // Data rows
         $row = 2;
         foreach ($orders as $i => $order) {
-            $items = $order->items->map(fn($item) =>
-                $item->product_name . ($item->variant ? " ({$item->variant})" : '') . " x{$item->quantity}"
-            )->join(', ');
-
             $sheet->setCellValue("A{$row}", $i + 1);
-            $sheet->setCellValue("B{$row}", $order->order_number);
-            $sheet->setCellValue("C{$row}", $order->created_at->format('d/m/Y H:i'));
-            $sheet->setCellValue("D{$row}", $order->customer_name);
-            $sheet->setCellValue("E{$row}", $order->cashier?->name ?? '-');
-            $sheet->setCellValue("F{$row}", strtoupper($order->payment_method));
-            $sheet->setCellValue("G{$row}", $items);
+            $this->setSpreadsheetTextCell($sheet, "B{$row}", $order->order_number);
+            $this->setSpreadsheetTextCell($sheet, "C{$row}", $order->created_at->format('d/m/Y H:i'));
+            $this->setSpreadsheetTextCell($sheet, "D{$row}", $order->customer_name);
+            $this->setSpreadsheetTextCell($sheet, "E{$row}", $order->cashier?->name ?? '-');
+            $this->setSpreadsheetTextCell($sheet, "F{$row}", strtoupper($order->payment_method));
+            $this->setSpreadsheetTextCell($sheet, "G{$row}", $this->itemSummary($order));
             $sheet->setCellValue("H{$row}", (float) $order->total);
             $row++;
         }

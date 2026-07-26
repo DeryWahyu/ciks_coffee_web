@@ -3,14 +3,13 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Ingredient;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\ShopSetting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 class OrderController extends Controller
 {
@@ -27,20 +26,37 @@ class OrderController extends Controller
             'items.*.product_id' => 'required|exists:products,id',
             'items.*.variant'    => 'nullable|in:base,lite',
             'items.*.quantity'   => 'required|integer|min:1',
-            'payment_proof'  => 'nullable|image|mimes:jpg,jpeg,png,webp|max:3072',
+            'payment_proof'  => 'required_if:payment_method,qris|image|mimes:jpg,jpeg,png,webp|max:3072',
         ], [
             'items.required' => 'Pesanan tidak boleh kosong.',
+            'payment_proof.required_if' => 'Bukti pembayaran wajib diunggah untuk pembayaran QRIS.',
             'payment_proof.max' => 'Ukuran bukti pembayaran maksimal 3MB.',
         ]);
 
         $order = DB::transaction(function () use ($validated, $request) {
             $total = 0;
             $orderItems = [];
+            $ingredientRequirements = [];
+
+            // Keep the selected product and recipe stable for the checkout.
+            $products = Product::query()
+                ->with('category')
+                ->whereIn('id', collect($validated['items'])->pluck('product_id')->unique())
+                ->lockForUpdate()
+                ->get()
+                ->keyBy('id');
 
             foreach ($validated['items'] as $item) {
-                $product = Product::find($item['product_id']);
-                $variantLabel = $item['variant'] ?? null;
-                $unitPrice = ($variantLabel === 'lite' && $product->price_lite !== null) ? $product->price_lite : $product->price;
+                $product = $products->get($item['product_id']);
+
+                if (!$product || !$product->is_active) {
+                    throw ValidationException::withMessages([
+                        'items' => 'Produk yang dipilih sudah tidak tersedia.',
+                    ]);
+                }
+
+                $variantLabel = $this->resolveVariant($product, $item['variant'] ?? null);
+                $unitPrice = $variantLabel === 'lite' ? $product->price_lite : $product->price;
                 $subtotal = $unitPrice * $item['quantity'];
                 $total += $subtotal;
 
@@ -57,6 +73,13 @@ class OrderController extends Controller
                     'price'        => $unitPrice,
                     'subtotal'     => $subtotal,
                 ];
+
+                // Sum all uses of the same ingredient before checking stock.
+                $ingredients = $product->ingredientsByVariant($variantLabel);
+                foreach ($ingredients as $ingredient) {
+                    $required = (float) $ingredient->pivot->quantity * $item['quantity'];
+                    $ingredientRequirements[$ingredient->id] = ($ingredientRequirements[$ingredient->id] ?? 0) + $required;
+                }
             }
 
             if ($validated['payment_method'] === 'cash') {
@@ -72,19 +95,22 @@ class OrderController extends Controller
 
             $changeAmount = $cashReceived ? max(0, $cashReceived - $total) : null;
 
-            // Validate Stock BEFORE creating order (locked to prevent race condition)
-            foreach ($validated['items'] as $item) {
-                $product = Product::find($item['product_id']);
-                $variant = $item['variant'] ?? null;
-                $ingredients = $product->ingredientsByVariantLocked($variant);
+            // Lock each ingredient once, in a stable order, then validate the
+            // complete requirement before creating an order or reducing stock.
+            $lockedIngredients = Ingredient::query()
+                ->whereIn('id', array_keys($ingredientRequirements))
+                ->orderBy('id')
+                ->lockForUpdate()
+                ->get()
+                ->keyBy('id');
 
-                foreach ($ingredients as $ingredient) {
-                    $required = $ingredient->pivot->quantity * $item['quantity'];
-                    if ($ingredient->stok < $required) {
-                        throw ValidationException::withMessages([
-                            'items' => "Stok bahan {$ingredient->nama_bahan} tidak cukup untuk produk {$product->name}."
-                        ]);
-                    }
+            foreach ($ingredientRequirements as $ingredientId => $required) {
+                $ingredient = $lockedIngredients->get($ingredientId);
+                if (!$ingredient || (float) $ingredient->stok < $required) {
+                    $ingredientName = $ingredient?->nama_bahan ?? 'yang dipilih';
+                    throw ValidationException::withMessages([
+                        'items' => "Stok bahan {$ingredientName} tidak cukup untuk pesanan ini.",
+                    ]);
                 }
             }
 
@@ -121,7 +147,9 @@ class OrderController extends Controller
             // Only deduct stock immediately for non-verification orders
             // For menunggu_verifikasi, stock will be deducted upon approval
             if ($status !== 'menunggu_verifikasi') {
-                $this->deductStock($validated['items']);
+                foreach ($ingredientRequirements as $ingredientId => $deduction) {
+                    $lockedIngredients->get($ingredientId)->decrement('stok', $deduction);
+                }
             }
 
             return $order;
@@ -136,20 +164,34 @@ class OrderController extends Controller
     }
 
     /**
-     * Deduct ingredient stock for the given items.
+     * Resolve and validate the variant accepted for a product.
+     * Coffee always uses base or lite; other products must not have a variant.
      */
-    private function deductStock(array $items): void
+    private function resolveVariant(Product $product, ?string $variant): ?string
     {
-        foreach ($items as $item) {
-            $product = Product::find($item['product_id']);
-            $variant = $item['variant'] ?? null;
-            $ingredients = $product->ingredientsByVariantLocked($variant);
-
-            foreach ($ingredients as $ingredient) {
-                $deduction = $ingredient->pivot->quantity * $item['quantity'];
-                $ingredient->decrement('stok', $deduction);
+        if ($product->category?->isCoffee()) {
+            if (!in_array($variant, ['base', 'lite'], true)) {
+                throw ValidationException::withMessages([
+                    'items' => "Varian Base atau Lite wajib dipilih untuk produk {$product->name}.",
+                ]);
             }
+
+            if ($variant === 'lite' && $product->price_lite === null) {
+                throw ValidationException::withMessages([
+                    'items' => "Varian Lite tidak tersedia untuk produk {$product->name}.",
+                ]);
+            }
+
+            return $variant;
         }
+
+        if ($variant !== null) {
+            throw ValidationException::withMessages([
+                'items' => "Produk {$product->name} tidak memiliki varian.",
+            ]);
+        }
+
+        return null;
     }
 
     /**

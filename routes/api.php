@@ -27,7 +27,8 @@ Route::middleware('auth:sanctum')->group(function () {
         ->middleware('throttle:60,1');
 
     // Mobile Orders (Customer)
-    Route::post('/orders', [OrderController::class, 'store']);
+    Route::post('/orders', [OrderController::class, 'store'])
+        ->middleware('throttle:5,1');
     Route::get('/orders/active', [OrderController::class, 'active']);
     Route::get('/orders/history', [OrderController::class, 'history']);
     Route::post('/orders/{order}/pickup', [OrderController::class, 'confirmPickup']);

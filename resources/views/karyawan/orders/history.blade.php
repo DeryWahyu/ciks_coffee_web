@@ -120,31 +120,113 @@
 
 @push('scripts')
 <script>
+    const orderStatusColors = {
+        menunggu_verifikasi: 'bg-orange-100 text-orange-700',
+        antrian_baru: 'bg-amber-100 text-amber-700',
+        sedang_dibuat: 'bg-blue-100 text-blue-700',
+        selesai: 'bg-green-100 text-green-700',
+        diambil: 'bg-purple-100 text-purple-700',
+    };
+
+    function createElement(tagName, className = '', text = null) {
+        const element = document.createElement(tagName);
+        element.className = className;
+
+        if (text !== null) {
+            element.textContent = text;
+        }
+
+        return element;
+    }
+
+    function formatCurrency(value) {
+        return `Rp ${Number(value ?? 0).toLocaleString('id-ID')}`;
+    }
+
+    function createDetailRow(label, value, valueClass = 'text-espresso') {
+        const row = createElement('div', 'flex justify-between gap-4');
+        row.append(
+            createElement('span', 'text-caramel', label),
+            createElement('span', `text-right ${valueClass}`, value ?? '-'),
+        );
+
+        return row;
+    }
+
+    function showDetailLoading() {
+        const content = document.getElementById('detail-content');
+        const wrapper = createElement('div', 'text-center py-8');
+        wrapper.append(
+            createElement('div', 'animate-spin w-6 h-6 border-2 border-espresso border-t-transparent rounded-full mx-auto'),
+            createElement('p', 'text-xs text-caramel mt-2', 'Memuat...'),
+        );
+        content.replaceChildren(wrapper);
+    }
+
+    function showDetailError() {
+        document.getElementById('detail-content').replaceChildren(
+            createElement('p', 'text-center py-8 text-xs text-red-600', 'Detail pesanan tidak dapat dimuat.'),
+        );
+    }
+
+    function renderDetail(data) {
+        const content = document.getElementById('detail-content');
+        const details = createElement('div', 'space-y-2 text-xs mb-4');
+        details.append(
+            createDetailRow('No. Pesanan', data.order_number, 'font-bold text-espresso'),
+            createDetailRow('Pelanggan', data.customer_name, 'font-medium text-espresso'),
+            createDetailRow('Kasir', data.cashier),
+            createDetailRow('Waktu', data.paid_at || data.created_at),
+            createDetailRow('Pembayaran', data.payment_method, 'font-medium text-espresso uppercase'),
+        );
+
+        const statusRow = createElement('div', 'flex justify-between items-center gap-4');
+        statusRow.append(createElement('span', 'text-caramel', 'Status'));
+        statusRow.append(createElement(
+            'span',
+            `px-2 py-0.5 rounded-full text-[0.6rem] font-bold uppercase ${orderStatusColors[data.status] ?? 'bg-gray-100 text-gray-700'}`,
+            data.status_label,
+        ));
+        details.append(statusRow);
+
+        const itemsSection = createElement('div', 'border-t border-dashed border-latte/60 pt-3 mb-3');
+        (Array.isArray(data.items) ? data.items : []).forEach((item) => {
+            const row = createElement('div', 'flex justify-between gap-4 text-xs py-1');
+            row.append(
+                createElement('span', 'text-espresso', `${item.product_name ?? '-'} x${item.quantity ?? 0}`),
+                createElement('span', 'font-medium text-espresso text-right', formatCurrency(item.subtotal)),
+            );
+            itemsSection.append(row);
+        });
+
+        const totals = createElement('div', 'border-t border-dashed border-latte/60 pt-3 space-y-1.5');
+        totals.append(
+            createDetailRow('Total', data.formatted_total, 'font-bold text-espresso text-sm'),
+        );
+
+        if (data.payment_method === 'cash' && data.cash_received !== null && data.cash_received !== '') {
+            totals.append(
+                createDetailRow('Tunai', formatCurrency(data.cash_received)),
+                createDetailRow('Kembalian', formatCurrency(data.change_amount), 'font-medium text-green-600'),
+            );
+        }
+
+        content.replaceChildren(details, itemsSection, totals);
+    }
+
     function viewDetail(id) {
         document.getElementById('detail-modal').classList.remove('hidden');
-        document.getElementById('detail-content').innerHTML = '<div class="text-center py-8"><div class="animate-spin w-6 h-6 border-2 border-espresso border-t-transparent rounded-full mx-auto"></div><p class="text-xs text-caramel mt-2">Memuat...</p></div>';
-        fetch(`/karyawan/orders/${id}/detail`).then(r => r.json()).then(d => {
-            let itemsHtml = d.items.map(i => `<div class="flex justify-between text-xs py-1"><span class="text-espresso">${i.product_name} x${i.quantity}</span><span class="font-medium text-espresso">Rp ${parseFloat(i.subtotal).toLocaleString('id-ID')}</span></div>`).join('');
-            let cashHtml = '';
-            if (d.payment_method === 'cash' && d.cash_received) {
-                cashHtml = `<div class="flex justify-between text-xs"><span class="text-caramel">Tunai</span><span class="text-espresso">Rp ${parseFloat(d.cash_received).toLocaleString('id-ID')}</span></div>
-                <div class="flex justify-between text-xs"><span class="text-caramel">Kembalian</span><span class="font-medium text-green-600">Rp ${parseFloat(d.change_amount).toLocaleString('id-ID')}</span></div>`;
-            }
-            document.getElementById('detail-content').innerHTML = `
-                <div class="space-y-2 text-xs mb-4">
-                    <div class="flex justify-between"><span class="text-caramel">No. Pesanan</span><span class="font-bold text-espresso">${d.order_number}</span></div>
-                    <div class="flex justify-between"><span class="text-caramel">Pelanggan</span><span class="font-medium text-espresso">${d.customer_name}</span></div>
-                    <div class="flex justify-between"><span class="text-caramel">Kasir</span><span class="text-espresso">${d.cashier}</span></div>
-                    <div class="flex justify-between"><span class="text-caramel">Waktu</span><span class="text-espresso">${d.paid_at || d.created_at}</span></div>
-                    <div class="flex justify-between"><span class="text-caramel">Pembayaran</span><span class="font-medium text-espresso uppercase">${d.payment_method}</span></div>
-                    <div class="flex justify-between items-center"><span class="text-caramel">Status</span><span class="px-2 py-0.5 rounded-full text-[0.6rem] font-bold uppercase ${d.status_color}">${d.status_label}</span></div>
-                </div>
-                <div class="border-t border-dashed border-latte/60 pt-3 mb-3">${itemsHtml}</div>
-                <div class="border-t border-dashed border-latte/60 pt-3 space-y-1.5">
-                    <div class="flex justify-between text-sm"><span class="font-bold text-espresso">Total</span><span class="font-bold text-espresso">${d.formatted_total}</span></div>
-                    ${cashHtml}
-                </div>`;
-        });
+        showDetailLoading();
+        fetch(`/karyawan/orders/${id}/detail`)
+            .then((response) => {
+                if (!response.ok) {
+                    throw new Error('Gagal memuat detail pesanan.');
+                }
+
+                return response.json();
+            })
+            .then(renderDetail)
+            .catch(showDetailError);
     }
     function closeDetail() { document.getElementById('detail-modal').classList.add('hidden'); }
 </script>

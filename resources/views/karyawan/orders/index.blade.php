@@ -45,7 +45,7 @@
                     @if ($order->status === 'menunggu_verifikasi')
                         {{-- View Payment Proof & Verify --}}
                         @if ($order->payment_proof)
-                            <button onclick="viewProof('{{ '/storage/' . $order->payment_proof }}', '{{ $order->order_number }}', '{{ $order->customer_name }}', '{{ $order->formatted_total }}')" class="px-3 py-2 text-xs font-semibold bg-orange-50 text-orange-600 hover:bg-orange-100 rounded-lg transition flex items-center gap-1.5">
+                            <button onclick='viewProof(@json('/storage/' . $order->payment_proof), @json($order->order_number), @json($order->customer_name), @json($order->formatted_total))' class="px-3 py-2 text-xs font-semibold bg-orange-50 text-orange-600 hover:bg-orange-100 rounded-lg transition flex items-center gap-1.5">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                                 Lihat Bukti
                             </button>
@@ -171,6 +171,31 @@
     function closeProof() { document.getElementById('proof-modal').classList.add('hidden'); }
 
     // Receipt Modal
+    function formatCurrency(value) {
+        return `Rp ${Number(value ?? 0).toLocaleString('id-ID')}`;
+    }
+
+    function renderReceiptItems(items) {
+        const container = document.getElementById('rcpt-items');
+        container.replaceChildren();
+
+        (Array.isArray(items) ? items : []).forEach((item) => {
+            const row = document.createElement('div');
+            row.className = 'flex justify-between gap-4 text-xs';
+
+            const name = document.createElement('span');
+            name.className = 'text-espresso';
+            name.textContent = `${item.product_name ?? '-'} x${item.quantity ?? 0}`;
+
+            const subtotal = document.createElement('span');
+            subtotal.className = 'font-medium text-espresso text-right';
+            subtotal.textContent = formatCurrency(item.subtotal);
+
+            row.append(name, subtotal);
+            container.append(row);
+        });
+    }
+
     function viewReceipt(orderId) {
         fetch(`/karyawan/orders/${orderId}/receipt`).then(r => r.json()).then(data => {
             document.getElementById('rcpt-number').textContent = data.order_number;
@@ -180,11 +205,7 @@
             document.getElementById('rcpt-payment').textContent = data.payment_method;
             document.getElementById('rcpt-total').textContent = data.formatted_total;
             document.getElementById('rcpt-status').textContent = data.status_label;
-            let itemsHtml = '';
-            data.items.forEach(i => {
-                itemsHtml += `<div class="flex justify-between text-xs"><span class="text-espresso">${i.product_name} x${i.quantity}</span><span class="font-medium text-espresso">Rp ${parseFloat(i.subtotal).toLocaleString('id-ID')}</span></div>`;
-            });
-            document.getElementById('rcpt-items').innerHTML = itemsHtml;
+            renderReceiptItems(data.items);
             if (data.payment_method === 'cash' && data.cash_received) {
                 document.getElementById('rcpt-cash-row').classList.remove('hidden');
                 document.getElementById('rcpt-change-row').classList.remove('hidden');
@@ -199,9 +220,19 @@
     }
     function closeReceipt() { document.getElementById('receipt-modal').classList.add('hidden'); }
     function printReceipt() {
-        const content = document.getElementById('receipt-content').innerHTML;
         const w = window.open('', '_blank', 'width=320,height=600');
-        w.document.write(`<html><head><title>Struk</title><style>body{font-family:monospace,sans-serif;font-size:12px;padding:10px;max-width:280px;margin:0 auto}h3{margin:0;font-size:16px;text-align:center}.flex{display:flex;justify-content:space-between}.border-t,.border-b{border-top:1px dashed #ccc;padding-top:8px;margin-top:8px}.mb-4{margin-bottom:12px}.font-bold{font-weight:bold}.space-y-1>*+*{margin-top:4px}.space-y-2>*+*{margin-top:6px}span{display:inline-block}@media print{body{padding:0}}</style></head><body>${content}<div class="text-center border-t" style="margin-top:12px;padding-top:8px;text-align:center"><small>*** Terima Kasih ***</small></div></body></html>`);
+        if (!w) {
+            return;
+        }
+
+        w.document.write('<html><head><title>Struk</title><style>body{font-family:monospace,sans-serif;font-size:12px;padding:10px;max-width:280px;margin:0 auto}h3{margin:0;font-size:16px;text-align:center}.flex{display:flex;justify-content:space-between}.border-t,.border-b{border-top:1px dashed #ccc;padding-top:8px;margin-top:8px}.mb-4{margin-bottom:12px}.font-bold{font-weight:bold}.space-y-1>*+*{margin-top:4px}.space-y-2>*+*{margin-top:6px}span{display:inline-block}@media print{body{padding:0}}</style></head><body></body></html>');
+        w.document.body.append(document.getElementById('receipt-content').cloneNode(true));
+
+        const footer = w.document.createElement('div');
+        footer.className = 'text-center border-t';
+        footer.style.cssText = 'margin-top:12px;padding-top:8px;text-align:center';
+        footer.textContent = '*** Terima Kasih ***';
+        w.document.body.append(footer);
         w.document.close(); w.focus(); w.print(); w.close();
     }
 </script>

@@ -186,27 +186,6 @@
                     })();
                 </script>
             </nav>
-
-            {{-- User Info at Bottom --}}
-            <div class="border-t border-latte/40 px-6 py-4">
-                <div class="flex items-center gap-3">
-                    <div class="w-9 h-9 bg-espresso/10 rounded-full flex items-center justify-center">
-                        <span class="text-sm font-semibold text-espresso">{{ substr(Auth::user()->name, 0, 1) }}</span>
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <p class="text-sm font-semibold text-espresso truncate">{{ Auth::user()->name }}</p>
-                        <p class="text-xs text-caramel capitalize">{{ Auth::user()->role }}</p>
-                    </div>
-                    <form method="POST" action="{{ route('logout') }}">
-                        @csrf
-                        <button type="submit" class="p-1.5 rounded-lg hover:bg-red-50 text-caramel hover:text-red-500 transition-colors" title="Keluar">
-                            <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9"/>
-                            </svg>
-                        </button>
-                    </form>
-                </div>
-            </div>
         </aside>
 
         {{-- Mobile Header --}}
@@ -273,6 +252,24 @@
                     </div>
                     <div class="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end sm:gap-3">
                         @yield('page-actions')
+                        <div class="hidden h-8 w-px bg-latte/50 lg:block" aria-hidden="true"></div>
+                        <div class="hidden min-w-0 items-center gap-3 lg:flex">
+                            <div class="w-9 h-9 shrink-0 bg-espresso/10 rounded-full flex items-center justify-center">
+                                <span class="text-sm font-semibold text-espresso">{{ substr(Auth::user()->name, 0, 1) }}</span>
+                            </div>
+                            <div class="min-w-0 max-w-40">
+                                <p class="text-sm font-semibold text-espresso truncate">{{ Auth::user()->name }}</p>
+                                <p class="text-xs text-caramel capitalize">{{ Auth::user()->role }}</p>
+                            </div>
+                            <form method="POST" action="{{ route('logout') }}">
+                                @csrf
+                                <button type="submit" class="p-1.5 rounded-lg hover:bg-red-50 text-caramel hover:text-red-500 transition-colors" title="Keluar" aria-label="Keluar">
+                                    <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 00-2.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9"/>
+                                    </svg>
+                                </button>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </header>

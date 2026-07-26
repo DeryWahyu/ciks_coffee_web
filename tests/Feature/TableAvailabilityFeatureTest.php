@@ -14,6 +14,14 @@ class TableAvailabilityFeatureTest extends TestCase
     use CreatesTableAvailabilityFixtures;
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->withSession(['_token' => 'table-test-csrf-token']);
+        $this->withHeader('X-CSRF-TOKEN', 'table-test-csrf-token');
+    }
+
     public function test_mobile_api_requires_authentication_and_hides_internal_table_fields(): void
     {
         $layout = $this->createFloorLayout();

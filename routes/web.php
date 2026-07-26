@@ -160,6 +160,7 @@ Route::middleware(['auth', CheckRole::class . ':karyawan'])
         Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
         Route::patch('/orders/{order}/status', [OrderController::class, 'updateStatus'])->name('orders.update-status');
         Route::patch('/orders/{order}/verify', [OrderController::class, 'verifyPayment'])->name('orders.verify');
+        Route::get('/orders/{order}/payment-proof', [OrderController::class, 'paymentProof'])->name('orders.payment-proof');
         Route::get('/orders/{order}/receipt', [OrderController::class, 'receipt'])->name('orders.receipt');
 
         // Riwayat Transaksi

@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Category;
 use App\Models\Ingredient;
+use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -134,6 +135,7 @@ class ApiOrderStockFeatureTest extends TestCase
 
     public function test_qris_checkout_with_a_payment_proof_waits_for_verification_without_deducting_stock(): void
     {
+        Storage::fake('local');
         Storage::fake('public');
 
         $user = $this->customer();
@@ -157,6 +159,10 @@ class ApiOrderStockFeatureTest extends TestCase
             'status' => 'menunggu_verifikasi',
         ]);
         $this->assertSame('10.00', $ingredient->fresh()->stok);
+
+        $order = Order::firstOrFail();
+        Storage::disk('local')->assertExists($order->payment_proof);
+        Storage::disk('public')->assertMissing($order->payment_proof);
     }
 
     public function test_order_creation_is_limited_to_five_requests_per_minute_per_customer(): void

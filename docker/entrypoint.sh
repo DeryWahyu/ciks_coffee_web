@@ -1,6 +1,28 @@
 #!/bin/bash
 set -e
 
+# Terapkan migrasi database sebelum aplikasi menerima trafik. --force wajib
+# untuk lingkungan non-interaktif dan perintah ini idempoten pada deploy ulang.
+php /var/www/html/artisan migrate --force --no-interaction
+
+# Bukti QRIS lama sebelumnya berada di disk public. Pindahkan satu kali ke
+# storage private agar symlink public/storage tidak lagi dapat menyajikannya.
+legacy_proofs="/var/www/html/storage/app/public/payment_proofs"
+private_proofs="/var/www/html/storage/app/private/payment_proofs"
+if [ -d "$legacy_proofs" ]; then
+    mkdir -p "$private_proofs"
+    for proof in "$legacy_proofs"/*; do
+        [ -f "$proof" ] || continue
+        target="$private_proofs/$(basename "$proof")"
+        if [ -e "$target" ]; then
+            rm -f "$proof"
+        else
+            mv "$proof" "$target"
+        fi
+    done
+    rmdir "$legacy_proofs" 2>/dev/null || true
+fi
+
 # Buat symlink public/storage -> storage/app/public (agar gambar ter-serve langsung oleh nginx,
 # sama seperti junction di lingkungan lokal Windows). Idempoten: aman dijalankan berulang.
 php /var/www/html/artisan storage:link --no-interaction || true

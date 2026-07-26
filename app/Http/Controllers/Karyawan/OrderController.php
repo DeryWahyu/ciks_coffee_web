@@ -8,6 +8,7 @@ use App\Models\Order;
 use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class OrderController extends Controller
 {
@@ -145,6 +146,29 @@ class OrderController extends Controller
                 'price' => $i->price,
                 'subtotal' => $i->subtotal,
             ]),
+        ]);
+    }
+
+    /**
+     * Stream a payment proof only to the employee responsible for the order.
+     */
+    public function paymentProof(Request $request, Order $order)
+    {
+        if ($order->cashier_id !== null && $order->cashier_id !== $request->user()->id) {
+            abort(403, 'Anda tidak memiliki akses ke bukti pembayaran ini.');
+        }
+
+        $path = (string) $order->payment_proof;
+        if (
+            $path === ''
+            || !str_starts_with($path, 'payment_proofs/')
+            || !Storage::disk('local')->exists($path)
+        ) {
+            abort(404);
+        }
+
+        return Storage::disk('local')->response($path, null, [
+            'Cache-Control' => 'private, no-store',
         ]);
     }
 

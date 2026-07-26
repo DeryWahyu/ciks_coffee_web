@@ -10,6 +10,7 @@ use App\Models\ShopSetting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 class OrderController extends Controller
 {
@@ -118,7 +119,7 @@ class OrderController extends Controller
             $paymentProofPath = null;
             if ($request->hasFile('payment_proof')) {
                 $paymentProofPath = $request->file('payment_proof')
-                    ->store('payment_proofs', 'public');
+                    ->store('payment_proofs', 'local');
             }
 
             // QRIS with proof → menunggu_verifikasi, otherwise → antrian_baru
@@ -255,6 +256,29 @@ class OrderController extends Controller
     }
 
     /**
+     * Stream a payment proof only to the customer who owns the order.
+     */
+    public function paymentProof(Request $request, Order $order)
+    {
+        if ($order->user_id !== $request->user()->id) {
+            abort(403, 'Anda tidak memiliki akses ke bukti pembayaran ini.');
+        }
+
+        $path = (string) $order->payment_proof;
+        if (
+            $path === ''
+            || !str_starts_with($path, 'payment_proofs/')
+            || !Storage::disk('local')->exists($path)
+        ) {
+            abort(404);
+        }
+
+        return Storage::disk('local')->response($path, null, [
+            'Cache-Control' => 'private, no-store',
+        ]);
+    }
+
+    /**
      * Get QRIS image URL for the shop.
      */
     public function qrisImage()
@@ -291,7 +315,7 @@ class OrderController extends Controller
             'cash_received'   => $order->cash_received,
             'change_amount'   => $order->change_amount,
             'payment_proof_url' => $order->payment_proof
-                ? asset('storage/' . $order->payment_proof)
+                ? url('/api/orders/' . $order->id . '/payment-proof')
                 : null,
             'status'          => $order->status,
             'status_label'    => $order->status_label,

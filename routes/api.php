@@ -31,6 +31,7 @@ Route::middleware('auth:sanctum')->group(function () {
         ->middleware('throttle:5,1');
     Route::get('/orders/active', [OrderController::class, 'active']);
     Route::get('/orders/history', [OrderController::class, 'history']);
+    Route::get('/orders/{order}/payment-proof', [OrderController::class, 'paymentProof']);
     Route::post('/orders/{order}/pickup', [OrderController::class, 'confirmPickup']);
 
     // Shop Settings

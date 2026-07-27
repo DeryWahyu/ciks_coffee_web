@@ -54,6 +54,7 @@
                     </div>
                     <div class="p-2 sm:p-3">
                         <h3 class="text-[0.65rem] sm:text-xs font-bold text-espresso truncate mb-1">{{ $product->name }}</h3>
+                        <p class="mb-1.5 text-[0.58rem] leading-[0.875rem] text-caramel-dark line-clamp-2 sm:text-[0.65rem] sm:leading-4">{{ $product->description ?: 'Deskripsi belum tersedia.' }}</p>
                         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-0.5">
                             <span class="text-[0.65rem] sm:text-xs font-bold text-espresso">{{ $product->formatted_price }}</span>
                             @if ($product->category->isCoffee() && $product->hasLitePrice())

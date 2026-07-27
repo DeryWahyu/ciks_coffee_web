@@ -454,7 +454,7 @@
         // Validasi stok bahan baku SEBELUM menambahkan ke keranjang
         const stockError = validateIngredientStock(variant, qty);
         if (stockError) {
-            alert(stockError);
+            window.CiksAlert.notify(stockError, 'warning', 'Stok bahan belum cukup');
             return; // tahan modal tetap terbuka agar karyawan bisa sesuaikan jumlah
         }
 
@@ -569,41 +569,50 @@
         } else { changeEl.classList.add('hidden'); }
     }
 
-    function submitCheckout() {
+    async function submitCheckout() {
         const name = document.getElementById('checkout-customer').value.trim();
-        if (!name) { alert('Nama pelanggan wajib diisi!'); return; }
+        if (!name) { window.CiksAlert.notify('Nama pelanggan wajib diisi.', 'warning', 'Data belum lengkap'); return; }
         const method = document.querySelector('input[name="payment"]:checked').value;
         const total = cart.reduce((s,i) => s + i.price * i.qty, 0);
         const cash = parseFloat(document.getElementById('checkout-cash').value) || 0;
-        if (method === 'cash' && cash < total) { alert('Uang yang diterima kurang dari total!'); return; }
+        if (method === 'cash' && cash < total) { window.CiksAlert.notify('Uang yang diterima kurang dari total pembayaran.', 'warning', 'Nominal belum cukup'); return; }
+
+        const approved = await window.CiksAlert.receiptConfirm({
+            customer: name,
+            paymentMethod: method === 'cash' ? 'Tunai' : 'QRIS',
+            total: 'Rp ' + total.toLocaleString('id-ID'),
+        });
+        if (!approved) return;
 
         const btn = document.getElementById('btn-submit-checkout');
         btn.disabled = true; btn.textContent = 'Memproses...';
-
-        fetch('/karyawan/pos/checkout', {
-            method: 'POST',
-            headers: {'Content-Type':'application/json', 'Accept':'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content},
-            body: JSON.stringify({
-                customer_name: name, payment_method: method, cash_received: method === 'cash' ? cash : null,
-                items: cart.map(i => ({product_id: i.id, variant: i.variant, quantity: i.qty, price: i.price}))
-            })
-        }).then(async r => {
-            if (!r.ok) {
-                const errData = await r.json();
-                if (errData.errors) {
-                    throw new Error(Object.values(errData.errors)[0][0]);
-                }
-                throw new Error(errData.message || 'Gagal memproses pesanan.');
+        try {
+            const response = await fetch('/karyawan/pos/checkout', {
+                method: 'POST',
+                headers: {'Content-Type':'application/json', 'Accept':'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content},
+                body: JSON.stringify({
+                    customer_name: name, payment_method: method, cash_received: method === 'cash' ? cash : null,
+                    items: cart.map(i => ({product_id: i.id, variant: i.variant, quantity: i.qty, price: i.price}))
+                })
+            });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                const validationMessage = data.errors ? Object.values(data.errors)[0]?.[0] : null;
+                throw new Error(validationMessage || data.message || 'Gagal memproses pesanan.');
             }
-            return r.json();
-        }).then(data => {
-            btn.disabled = false; btn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>Bayar Sekarang';
-            if (data.success) {
-                closeCheckout();
-                cart = []; renderCart();
-                showReceipt(data.order);
-            } else { alert(data.message || 'Gagal memproses pesanan.'); }
-        }).catch((err) => { btn.disabled = false; btn.textContent = 'Bayar Sekarang'; alert(err.message || 'Terjadi kesalahan koneksi.'); });
+            if (!data.success) {
+                throw new Error(data.message || 'Gagal memproses pesanan.');
+            }
+            closeCheckout();
+            cart = []; renderCart();
+            window.CiksAlert.notify(data.message || 'Pesanan berhasil diproses.', 'success', 'Pembayaran berhasil');
+            showReceipt(data.order);
+        } catch (error) {
+            window.CiksAlert.notify(error.message || 'Terjadi kesalahan koneksi.', 'error', 'Pesanan gagal diproses');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>Bayar Sekarang';
+        }
     }
 
     function showReceipt(order) {

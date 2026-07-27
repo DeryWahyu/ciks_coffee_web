@@ -278,10 +278,7 @@
     }
 
     function showToast(message, type = 'info') {
-        window.clearTimeout(state.toastTimer);
-        elements.toast.textContent = message;
-        elements.toast.className = 'table-toast ' + type + ' is-visible';
-        state.toastTimer = window.setTimeout(() => elements.toast.classList.remove('is-visible'), 4500);
+        window.CiksAlert.notify(message, type);
     }
 
     async function loadLayout({ quiet = false } = {}) {

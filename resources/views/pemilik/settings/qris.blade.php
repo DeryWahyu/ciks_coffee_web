@@ -29,7 +29,11 @@
 
                 {{-- Delete button --}}
                 <form method="POST" action="{{ route('pemilik.settings.qris.delete') }}" class="mt-4"
-                      onsubmit="return confirm('Yakin ingin menghapus gambar QRIS?')">
+                      data-ciks-confirm
+                      data-ciks-confirm-title="Hapus gambar QRIS?"
+                      data-ciks-confirm-message="Gambar QRIS aktif akan dihapus dan tidak dapat dipulihkan."
+                      data-ciks-confirm-action="Ya, Hapus QRIS"
+                      data-ciks-confirm-variant="danger">
                     @csrf
                     @method('DELETE')
                     <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 text-sm font-medium rounded-xl border border-red-200 hover:bg-red-100 transition-colors">

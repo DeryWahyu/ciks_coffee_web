@@ -342,6 +342,7 @@
         }
     </script>
     @stack('modals')
+    @include('components.ciks-alert-system')
     @stack('scripts')
 </body>
 </html>

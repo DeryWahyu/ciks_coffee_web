@@ -189,10 +189,7 @@
     }
 
     function showToast(message, type = 'info') {
-        window.clearTimeout(state.toastTimer);
-        elements.toast.textContent = message;
-        elements.toast.className = 'owner-toast ' + type + ' show';
-        state.toastTimer = window.setTimeout(() => elements.toast.classList.remove('show'), 4500);
+        window.CiksAlert.notify(message, type);
     }
 
     function setLoading(isLoading) {
@@ -294,7 +291,7 @@
             const yField = document.createElement('label'); yField.className = 'owner-field-label'; yField.textContent = 'Posisi Y';
             const yInput = document.createElement('input'); yInput.className = 'owner-input'; yInput.type = 'number'; yInput.min = '0'; yInput.max = '100'; yInput.step = '0.01'; yInput.value = number(marker.position_y, 50); yField.appendChild(yInput);
             const apply = document.createElement('button'); apply.type = 'submit'; apply.className = 'owner-marker-position-submit'; apply.textContent = 'Terapkan posisi';
-            const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'owner-marker-position-remove'; remove.textContent = 'Hapus elemen'; remove.addEventListener('click', () => removeMarker(state.selectedMarkerIndex));
+            const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'owner-marker-position-remove'; remove.textContent = 'Hapus elemen'; remove.addEventListener('click', (event) => removeMarker(state.selectedMarkerIndex, event.currentTarget));
             form.append(xField, yField, apply, remove);
             form.addEventListener('submit', (event) => {
                 event.preventDefault();
@@ -316,8 +313,8 @@
         const actions = document.createElement('div'); actions.className = 'owner-property-actions';
         const edit = document.createElement('button'); edit.type = 'button'; edit.textContent = 'Ubah detail'; edit.addEventListener('click', () => openTableModal('edit', table));
         const status = document.createElement('button'); status.type = 'button'; status.textContent = 'Ubah status'; status.disabled = !table.is_active; status.addEventListener('click', () => openStatusModal(table));
-        const toggle = document.createElement('button'); toggle.type = 'button'; toggle.className = 'archive'; toggle.textContent = table.is_active ? 'Arsipkan meja' : 'Aktifkan meja'; toggle.addEventListener('click', () => toggleActive(table));
-        const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'delete'; remove.textContent = 'Hapus meja'; remove.addEventListener('click', () => deleteTable(table));
+        const toggle = document.createElement('button'); toggle.type = 'button'; toggle.className = 'archive'; toggle.textContent = table.is_active ? 'Arsipkan meja' : 'Aktifkan meja'; toggle.addEventListener('click', (event) => toggleActive(table, event.currentTarget));
+        const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'delete'; remove.textContent = 'Hapus meja'; remove.addEventListener('click', (event) => deleteTable(table, event.currentTarget));
         actions.append(edit, status, toggle, remove);
         elements.property.append(title, meta, chip, update, active, actions);
     }
@@ -394,9 +391,17 @@
         renderAll();
     }
 
-    function removeMarker(index) {
+    async function removeMarker(index, anchor) {
         const marker = findMarker(index);
-        if (!marker || !window.confirm('Hapus ' + (marker.label ?? 'elemen denah') + ' dari denah?')) return;
+        if (!marker) return;
+        const approved = await window.CiksAlert.quickConfirm({
+            title: 'Hapus elemen denah?',
+            message: (marker.label ?? 'Elemen denah') + ' akan dihapus dari denah.',
+            confirmText: 'Hapus',
+            variant: 'danger',
+            anchor,
+        });
+        if (!approved) return;
         backgroundElements().splice(Number(index), 1);
         state.selectedMarkerIndex = null;
         state.dirty = true;
@@ -559,9 +564,15 @@
         finally { submit.disabled = false; submit.textContent = 'Simpan status'; }
     }
 
-    async function toggleActive(table) {
+    async function toggleActive(table, anchor) {
         const action = table.is_active ? 'arsipkan' : 'aktifkan';
-        if (!window.confirm('Yakin ingin ' + action + ' ' + table.code + '? Riwayat status tetap disimpan.')) return;
+        const approved = await window.CiksAlert.quickConfirm({
+            title: 'Konfirmasi status meja',
+            message: 'Yakin ingin ' + action + ' ' + table.code + '? Riwayat status tetap disimpan.',
+            confirmText: action === 'arsipkan' ? 'Arsipkan' : 'Aktifkan',
+            anchor,
+        });
+        if (!approved) return;
         try {
             const result = await requestJson(endpoints.active.replace('__TABLE_ID__', String(table.id)), 'PATCH', { is_active: !table.is_active, version: table.version });
             if (result.response.status === 409) { conflictMessage(result.payload); return; }
@@ -570,9 +581,16 @@
         } catch (error) { showToast(error.message ?? 'Status arsip meja tidak dapat diubah.', 'error'); }
     }
 
-    async function deleteTable(table) {
-        const message = 'Hapus ' + table.code + ' secara permanen? Tindakan ini tidak dapat dibatalkan. Meja yang sudah memiliki riwayat status harus diarsipkan, bukan dihapus.';
-        if (!window.confirm(message)) return;
+    async function deleteTable(table, anchor) {
+        const message = table.code + ' akan dihapus permanen. Meja yang memiliki riwayat status harus diarsipkan, bukan dihapus.';
+        const approved = await window.CiksAlert.quickConfirm({
+            title: 'Hapus meja?',
+            message,
+            confirmText: 'Hapus meja',
+            variant: 'danger',
+            anchor,
+        });
+        if (!approved) return;
         try {
             const result = await requestJson(endpoints.destroy.replace('__TABLE_ID__', String(table.id)), 'DELETE', { version: table.version });
             if (result.response.status === 409) { conflictMessage(result.payload); return; }
@@ -606,9 +624,17 @@
         finally { elements.saveLayout.disabled = false; elements.saveLayout.textContent = 'Simpan layout'; }
     }
 
-    function toggleEditMode() {
-        if (state.editing && state.dirty && !window.confirm('Perubahan posisi yang belum disimpan akan dibatalkan. Lanjutkan?')) return;
-        if (state.editing && state.dirty) { state.editing = false; state.selectedMarkerIndex = null; loadData({ quiet: true }); return; }
+    async function toggleEditMode(anchor) {
+        if (state.editing && state.dirty) {
+            const approved = await window.CiksAlert.quickConfirm({
+                title: 'Batalkan perubahan?',
+                message: 'Perubahan posisi yang belum disimpan akan dibatalkan.',
+                confirmText: 'Batalkan perubahan',
+                anchor,
+            });
+            if (!approved) return;
+            state.editing = false; state.selectedMarkerIndex = null; loadData({ quiet: true }); return;
+        }
         if (state.editing) state.selectedMarkerIndex = null;
         state.editing = !state.editing; renderAll();
     }
@@ -651,9 +677,18 @@
 
     elements.refresh.addEventListener('click', () => loadData());
     elements.add.addEventListener('click', () => { if (state.data) openTableModal('create'); else showToast('Tunggu denah selesai dimuat.', 'info'); });
-    elements.edit.addEventListener('click', toggleEditMode);
+    elements.edit.addEventListener('click', (event) => toggleEditMode(event.currentTarget));
     elements.saveLayout.addEventListener('click', saveLayout);
-    elements.resetLayout.addEventListener('click', () => { if (!state.dirty || window.confirm('Batalkan seluruh perubahan posisi yang belum disimpan?')) loadData({ quiet: true }); });
+    elements.resetLayout.addEventListener('click', async (event) => {
+        if (!state.dirty) { loadData({ quiet: true }); return; }
+        const approved = await window.CiksAlert.quickConfirm({
+            title: 'Muat ulang denah?',
+            message: 'Seluruh perubahan posisi yang belum disimpan akan dibatalkan.',
+            confirmText: 'Batalkan perubahan',
+            anchor: event.currentTarget,
+        });
+        if (approved) loadData({ quiet: true });
+    });
     document.querySelectorAll('[data-add-marker]').forEach((button) => button.addEventListener('click', () => addMarker(button.dataset.addMarker)));
     elements.canvas.addEventListener('pointermove', moveDrag);
     elements.canvas.addEventListener('pointerup', endDrag);

@@ -243,6 +243,7 @@
     </div>
 
     @stack('modals')
+    @include('components.ciks-alert-system')
 
     <script>
         const flashSuccess = document.getElementById('flash-success');

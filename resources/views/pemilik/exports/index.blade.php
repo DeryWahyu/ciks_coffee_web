@@ -163,7 +163,7 @@ async function exportData(format, btn) {
             if (contentType.indexOf('text/html') !== -1) {
                 msg = 'Sesi telah berakhir. Silakan muat ulang halaman lalu coba lagi.';
             }
-            alert(msg);
+            window.CiksAlert.notify(msg, 'error', 'Ekspor tidak dapat diproses');
             return;
         }
 
@@ -181,7 +181,7 @@ async function exportData(format, btn) {
         a.remove();
         URL.revokeObjectURL(a.href);
     } catch (e) {
-        alert('Terjadi kesalahan saat mengekspor: ' + e.message);
+        window.CiksAlert.notify('Terjadi kesalahan saat mengekspor: ' + e.message, 'error', 'Ekspor gagal');
     } finally {
         if (btn) { btn.disabled = false; btn.innerHTML = originalHtml; }
     }

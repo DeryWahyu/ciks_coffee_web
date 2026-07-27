@@ -57,6 +57,22 @@ jobs:
           script: |
             mkdir -p /opt/ciks-coffee/storage /opt/ciks-coffee/private-storage
             echo "$ENV_FILE" > /opt/ciks-coffee/.env
+            # Kredensial Reverb disimpan hanya pada .env server dan dibuat ulang per deploy.
+            sed -i '/^BROADCAST_CONNECTION=/d; /^REVERB_/d; /^VITE_REVERB_/d' /opt/ciks-coffee/.env
+            REVERB_APP_ID="$(date +%s)"
+            REVERB_APP_KEY="$(openssl rand -hex 16)"
+            REVERB_APP_SECRET="$(openssl rand -hex 32)"
+            {
+              echo "BROADCAST_CONNECTION=reverb"
+              echo "REVERB_APP_ID=${REVERB_APP_ID}"
+              echo "REVERB_APP_KEY=${REVERB_APP_KEY}"
+              echo "REVERB_APP_SECRET=${REVERB_APP_SECRET}"
+              echo "REVERB_SERVER_HOST=0.0.0.0"
+              echo "REVERB_SERVER_PORT=8080"
+              echo "REVERB_HOST=127.0.0.1"
+              echo "REVERB_PORT=8080"
+              echo "REVERB_SCHEME=http"
+            } >> /opt/ciks-coffee/.env
             echo ${{ secrets.DOCKER_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             IMAGE_NAME="ghcr.io/derywahyu/ciks-coffee-web:sha-${{ github.sha }}"
             

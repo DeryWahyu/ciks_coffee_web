@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\MobileOrderReceived;
+
 use App\Http\Controllers\Controller;
 use App\Models\Ingredient;
 use App\Models\Order;
@@ -157,6 +159,7 @@ class OrderController extends Controller
         }, 3);
 
         $order->load('items');
+        MobileOrderReceived::dispatch($order);
 
         return response()->json([
             'success' => true,

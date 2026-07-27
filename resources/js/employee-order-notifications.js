@@ -56,13 +56,13 @@ if (config?.userId && config?.reverb) {
         }
         return state.audioContext;
     };
-    const tone = (context, frequency, start, duration, gain) => {
+    const tone = (context, frequency, start, duration, gain, waveform = 'sine') => {
         const oscillator = context.createOscillator();
         const volume = context.createGain();
-        oscillator.type = 'sine';
+        oscillator.type = waveform;
         oscillator.frequency.setValueAtTime(frequency, start);
         volume.gain.setValueAtTime(0.0001, start);
-        volume.gain.exponentialRampToValueAtTime(gain, start + 0.015);
+        volume.gain.exponentialRampToValueAtTime(gain, start + 0.012);
         volume.gain.exponentialRampToValueAtTime(0.0001, start + duration);
         oscillator.connect(volume).connect(context.destination);
         oscillator.start(start);
@@ -75,9 +75,14 @@ if (config?.userId && config?.reverb) {
         try {
             if (context.state !== 'running') await context.resume();
             const now = context.currentTime;
-            const gain = 0.11 * state.volume;
-            tone(context, 659.25, now, 0.16, gain);
-            tone(context, 880, now + 0.19, 0.26, gain);
+            const gain = 0.24 * state.volume;
+
+            // Pola alarm kasir: tajam, berulang, dan mudah terdengar di area ramai.
+            tone(context, 784, now, 0.13, gain, 'square');
+            tone(context, 1046.5, now + 0.15, 0.16, gain, 'square');
+            tone(context, 784, now + 0.36, 0.13, gain, 'square');
+            tone(context, 1046.5, now + 0.51, 0.16, gain, 'square');
+            tone(context, 1318.5, now + 0.73, 0.28, gain * 0.9, 'triangle');
         } catch {
             state.soundUnlocked = false;
             updateUi();

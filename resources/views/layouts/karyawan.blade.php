@@ -286,9 +286,12 @@
             queueUrl: @json(route('karyawan.orders.index')),
             reverb: {
                 key: @json(config('broadcasting.connections.reverb.key')),
-                host: @json(request()->getHost()),
-                port: @json(request()->isSecure() ? 443 : request()->getPort()),
-                scheme: @json(request()->getScheme()),
+                // Nilai ini sengaja dibaca dari browser, bukan request Laravel.
+                // Di balik Cloudflare/Nginx Proxy Manager request internal dapat
+                // terlihat sebagai HTTP, sementara halaman publik sebenarnya HTTPS.
+                host: window.location.hostname,
+                port: window.location.port || (window.location.protocol === 'https:' ? 443 : 80),
+                scheme: window.location.protocol === 'https:' ? 'https' : 'http',
             },
         };
     </script>

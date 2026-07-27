@@ -4,18 +4,19 @@ import Pusher from 'pusher-js';
 window.Pusher = Pusher;
 
 window.createCiksEcho = (config = {}) => {
-    if (!config.key || !config.host) return null;
+    const host = config.host || window.location.hostname;
+    if (!config.key || !host) return null;
 
     window.Echo?.disconnect();
 
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-    const secure = config.scheme === 'https';
-    const port = Number(config.port || (secure ? 443 : 80));
+    const secure = config.scheme ? config.scheme === 'https' : window.location.protocol === 'https:';
+    const port = Number(config.port || window.location.port || (secure ? 443 : 80));
 
     window.Echo = new Echo({
         broadcaster: 'reverb',
         key: config.key,
-        wsHost: config.host,
+        wsHost: host,
         wsPort: port,
         wssPort: port,
         forceTLS: secure,

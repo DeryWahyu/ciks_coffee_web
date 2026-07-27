@@ -83,7 +83,7 @@ if (config?.userId && config?.reverb) {
             updateUi();
         }
     };
-    const activateSound = async () => {
+    const unlockSound = async ({ preview = false, unmute = false } = {}) => {
         const context = getAudioContext();
         if (!context) {
             setConnectionStatus('Audio tidak didukung browser ini.', 'text-red-500');
@@ -92,14 +92,15 @@ if (config?.userId && config?.reverb) {
         try {
             await context.resume();
             state.soundUnlocked = true;
-            state.muted = false;
+            if (unmute) state.muted = false;
             persist();
             updateUi();
-            await playChime(true);
+            if (preview && !state.muted) await playChime(true);
         } catch {
             setConnectionStatus('Browser menolak pemutaran suara.', 'text-red-500');
         }
     };
+    const activateSound = () => unlockSound({ preview: true, unmute: true });
     const openPanel = (open) => {
         if (!nodes.panel || !nodes.trigger) return;
         nodes.panel.classList.toggle('hidden', !open);
@@ -125,6 +126,11 @@ if (config?.userId && config?.reverb) {
     document.addEventListener('click', (event) => {
         if (nodes.panel && nodes.trigger && !nodes.panel.contains(event.target) && !nodes.trigger.contains(event.target)) openPanel(false);
     });
+    // Browser hanya mengizinkan audio setelah interaksi pengguna. Dengan ini,
+    // klik atau sentuhan pertama di halaman mengizinkan bunyi pesanan berikutnya
+    // tanpa memaksa pengguna membuka panel notifikasi terlebih dahulu.
+    document.addEventListener('pointerdown', () => unlockSound(), { once: true, passive: true });
+    document.addEventListener('keydown', () => unlockSound(), { once: true });
 
     updateUi();
     const echo = window.createCiksEcho?.(config.reverb);

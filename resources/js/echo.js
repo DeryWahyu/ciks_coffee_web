@@ -16,6 +16,9 @@ window.createCiksEcho = (config = {}) => {
     window.Echo = new Echo({
         broadcaster: 'reverb',
         key: config.key,
+        // pusher-js v8 tetap mewajibkan cluster meski host Reverb dikustom.
+        // Nilai ini tidak dipakai untuk routing karena wsHost/wssPort ditentukan di bawah.
+        cluster: 'mt1',
         wsHost: host,
         wsPort: port,
         wssPort: port,

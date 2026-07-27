@@ -55,7 +55,7 @@ jobs:
           port: ${{ secrets.VPS_PORT || 22 }}
           envs: ENV_FILE
           script: |
-            mkdir -p /opt/ciks-coffee/storage
+            mkdir -p /opt/ciks-coffee/storage /opt/ciks-coffee/private-storage
             echo "$ENV_FILE" > /opt/ciks-coffee/.env
             echo ${{ secrets.DOCKER_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             IMAGE_NAME="ghcr.io/derywahyu/ciks-coffee-web:sha-${{ github.sha }}"
@@ -72,6 +72,7 @@ jobs:
               --network db-network \
               -v /opt/ciks-coffee/.env:/var/www/html/.env \
               -v /opt/ciks-coffee/storage:/var/www/html/storage/app/public \
+              -v /opt/ciks-coffee/private-storage:/var/www/html/storage/app/private \
               $IMAGE_NAME
 
             docker image prune -f --filter "dangling=true"

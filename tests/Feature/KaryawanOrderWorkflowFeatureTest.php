@@ -145,81 +145,105 @@ class KaryawanOrderWorkflowFeatureTest extends TestCase
         $this->assertDatabaseHas('orders', ['id' => $order->id]);
     }
 
-    public function test_employee_history_lists_every_order_without_changing_any_order(): void
+    public function test_shared_queue_keeps_pos_until_selesai_and_mobile_until_diambil_across_days(): void
+    {
+        $viewer = $this->employee();
+        $handler = $this->employee();
+        $customer = $this->customer();
+
+        $posActive = $this->makeOrder($handler, [
+            'customer_name' => 'Pelanggan POS Aktif',
+            'cashier_id' => $handler->id,
+            'status' => 'sedang_dibuat',
+        ]);
+        $posFinished = $this->makeOrder($handler, [
+            'customer_name' => 'Pelanggan POS Selesai',
+            'cashier_id' => $handler->id,
+            'status' => 'selesai',
+        ]);
+        $mobileReady = $this->makeOrder($customer, [
+            'customer_name' => 'Pelanggan Mobile Siap',
+            'cashier_id' => $handler->id,
+            'status' => 'selesai',
+        ]);
+        $mobilePickedUp = $this->makeOrder($customer, [
+            'customer_name' => 'Pelanggan Mobile Diambil',
+            'cashier_id' => $handler->id,
+            'status' => 'diambil',
+        ]);
+        $mobileNew = $this->makeOrder($customer, [
+            'customer_name' => 'Pelanggan Mobile Baru',
+            'cashier_id' => null,
+            'status' => 'antrian_baru',
+        ]);
+
+        foreach ([$posActive, $posFinished, $mobileReady, $mobilePickedUp, $mobileNew] as $order) {
+            $order->forceFill([
+                'created_at' => now()->subDays(2),
+                'updated_at' => now()->subDays(2),
+            ])->saveQuietly();
+        }
+
+        $response = $this->actingAs($viewer)
+            ->get(route('karyawan.orders.index'));
+
+        $response->assertOk()
+            ->assertSeeText($posActive->order_number)
+            ->assertSeeText($mobileReady->order_number)
+            ->assertSeeText($mobileNew->order_number)
+            ->assertDontSeeText($posFinished->order_number)
+            ->assertDontSeeText($mobilePickedUp->order_number)
+            ->assertSeeText('Ditangani karyawan lain')
+            ->assertViewHas('orders', fn ($orders) => $orders->total() === 3)
+            ->assertViewHas('counts', fn ($counts) => $counts === [
+                'menunggu_verifikasi' => 0,
+                'antrian_baru' => 1,
+                'sedang_dibuat' => 1,
+                'selesai' => 1,
+            ]);
+
+        $this->assertDatabaseCount('orders', 5);
+    }
+
+    public function test_history_detail_and_income_remain_private_per_employee(): void
     {
         $employee = $this->employee();
         $otherEmployee = $this->employee();
         $customer = $this->customer();
 
         $ownOrder = $this->makeOrder($customer, [
+            'customer_name' => 'Transaksi Milik Sendiri',
             'cashier_id' => $employee->id,
             'status' => 'diambil',
+            'total' => 15000,
         ]);
         $otherOrder = $this->makeOrder($customer, [
+            'customer_name' => 'Transaksi Milik Karyawan Lain',
             'cashier_id' => $otherEmployee->id,
-            'status' => 'selesai',
-        ]);
-        $unassignedOrder = $this->makeOrder($customer, [
-            'cashier_id' => null,
-            'status' => 'antrian_baru',
-        ]);
-
-        $response = $this->actingAs($employee)
-            ->get(route('karyawan.orders.history'));
-
-        $response->assertOk()
-            ->assertSeeText($ownOrder->order_number)
-            ->assertSeeText($otherOrder->order_number)
-            ->assertSeeText($unassignedOrder->order_number)
-            ->assertViewHas('orders', fn ($orders) => $orders->total() === 3);
-
-        $this->assertDatabaseCount('orders', 3);
-        $this->assertDatabaseHas('orders', [
-            'id' => $ownOrder->id,
-            'cashier_id' => $employee->id,
             'status' => 'diambil',
-        ]);
-        $this->assertDatabaseHas('orders', [
-            'id' => $otherOrder->id,
-            'cashier_id' => $otherEmployee->id,
-            'status' => 'selesai',
-        ]);
-        $this->assertDatabaseHas('orders', [
-            'id' => $unassignedOrder->id,
-            'cashier_id' => null,
-            'status' => 'antrian_baru',
-        ]);
-    }
-
-    public function test_employee_can_read_another_employee_order_from_history_but_cannot_change_it(): void
-    {
-        $employee = $this->employee();
-        $otherEmployee = $this->employee();
-        $order = $this->makeOrder($this->customer(), [
-            'cashier_id' => $otherEmployee->id,
-            'status' => 'antrian_baru',
+            'total' => 99000,
         ]);
 
         $this->actingAs($employee)
-            ->get(route('karyawan.orders.show', $order))
+            ->get(route('karyawan.orders.history'))
             ->assertOk()
-            ->assertJsonPath('id', $order->id);
+            ->assertSeeText($ownOrder->order_number)
+            ->assertDontSeeText($otherOrder->order_number)
+            ->assertViewHas('orders', fn ($orders) => $orders->total() === 1);
 
         $this->actingAs($employee)
-            ->withSession(['_token' => 'test-token'])
-            ->from(route('karyawan.orders.history'))
-            ->patch(route('karyawan.orders.update-status', $order), [
-                'status' => 'sedang_dibuat',
-                '_token' => 'test-token',
-            ])
-            ->assertRedirect(route('karyawan.orders.history'))
-            ->assertSessionHas('error');
+            ->get(route('karyawan.orders.show', $otherOrder))
+            ->assertForbidden();
 
-        $this->assertDatabaseHas('orders', [
-            'id' => $order->id,
-            'cashier_id' => $otherEmployee->id,
-            'status' => 'antrian_baru',
-        ]);
+        $this->actingAs($employee)
+            ->get(route('karyawan.income.index'))
+            ->assertOk()
+            ->assertViewHas('stats', function ($stats) {
+                return $stats['total_transactions'] === 1
+                    && (float) $stats['total_revenue'] === 15000.0;
+            });
+
+        $this->assertDatabaseCount('orders', 2);
     }
 
     private function employee(): User
@@ -238,12 +262,12 @@ class KaryawanOrderWorkflowFeatureTest extends TestCase
         ]);
     }
 
-    private function makeOrder(User $customer, array $attributes = []): Order
+    private function makeOrder(User $orderOwner, array $attributes = []): Order
     {
         return Order::create(array_merge([
             'order_number' => 'CK-TEST-'.str_pad((string) (Order::count() + 1), 4, '0', STR_PAD_LEFT),
-            'customer_name' => $customer->name,
-            'user_id' => $customer->id,
+            'customer_name' => $orderOwner->name,
+            'user_id' => $orderOwner->id,
             'payment_method' => 'cash',
             'total' => 15000,
             'status' => 'antrian_baru',

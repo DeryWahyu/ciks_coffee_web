@@ -13,61 +13,43 @@ use Illuminate\Support\Facades\Storage;
 class OrderController extends Controller
 {
     /**
-     * Show order queue page (today's orders).
+     * Show the shared queue of active orders.
      */
     public function index(Request $request)
     {
         $status = $request->get('status');
-        $userId = $request->user()->id;
+        $allowedStatuses = ['menunggu_verifikasi', 'antrian_baru', 'sedang_dibuat', 'selesai'];
+        $activeOrders = Order::query()->activeQueue();
 
-        $query = Order::with('items')->where(function ($q) use ($userId) {
-            $q->where('cashier_id', $userId)
-                ->orWhereNull('cashier_id');
-        })->latest();
+        $query = (clone $activeOrders)
+            ->with(['items', 'user', 'cashier'])
+            ->latest();
 
-        if ($status && in_array($status, ['menunggu_verifikasi', 'antrian_baru', 'sedang_dibuat', 'selesai'])) {
+        if ($status && in_array($status, $allowedStatuses, true)) {
             $query->where('status', $status);
         }
 
-        // Only show today's orders by default
-        if (! $request->filled('all')) {
-            $query->whereDate('created_at', today());
-        }
-
         $orders = $query->paginate(15)->withQueryString();
+        $counts = [];
 
-        $counts = [
-            'menunggu_verifikasi' => Order::whereDate('created_at', today())
-                ->where(function ($q) use ($userId) {
-                    $q->where('cashier_id', $userId)->orWhereNull('cashier_id');
-                })
-                ->where('status', 'menunggu_verifikasi')->count(),
-            'antrian_baru' => Order::whereDate('created_at', today())
-                ->where(function ($q) use ($userId) {
-                    $q->where('cashier_id', $userId)->orWhereNull('cashier_id');
-                })
-                ->where('status', 'antrian_baru')->count(),
-            'sedang_dibuat' => Order::whereDate('created_at', today())
-                ->where(function ($q) use ($userId) {
-                    $q->where('cashier_id', $userId)->orWhereNull('cashier_id');
-                })
-                ->where('status', 'sedang_dibuat')->count(),
-            'selesai' => Order::whereDate('created_at', today())
-                ->where(function ($q) use ($userId) {
-                    $q->where('cashier_id', $userId)->orWhereNull('cashier_id');
-                })
-                ->where('status', 'selesai')->count(),
-        ];
+        foreach ($allowedStatuses as $queueStatus) {
+            $counts[$queueStatus] = (clone $activeOrders)
+                ->where('status', $queueStatus)
+                ->count();
+        }
 
         return view('karyawan.orders.index', compact('orders', 'counts', 'status'));
     }
 
     /**
-     * Show transaction history (all recorded transactions).
+     * Show only transactions handled by the authenticated employee.
      */
     public function history(Request $request)
     {
-        $query = Order::with(['items', 'user', 'cashier'])->latest();
+        $userId = $request->user()->id;
+        $query = Order::with(['items', 'user', 'cashier'])
+            ->where('cashier_id', $userId)
+            ->latest();
 
         // Search by order number or customer name
         if ($search = $request->get('search')) {
@@ -98,7 +80,7 @@ class OrderController extends Controller
         $orders = $query->paginate(20)->withQueryString();
 
         // Summary stats
-        $statsQuery = Order::query();
+        $statsQuery = Order::query()->where('cashier_id', $userId);
         if ($search) {
             $statsQuery->where(function ($q) use ($search) {
                 $q->where('order_number', 'like', "%{$search}%")
@@ -122,21 +104,10 @@ class OrderController extends Controller
             'total_transactions' => (clone $statsQuery)->count(),
             'total_revenue' => (clone $statsQuery)->sum('total'),
             'avg_transaction' => (clone $statsQuery)->avg('total') ?? 0,
-            'today_count' => Order::whereDate('created_at', today())->count(),
+            'today_count' => Order::where('cashier_id', $userId)->whereDate('created_at', today())->count(),
         ];
 
-        $hasFilters = $request->filled('search')
-            || $request->filled('date_from')
-            || $request->filled('date_to')
-            || $request->filled('payment_method')
-            || $request->filled('status');
-
-        return view('karyawan.orders.history', [
-            'orders' => $orders,
-            'stats' => $stats,
-            'hasFilters' => $hasFilters,
-            'allOrdersCount' => Order::count(),
-        ]);
+        return view('karyawan.orders.history', compact('orders', 'stats'));
     }
 
     /**
@@ -144,6 +115,10 @@ class OrderController extends Controller
      */
     public function show(Order $order)
     {
+        if ($order->cashier_id !== null && $order->cashier_id !== request()->user()->id) {
+            abort(403, 'Anda tidak memiliki akses ke pesanan ini.');
+        }
+
         $order->load(['items', 'user', 'cashier']);
 
         return response()->json([

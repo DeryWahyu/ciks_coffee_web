@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -47,7 +48,7 @@ class Order extends Model
         $today = now()->format('Ymd');
         $prefix = "CK-{$today}-";
 
-        $lastOrder = static::where('order_number', 'like', $prefix . '%')
+        $lastOrder = static::where('order_number', 'like', $prefix.'%')
             ->lockForUpdate()
             ->orderByDesc('order_number')
             ->first();
@@ -58,7 +59,7 @@ class Order extends Model
             $nextNumber = $lastNum + 1;
         }
 
-        return $prefix . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+        return $prefix.str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
     }
 
     public function user(): BelongsTo
@@ -76,9 +77,61 @@ class Order extends Model
         return $this->hasMany(OrderItem::class);
     }
 
+    /**
+     * Orders stay in the shared operational queue until their source-specific
+     * terminal status: selesai for POS and diambil for mobile orders.
+     */
+    public function scopeActiveQueue(Builder $query): Builder
+    {
+        return $query->where(function (Builder $activeOrders) {
+            $activeOrders
+                ->where(function (Builder $posOrders) {
+                    $posOrders
+                        ->whereHas('user', fn (Builder $users) => $users->whereIn('role', [
+                            User::ROLE_KARYAWAN,
+                            User::ROLE_PEMILIK,
+                        ]))
+                        ->whereNotIn('status', ['selesai', 'diambil']);
+                })
+                ->orWhere(function (Builder $mobileOrders) {
+                    $mobileOrders
+                        ->whereHas('user', fn (Builder $users) => $users->where('role', User::ROLE_PENGGUNA))
+                        ->where('status', '!=', 'diambil');
+                });
+        });
+    }
+
+    public function isPosOrder(): bool
+    {
+        return in_array($this->user?->role, [User::ROLE_KARYAWAN, User::ROLE_PEMILIK], true);
+    }
+
+    public function isMobileOrder(): bool
+    {
+        return $this->user?->role === User::ROLE_PENGGUNA;
+    }
+
+    public function isActiveQueueOrder(): bool
+    {
+        if ($this->isPosOrder()) {
+            return ! in_array($this->status, ['selesai', 'diambil'], true);
+        }
+
+        if ($this->isMobileOrder()) {
+            return $this->status !== 'diambil';
+        }
+
+        return false;
+    }
+
+    public function getOrderSourceLabelAttribute(): string
+    {
+        return $this->isPosOrder() ? 'Kasir' : 'Aplikasi';
+    }
+
     public function getFormattedTotalAttribute(): string
     {
-        return 'Rp ' . number_format($this->total, 0, ',', '.');
+        return 'Rp '.number_format($this->total, 0, ',', '.');
     }
 
     public function getStatusLabelAttribute(): string

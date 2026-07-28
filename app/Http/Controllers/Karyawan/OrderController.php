@@ -22,7 +22,7 @@ class OrderController extends Controller
 
         $query = Order::with('items')->where(function ($q) use ($userId) {
             $q->where('cashier_id', $userId)
-              ->orWhereNull('cashier_id');
+                ->orWhereNull('cashier_id');
         })->latest();
 
         if ($status && in_array($status, ['menunggu_verifikasi', 'antrian_baru', 'sedang_dibuat', 'selesai'])) {
@@ -30,7 +30,7 @@ class OrderController extends Controller
         }
 
         // Only show today's orders by default
-        if (!$request->filled('all')) {
+        if (! $request->filled('all')) {
             $query->whereDate('created_at', today());
         }
 
@@ -38,16 +38,24 @@ class OrderController extends Controller
 
         $counts = [
             'menunggu_verifikasi' => Order::whereDate('created_at', today())
-                ->where(function ($q) use ($userId) { $q->where('cashier_id', $userId)->orWhereNull('cashier_id'); })
+                ->where(function ($q) use ($userId) {
+                    $q->where('cashier_id', $userId)->orWhereNull('cashier_id');
+                })
                 ->where('status', 'menunggu_verifikasi')->count(),
             'antrian_baru' => Order::whereDate('created_at', today())
-                ->where(function ($q) use ($userId) { $q->where('cashier_id', $userId)->orWhereNull('cashier_id'); })
+                ->where(function ($q) use ($userId) {
+                    $q->where('cashier_id', $userId)->orWhereNull('cashier_id');
+                })
                 ->where('status', 'antrian_baru')->count(),
             'sedang_dibuat' => Order::whereDate('created_at', today())
-                ->where(function ($q) use ($userId) { $q->where('cashier_id', $userId)->orWhereNull('cashier_id'); })
+                ->where(function ($q) use ($userId) {
+                    $q->where('cashier_id', $userId)->orWhereNull('cashier_id');
+                })
                 ->where('status', 'sedang_dibuat')->count(),
             'selesai' => Order::whereDate('created_at', today())
-                ->where(function ($q) use ($userId) { $q->where('cashier_id', $userId)->orWhereNull('cashier_id'); })
+                ->where(function ($q) use ($userId) {
+                    $q->where('cashier_id', $userId)->orWhereNull('cashier_id');
+                })
                 ->where('status', 'selesai')->count(),
         ];
 
@@ -59,14 +67,13 @@ class OrderController extends Controller
      */
     public function history(Request $request)
     {
-        $userId = $request->user()->id;
-        $query = Order::with(['items', 'user', 'cashier'])->where('cashier_id', $userId)->latest();
+        $query = Order::with(['items', 'user', 'cashier'])->latest();
 
         // Search by order number or customer name
         if ($search = $request->get('search')) {
             $query->where(function ($q) use ($search) {
                 $q->where('order_number', 'like', "%{$search}%")
-                  ->orWhere('customer_name', 'like', "%{$search}%");
+                    ->orWhere('customer_name', 'like', "%{$search}%");
             });
         }
 
@@ -91,26 +98,45 @@ class OrderController extends Controller
         $orders = $query->paginate(20)->withQueryString();
 
         // Summary stats
-        $statsQuery = Order::query()->where('cashier_id', $userId);
+        $statsQuery = Order::query();
         if ($search) {
             $statsQuery->where(function ($q) use ($search) {
                 $q->where('order_number', 'like', "%{$search}%")
-                  ->orWhere('customer_name', 'like', "%{$search}%");
+                    ->orWhere('customer_name', 'like', "%{$search}%");
             });
         }
-        if ($dateFrom) $statsQuery->whereDate('created_at', '>=', $dateFrom);
-        if ($dateTo) $statsQuery->whereDate('created_at', '<=', $dateTo);
-        if ($payment) $statsQuery->where('payment_method', $payment);
-        if ($status) $statsQuery->where('status', $status);
+        if ($dateFrom) {
+            $statsQuery->whereDate('created_at', '>=', $dateFrom);
+        }
+        if ($dateTo) {
+            $statsQuery->whereDate('created_at', '<=', $dateTo);
+        }
+        if ($payment) {
+            $statsQuery->where('payment_method', $payment);
+        }
+        if ($status) {
+            $statsQuery->where('status', $status);
+        }
 
         $stats = [
-            'total_transactions' => $statsQuery->count(),
-            'total_revenue' => $statsQuery->sum('total'),
-            'avg_transaction' => $statsQuery->avg('total') ?? 0,
-            'today_count' => Order::where('cashier_id', $userId)->whereDate('created_at', today())->count(),
+            'total_transactions' => (clone $statsQuery)->count(),
+            'total_revenue' => (clone $statsQuery)->sum('total'),
+            'avg_transaction' => (clone $statsQuery)->avg('total') ?? 0,
+            'today_count' => Order::whereDate('created_at', today())->count(),
         ];
 
-        return view('karyawan.orders.history', compact('orders', 'stats'));
+        $hasFilters = $request->filled('search')
+            || $request->filled('date_from')
+            || $request->filled('date_to')
+            || $request->filled('payment_method')
+            || $request->filled('status');
+
+        return view('karyawan.orders.history', [
+            'orders' => $orders,
+            'stats' => $stats,
+            'hasFilters' => $hasFilters,
+            'allOrdersCount' => Order::count(),
+        ]);
     }
 
     /**
@@ -118,10 +144,6 @@ class OrderController extends Controller
      */
     public function show(Order $order)
     {
-        if ($order->cashier_id !== null && $order->cashier_id !== request()->user()->id) {
-            abort(403, 'Anda tidak memiliki akses ke pesanan ini.');
-        }
-
         $order->load(['items', 'user', 'cashier']);
 
         return response()->json([
@@ -139,7 +161,7 @@ class OrderController extends Controller
             'paid_at' => $order->paid_at?->format('d/m/Y H:i'),
             'created_at' => $order->created_at->format('d/m/Y H:i'),
             'cashier' => $order->cashier->name ?? '-',
-            'items' => $order->items->map(fn($i) => [
+            'items' => $order->items->map(fn ($i) => [
                 'product_name' => $i->product_name,
                 'variant' => $i->variant,
                 'quantity' => $i->quantity,
@@ -161,8 +183,8 @@ class OrderController extends Controller
         $path = (string) $order->payment_proof;
         if (
             $path === ''
-            || !str_starts_with($path, 'payment_proofs/')
-            || !Storage::disk('local')->exists($path)
+            || ! str_starts_with($path, 'payment_proofs/')
+            || ! Storage::disk('local')->exists($path)
         ) {
             abort(404);
         }
@@ -242,7 +264,7 @@ class OrderController extends Controller
                 foreach ($lockedOrder->items as $item) {
                     $product = Product::query()->lockForUpdate()->find($item->product_id);
 
-                    if (!$product) {
+                    if (! $product) {
                         throw new \DomainException("Produk untuk item {$item->product_name} tidak ditemukan.");
                     }
 
@@ -262,7 +284,7 @@ class OrderController extends Controller
                 foreach ($requirements as $ingredientId => $required) {
                     $ingredient = $ingredients->get($ingredientId);
 
-                    if (!$ingredient) {
+                    if (! $ingredient) {
                         throw new \DomainException('Salah satu bahan pesanan tidak ditemukan.');
                     }
 
@@ -311,7 +333,7 @@ class OrderController extends Controller
             'status_label' => $order->status_label,
             'paid_at' => $order->paid_at?->format('d/m/Y H:i'),
             'cashier' => $order->cashier->name ?? '-',
-            'items' => $order->items->map(fn($i) => [
+            'items' => $order->items->map(fn ($i) => [
                 'product_name' => $i->product_name,
                 'quantity' => $i->quantity,
                 'price' => $i->price,
@@ -320,14 +342,13 @@ class OrderController extends Controller
         ]);
     }
 
-
     /**
      * Show employee income page.
      */
     public function income(Request $request)
     {
         $userId = $request->user()->id;
-        
+
         $query = Order::where('cashier_id', $userId)->whereIn('status', ['selesai', 'diambil']);
 
         // Filter by date range

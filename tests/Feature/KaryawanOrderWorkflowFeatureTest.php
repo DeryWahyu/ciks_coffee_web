@@ -145,6 +145,83 @@ class KaryawanOrderWorkflowFeatureTest extends TestCase
         $this->assertDatabaseHas('orders', ['id' => $order->id]);
     }
 
+    public function test_employee_history_lists_every_order_without_changing_any_order(): void
+    {
+        $employee = $this->employee();
+        $otherEmployee = $this->employee();
+        $customer = $this->customer();
+
+        $ownOrder = $this->makeOrder($customer, [
+            'cashier_id' => $employee->id,
+            'status' => 'diambil',
+        ]);
+        $otherOrder = $this->makeOrder($customer, [
+            'cashier_id' => $otherEmployee->id,
+            'status' => 'selesai',
+        ]);
+        $unassignedOrder = $this->makeOrder($customer, [
+            'cashier_id' => null,
+            'status' => 'antrian_baru',
+        ]);
+
+        $response = $this->actingAs($employee)
+            ->get(route('karyawan.orders.history'));
+
+        $response->assertOk()
+            ->assertSeeText($ownOrder->order_number)
+            ->assertSeeText($otherOrder->order_number)
+            ->assertSeeText($unassignedOrder->order_number)
+            ->assertViewHas('orders', fn ($orders) => $orders->total() === 3);
+
+        $this->assertDatabaseCount('orders', 3);
+        $this->assertDatabaseHas('orders', [
+            'id' => $ownOrder->id,
+            'cashier_id' => $employee->id,
+            'status' => 'diambil',
+        ]);
+        $this->assertDatabaseHas('orders', [
+            'id' => $otherOrder->id,
+            'cashier_id' => $otherEmployee->id,
+            'status' => 'selesai',
+        ]);
+        $this->assertDatabaseHas('orders', [
+            'id' => $unassignedOrder->id,
+            'cashier_id' => null,
+            'status' => 'antrian_baru',
+        ]);
+    }
+
+    public function test_employee_can_read_another_employee_order_from_history_but_cannot_change_it(): void
+    {
+        $employee = $this->employee();
+        $otherEmployee = $this->employee();
+        $order = $this->makeOrder($this->customer(), [
+            'cashier_id' => $otherEmployee->id,
+            'status' => 'antrian_baru',
+        ]);
+
+        $this->actingAs($employee)
+            ->get(route('karyawan.orders.show', $order))
+            ->assertOk()
+            ->assertJsonPath('id', $order->id);
+
+        $this->actingAs($employee)
+            ->withSession(['_token' => 'test-token'])
+            ->from(route('karyawan.orders.history'))
+            ->patch(route('karyawan.orders.update-status', $order), [
+                'status' => 'sedang_dibuat',
+                '_token' => 'test-token',
+            ])
+            ->assertRedirect(route('karyawan.orders.history'))
+            ->assertSessionHas('error');
+
+        $this->assertDatabaseHas('orders', [
+            'id' => $order->id,
+            'cashier_id' => $otherEmployee->id,
+            'status' => 'antrian_baru',
+        ]);
+    }
+
     private function employee(): User
     {
         return User::factory()->create([
@@ -164,7 +241,7 @@ class KaryawanOrderWorkflowFeatureTest extends TestCase
     private function makeOrder(User $customer, array $attributes = []): Order
     {
         return Order::create(array_merge([
-            'order_number' => 'CK-TEST-' . str_pad((string) (Order::count() + 1), 4, '0', STR_PAD_LEFT),
+            'order_number' => 'CK-TEST-'.str_pad((string) (Order::count() + 1), 4, '0', STR_PAD_LEFT),
             'customer_name' => $customer->name,
             'user_id' => $customer->id,
             'payment_method' => 'cash',

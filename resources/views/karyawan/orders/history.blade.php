@@ -5,6 +5,25 @@
 
 @section('content')
 
+{{-- Ringkasan arsip transaksi --}}
+<div class="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4 mb-6">
+    <div class="bg-white rounded-2xl shadow-sm border border-latte/50 p-3.5 sm:p-4">
+        <p class="text-[0.6rem] sm:text-[0.65rem] text-caramel font-semibold uppercase tracking-wider mb-1">Transaksi Ditampilkan</p>
+        <p class="text-lg sm:text-xl font-bold text-espresso">{{ number_format($stats['total_transactions']) }}</p>
+    </div>
+    <div class="bg-white rounded-2xl shadow-sm border border-latte/50 p-3.5 sm:p-4">
+        <p class="text-[0.6rem] sm:text-[0.65rem] text-caramel font-semibold uppercase tracking-wider mb-1">Total Nilai</p>
+        <p class="text-base sm:text-xl font-bold text-espresso">Rp {{ number_format($stats['total_revenue'], 0, ',', '.') }}</p>
+    </div>
+    <div class="bg-white rounded-2xl shadow-sm border border-latte/50 p-3.5 sm:p-4">
+        <p class="text-[0.6rem] sm:text-[0.65rem] text-caramel font-semibold uppercase tracking-wider mb-1">Rata-rata</p>
+        <p class="text-base sm:text-xl font-bold text-espresso">Rp {{ number_format($stats['avg_transaction'], 0, ',', '.') }}</p>
+    </div>
+    <div class="bg-white rounded-2xl shadow-sm border border-latte/50 p-3.5 sm:p-4">
+        <p class="text-[0.6rem] sm:text-[0.65rem] text-caramel font-semibold uppercase tracking-wider mb-1">Hari Ini</p>
+        <p class="text-lg sm:text-xl font-bold text-espresso">{{ number_format($stats['today_count']) }}</p>
+    </div>
+</div>
 
 {{-- Filters --}}
 <div class="bg-white rounded-2xl shadow-sm border border-latte/50 p-4 sm:p-5 mb-6">
@@ -34,9 +53,11 @@
                 <label class="block text-xs font-semibold text-espresso mb-1">Status</label>
                 <select name="status" class="w-full px-3 py-2 text-sm border border-latte/60 rounded-xl focus:ring-2 focus:ring-caramel/30 focus:border-caramel outline-none">
                     <option value="">Semua</option>
+                    <option value="menunggu_verifikasi" {{ request('status') === 'menunggu_verifikasi' ? 'selected' : '' }}>Menunggu Verifikasi</option>
                     <option value="antrian_baru" {{ request('status') === 'antrian_baru' ? 'selected' : '' }}>Antrean Baru</option>
                     <option value="sedang_dibuat" {{ request('status') === 'sedang_dibuat' ? 'selected' : '' }}>Sedang Dibuat</option>
                     <option value="selesai" {{ request('status') === 'selesai' ? 'selected' : '' }}>Selesai</option>
+                    <option value="diambil" {{ request('status') === 'diambil' ? 'selected' : '' }}>Telah Diambil</option>
                 </select>
             </div>
         </div>
@@ -86,7 +107,17 @@
         <div class="w-14 h-14 bg-latte/30 rounded-2xl flex items-center justify-center mb-3 mx-auto">
             <svg class="w-7 h-7 text-caramel" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>
         </div>
-        <p class="text-sm text-caramel-dark font-medium">Belum ada transaksi</p>
+        @if ($hasFilters && $allOrdersCount > 0)
+            <p class="text-sm text-espresso font-semibold">Tidak ada transaksi yang cocok dengan filter</p>
+            <p class="text-xs text-caramel-dark mt-1">Sebanyak {{ number_format($allOrdersCount) }} transaksi tetap tersimpan di arsip.</p>
+            <a href="{{ route('karyawan.orders.history') }}" class="inline-flex mt-4 px-4 py-2 text-xs font-semibold text-cream bg-espresso rounded-xl hover:bg-espresso-light transition">Tampilkan Semua</a>
+        @elseif ($allOrdersCount > 0)
+            <p class="text-sm text-espresso font-semibold">Halaman ini tidak memiliki transaksi</p>
+            <p class="text-xs text-caramel-dark mt-1">Sebanyak {{ number_format($allOrdersCount) }} transaksi tetap tersimpan. Kembali ke halaman pertama untuk melihatnya.</p>
+            <a href="{{ route('karyawan.orders.history') }}" class="inline-flex mt-4 px-4 py-2 text-xs font-semibold text-cream bg-espresso rounded-xl hover:bg-espresso-light transition">Ke Halaman Pertama</a>
+        @else
+            <p class="text-sm text-caramel-dark font-medium">Belum ada transaksi yang tercatat</p>
+        @endif
     </div>
     @endforelse
 </div>

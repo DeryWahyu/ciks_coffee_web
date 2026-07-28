@@ -35,4 +35,12 @@ return [
         ],
     ],
 
+    'firebase' => [
+        'project_id' => env('FIREBASE_PROJECT_ID'),
+        'credentials' => env(
+            'FIREBASE_CREDENTIALS',
+            storage_path('app/private/firebase/service-account.json'),
+        ),
+    ],
+
 ];

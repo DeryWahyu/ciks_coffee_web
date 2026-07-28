@@ -1,12 +1,13 @@
 <?php
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Response;
 use App\Http\Controllers\Api\AuthController;
-use App\Http\Controllers\Api\ProductController;
+use App\Http\Controllers\Api\DeviceTokenController;
 use App\Http\Controllers\Api\OrderController;
+use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\TableLayoutController;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Response;
+use Illuminate\Support\Facades\Route;
 
 Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:5,1');
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
@@ -17,6 +18,10 @@ Route::middleware('auth:sanctum')->group(function () {
         return $request->user();
     });
     Route::post('/logout', [AuthController::class, 'logout']);
+    Route::post('/device-tokens', [DeviceTokenController::class, 'store'])
+        ->middleware('throttle:30,1');
+    Route::delete('/device-tokens', [DeviceTokenController::class, 'destroy'])
+        ->middleware('throttle:30,1');
 
     // Products and Categories
     Route::get('/categories', [ProductController::class, 'categories']);
@@ -40,11 +45,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
 // Serve storage files with CORS for Flutter Web local development
 Route::get('/image/{path}', function ($path) {
-    $filePath = storage_path('app/public/' . $path);
+    $filePath = storage_path('app/public/'.$path);
     $realPath = realpath($filePath);
     $basePath = realpath(storage_path('app/public'));
 
-    if (!$realPath || !$basePath || !str_starts_with($realPath, $basePath . DIRECTORY_SEPARATOR)) {
+    if (! $realPath || ! $basePath || ! str_starts_with($realPath, $basePath.DIRECTORY_SEPARATOR)) {
         abort(404);
     }
 

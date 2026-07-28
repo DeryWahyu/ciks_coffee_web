@@ -55,10 +55,10 @@ jobs:
           port: ${{ secrets.VPS_PORT || 22 }}
           envs: ENV_FILE
           script: |
-            mkdir -p /opt/ciks-coffee/storage /opt/ciks-coffee/private-storage
+            mkdir -p /opt/ciks-coffee/storage /opt/ciks-coffee/private-storage/firebase
             echo "$ENV_FILE" > /opt/ciks-coffee/.env
             # Kredensial Reverb disimpan hanya pada .env server dan dibuat ulang per deploy.
-            sed -i '/^BROADCAST_CONNECTION=/d; /^REVERB_/d; /^VITE_REVERB_/d' /opt/ciks-coffee/.env
+            sed -i '/^BROADCAST_CONNECTION=/d; /^REVERB_/d; /^VITE_REVERB_/d; /^FIREBASE_/d' /opt/ciks-coffee/.env
             REVERB_APP_ID="$(date +%s)"
             REVERB_APP_KEY="$(openssl rand -hex 16)"
             REVERB_APP_SECRET="$(openssl rand -hex 32)"
@@ -72,7 +72,14 @@ jobs:
               echo "REVERB_HOST=127.0.0.1"
               echo "REVERB_PORT=8080"
               echo "REVERB_SCHEME=http"
+              echo "REVERB_ALLOWED_ORIGINS=cikscoffee.my.id"
+              echo "FIREBASE_PROJECT_ID=ciks-coffee"
+              echo "FIREBASE_CREDENTIALS=/var/www/html/storage/app/private/firebase/service-account.json"
             } >> /opt/ciks-coffee/.env
+            test -s /opt/ciks-coffee/private-storage/firebase/service-account.json || {
+              echo "Firebase service-account belum tersedia di private storage server."
+              exit 1
+            }
             echo ${{ secrets.DOCKER_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             IMAGE_NAME="ghcr.io/derywahyu/ciks-coffee-web:sha-${{ github.sha }}"
             

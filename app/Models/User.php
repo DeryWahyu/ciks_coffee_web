@@ -23,7 +23,9 @@ class User extends Authenticatable
      * Role constants.
      */
     const ROLE_PEMILIK = 'pemilik';
+
     const ROLE_KARYAWAN = 'karyawan';
+
     const ROLE_PENGGUNA = 'pengguna';
 
     /**
@@ -70,5 +72,13 @@ class User extends Authenticatable
     public function orders(): HasMany
     {
         return $this->hasMany(Order::class);
+    }
+
+    /**
+     * Mobile devices registered to receive customer notifications.
+     */
+    public function deviceTokens(): HasMany
+    {
+        return $this->hasMany(DeviceToken::class);
     }
 }

@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\DeviceToken;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
+use Laravel\Sanctum\NewAccessToken;
 
 class AuthController extends Controller
 {
@@ -42,7 +44,7 @@ class AuthController extends Controller
 
         $user = User::where('email', $request->email)->first();
 
-        if (!$user || !Hash::check($request->password, $user->password)) {
+        if (! $user || ! Hash::check($request->password, $user->password)) {
             throw ValidationException::withMessages([
                 'email' => ['Alamat email atau kata sandi salah.'],
             ]);
@@ -54,7 +56,7 @@ class AuthController extends Controller
             ]);
         }
 
-        if (!$user->is_active) {
+        if (! $user->is_active) {
             throw ValidationException::withMessages([
                 'email' => ['Akun Anda telah dinonaktifkan.'],
             ]);
@@ -71,7 +73,7 @@ class AuthController extends Controller
         ]);
     }
 
-    private function issueMobileToken(User $user): \Laravel\Sanctum\NewAccessToken
+    private function issueMobileToken(User $user): NewAccessToken
     {
         $expirationMinutes = (int) config('sanctum.expiration', 10080);
 
@@ -84,10 +86,21 @@ class AuthController extends Controller
 
     public function logout(Request $request)
     {
-        $request->user()->currentAccessToken()->delete();
+        $validated = $request->validate([
+            'device_token' => ['nullable', 'string', 'max:4096'],
+        ]);
+
+        if (! empty($validated['device_token'])) {
+            DeviceToken::query()
+                ->where('user_id', $request->user()->id)
+                ->where('token_hash', DeviceToken::hash($validated['device_token']))
+                ->delete();
+        }
+
+        $request->user()->currentAccessToken()?->delete();
 
         return response()->json([
-            'message' => 'Logged out successfully'
+            'message' => 'Logged out successfully',
         ]);
     }
 }

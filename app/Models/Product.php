@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Support\Carbon;
 
 /**
  * @property int $id
@@ -16,11 +17,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
  * @property string $price
  * @property string|null $price_lite
  * @property bool $is_active
- * @property \Illuminate\Support\Carbon|null $created_at
- * @property \Illuminate\Support\Carbon|null $updated_at
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
  * @property-read string $formatted_price
  * @property-read string|null $formatted_price_lite
- * @property-read \App\Models\Category|null $category
+ * @property-read Category|null $category
  */
 class Product extends Model
 {
@@ -107,10 +108,19 @@ class Product extends Model
 
         foreach ($variantsToCheck as $variant) {
             $ingredients = $this->ingredientsByVariant($variant);
+
+            if ($ingredients->isEmpty()) {
+                $variantLabel = $variant ? ' '.ucfirst($variant) : '';
+                $reason = "Resep{$variantLabel} untuk {$this->name} belum dikonfigurasi.";
+
+                return false;
+            }
+
             foreach ($ingredients as $ingredient) {
                 if ($ingredient->stok < $ingredient->pivot->quantity) {
-                    $variantLabel = $variant ? ' (' . ucfirst($variant) . ')' : '';
+                    $variantLabel = $variant ? ' ('.ucfirst($variant).')' : '';
                     $reason = "Bahan {$ingredient->nama_bahan} kurang untuk {$this->name}{$variantLabel}.";
+
                     return false;
                 }
             }
@@ -132,7 +142,7 @@ class Product extends Model
      */
     public function getFormattedPriceAttribute(): string
     {
-        return 'Rp ' . number_format($this->price, 0, ',', '.');
+        return 'Rp '.number_format($this->price, 0, ',', '.');
     }
 
     /**
@@ -141,7 +151,7 @@ class Product extends Model
     public function getFormattedPriceLiteAttribute(): ?string
     {
         return $this->price_lite
-            ? 'Rp ' . number_format((float) $this->price_lite, 0, ',', '.')
+            ? 'Rp '.number_format((float) $this->price_lite, 0, ',', '.')
             : null;
     }
 }

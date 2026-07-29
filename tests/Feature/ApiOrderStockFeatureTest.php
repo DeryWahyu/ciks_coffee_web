@@ -69,6 +69,21 @@ class ApiOrderStockFeatureTest extends TestCase
         $this->assertDatabaseCount('orders', 0);
     }
 
+    public function test_active_product_without_a_recipe_cannot_be_ordered_through_the_api(): void
+    {
+        $user = $this->customer();
+        $product = $this->product($this->category('snack'));
+
+        $this->checkout($user, [[
+            'product_id' => $product->id,
+            'quantity' => 1,
+        ]])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('items');
+
+        $this->assertDatabaseCount('orders', 0);
+    }
+
     public function test_shared_ingredient_requirement_is_aggregated_before_creating_an_order(): void
     {
         $user = $this->customer();
@@ -169,6 +184,8 @@ class ApiOrderStockFeatureTest extends TestCase
     {
         $user = $this->customer();
         $product = $this->product($this->category('snack'));
+        $ingredient = $this->ingredient(10);
+        $this->attachIngredient($product, $ingredient, 1, null);
         $payload = [
             'payment_method' => 'cash',
             'cash_received' => 100000,

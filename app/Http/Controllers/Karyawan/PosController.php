@@ -139,7 +139,15 @@ class PosController extends Controller
                 ];
 
                 // Aggregate every use of the same ingredient across all cart items.
-                foreach ($product->ingredientsByVariant($variantLabel) as $ingredient) {
+                $ingredients = $product->ingredientsByVariant($variantLabel);
+
+                if ($ingredients->isEmpty()) {
+                    throw ValidationException::withMessages([
+                        'items' => "Produk {$product->name} belum memiliki resep yang valid.",
+                    ]);
+                }
+
+                foreach ($ingredients as $ingredient) {
                     $required = (float) $ingredient->pivot->quantity * $item['quantity'];
                     $ingredientRequirements[$ingredient->id] = ($ingredientRequirements[$ingredient->id] ?? 0) + $required;
                 }

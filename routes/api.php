@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\DeviceTokenController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\TableLayoutController;
+use App\Http\Middleware\EnsureActiveUser;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Route;
@@ -13,7 +14,7 @@ Route::post('/register', [AuthController::class, 'register'])->middleware('throt
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
 
 // Public routes for fetching products and categories (can be accessed without auth if needed, but let's put it outside auth:sanctum for now or inside if we only want logged-in users to see them. Since the user said "setelah berhasil login", let's put it inside auth:sanctum to be secure).
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', EnsureActiveUser::class])->group(function () {
     Route::get('/user', function (Request $request) {
         return $request->user();
     });

@@ -14,10 +14,19 @@ class ProductController extends Controller
      */
     public function categories()
     {
-        $categories = Category::where('is_active', true)->orderBy('name')->get();
+        $categories = Category::query()
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'name', 'slug'])
+            ->map(fn (Category $category): array => [
+                'id' => $category->id,
+                'name' => $category->name,
+                'slug' => $category->slug,
+            ]);
+
         return response()->json([
             'success' => true,
-            'data' => $categories
+            'data' => $categories,
         ]);
     }
 
@@ -26,30 +35,49 @@ class ProductController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Product::with(['category', 'ingredients'])->where('is_active', true);
+        $query = Product::query()
+            ->with('category:id,name,slug')
+            ->where('is_active', true);
 
         if ($request->has('category_id') && $request->category_id != 'all') {
             $query->where('category_id', $request->category_id);
         }
 
-        if ($request->has('search') && !empty($request->search)) {
-            $query->where('name', 'like', '%' . $request->search . '%');
+        if ($request->has('search') && ! empty($request->search)) {
+            $query->where('name', 'like', '%'.$request->search.'%');
         }
 
         $products = $query->latest()->get();
 
-        // Map products to include the relative image URL + ketersediaan stok bahan
-        $products->map(function ($product) {
-            $product->image_url = $product->image ? 'storage/' . $product->image : null;
+        // Return only fields required by the mobile catalogue. Recipe, stock,
+        // pivot, and internal model metadata must never be serialized here.
+        $products = $products->map(function (Product $product): array {
             $reason = null;
-            $product->is_available = $product->isAvailable($reason);
-            $product->unavailable_reason = $product->is_available ? null : $reason;
-            return $product;
+            $isAvailable = $product->isAvailable($reason);
+
+            return [
+                'id' => $product->id,
+                'category_id' => $product->category_id,
+                'name' => $product->name,
+                'description' => $product->description,
+                'image_url' => $product->image ? 'storage/'.$product->image : null,
+                'price' => $product->price,
+                'price_lite' => $product->price_lite,
+                'category' => $product->category ? [
+                    'id' => $product->category->id,
+                    'name' => $product->category->name,
+                    'slug' => $product->category->slug,
+                ] : null,
+                'is_available' => $isAvailable,
+                'unavailable_reason' => $isAvailable
+                    ? null
+                    : 'Produk sedang tidak tersedia.',
+            ];
         });
 
         return response()->json([
             'success' => true,
-            'data' => $products
+            'data' => $products,
         ]);
     }
 }

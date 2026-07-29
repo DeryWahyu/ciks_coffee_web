@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Pemilik;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class UserController extends Controller
 {
@@ -70,9 +71,19 @@ class UserController extends Controller
      */
     public function toggleStatus(User $user)
     {
-        $user->update(['is_active' => !$user->is_active]);
+        DB::transaction(function () use ($user) {
+            $lockedUser = User::query()->lockForUpdate()->findOrFail($user->id);
+            $lockedUser->update(['is_active' => ! $lockedUser->is_active]);
+
+            if (! $lockedUser->is_active) {
+                $lockedUser->tokens()->delete();
+            }
+
+            $user->setRawAttributes($lockedUser->getAttributes(), true);
+        });
 
         $status = $user->is_active ? 'diaktifkan' : 'dinonaktifkan';
+
         return redirect()->route('pemilik.users.index', ['tab' => $user->role])
             ->with('success', "Akun {$user->name} berhasil {$status}.");
     }

@@ -27,6 +27,20 @@ class PosOrderStockFeatureTest extends TestCase
         $this->assertDatabaseCount('orders', 0);
     }
 
+    public function test_pos_rejects_an_active_product_without_a_recipe(): void
+    {
+        $product = $this->product($this->category('snack'));
+
+        $this->checkout([[
+            'product_id' => $product->id,
+            'quantity' => 1,
+        ]])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('items');
+
+        $this->assertDatabaseCount('orders', 0);
+    }
+
     public function test_pos_rejects_a_variant_that_does_not_match_the_product_type(): void
     {
         $snack = $this->product($this->category('snack'));

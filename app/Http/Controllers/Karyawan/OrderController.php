@@ -243,7 +243,13 @@ class OrderController extends Controller
                         throw new \DomainException("Produk untuk item {$item->product_name} tidak ditemukan.");
                     }
 
-                    foreach ($product->ingredientsByVariant($item->variant) as $ingredient) {
+                    $productIngredients = $product->ingredientsByVariant($item->variant);
+
+                    if ($productIngredients->isEmpty()) {
+                        throw new \DomainException("Resep untuk item {$item->product_name} tidak ditemukan.");
+                    }
+
+                    foreach ($productIngredients as $ingredient) {
                         $required = (float) $ingredient->pivot->quantity * $item->quantity;
                         $requirements[$ingredient->id] = ($requirements[$ingredient->id] ?? 0) + $required;
                     }

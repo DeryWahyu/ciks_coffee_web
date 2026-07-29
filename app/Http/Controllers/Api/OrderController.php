@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Api;
 
 use App\Events\MobileOrderReceived;
-
 use App\Http\Controllers\Controller;
 use App\Models\Ingredient;
 use App\Models\Order;
@@ -14,6 +13,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
+
 class OrderController extends Controller
 {
     /**
@@ -24,12 +24,12 @@ class OrderController extends Controller
     {
         $validated = $request->validate([
             'payment_method' => 'required|in:cash,qris',
-            'cash_received'  => 'nullable|numeric|min:0',
-            'items'          => 'required|array|min:1',
+            'cash_received' => 'nullable|numeric|min:0',
+            'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|exists:products,id',
-            'items.*.variant'    => 'nullable|in:base,lite',
-            'items.*.quantity'   => 'required|integer|min:1',
-            'payment_proof'  => 'required_if:payment_method,qris|image|mimes:jpg,jpeg,png,webp|max:3072',
+            'items.*.variant' => 'nullable|in:base,lite',
+            'items.*.quantity' => 'required|integer|min:1',
+            'payment_proof' => 'required_if:payment_method,qris|image|mimes:jpg,jpeg,png,webp|max:3072',
         ], [
             'items.required' => 'Pesanan tidak boleh kosong.',
             'payment_proof.required_if' => 'Bukti pembayaran wajib diunggah untuk pembayaran QRIS.',
@@ -52,7 +52,7 @@ class OrderController extends Controller
             foreach ($validated['items'] as $item) {
                 $product = $products->get($item['product_id']);
 
-                if (!$product || !$product->is_active) {
+                if (! $product || ! $product->is_active) {
                     throw ValidationException::withMessages([
                         'items' => 'Produk yang dipilih sudah tidak tersedia.',
                     ]);
@@ -65,20 +65,26 @@ class OrderController extends Controller
 
                 $productName = $product->name;
                 if ($variantLabel) {
-                    $productName .= ' (' . ucfirst($variantLabel) . ')';
+                    $productName .= ' ('.ucfirst($variantLabel).')';
                 }
 
                 $orderItems[] = [
-                    'product_id'   => $product->id,
+                    'product_id' => $product->id,
                     'product_name' => $productName,
-                    'variant'      => $variantLabel,
-                    'quantity'     => $item['quantity'],
-                    'price'        => $unitPrice,
-                    'subtotal'     => $subtotal,
+                    'variant' => $variantLabel,
+                    'quantity' => $item['quantity'],
+                    'price' => $unitPrice,
+                    'subtotal' => $subtotal,
                 ];
 
                 // Sum all uses of the same ingredient before checking stock.
                 $ingredients = $product->ingredientsByVariant($variantLabel);
+
+                if ($ingredients->isEmpty()) {
+                    throw ValidationException::withMessages([
+                        'items' => "Produk {$product->name} belum memiliki resep yang valid.",
+                    ]);
+                }
                 foreach ($ingredients as $ingredient) {
                     $required = (float) $ingredient->pivot->quantity * $item['quantity'];
                     $ingredientRequirements[$ingredient->id] = ($ingredientRequirements[$ingredient->id] ?? 0) + $required;
@@ -89,7 +95,7 @@ class OrderController extends Controller
                 $cashReceived = $validated['cash_received'] ?? $total;
                 if ($cashReceived < $total) {
                     throw ValidationException::withMessages([
-                        'cash_received' => 'Uang diterima kurang dari total belanja.'
+                        'cash_received' => 'Uang diterima kurang dari total belanja.',
                     ]);
                 }
             } else {
@@ -109,7 +115,7 @@ class OrderController extends Controller
 
             foreach ($ingredientRequirements as $ingredientId => $required) {
                 $ingredient = $lockedIngredients->get($ingredientId);
-                if (!$ingredient || (float) $ingredient->stok < $required) {
+                if (! $ingredient || (float) $ingredient->stok < $required) {
                     $ingredientName = $ingredient?->nama_bahan ?? 'yang dipilih';
                     throw ValidationException::withMessages([
                         'items' => "Stok bahan {$ingredientName} tidak cukup untuk pesanan ini.",
@@ -131,16 +137,16 @@ class OrderController extends Controller
 
             // customer_name is taken from the authenticated user
             $order = Order::create([
-                'order_number'   => Order::generateOrderNumber(),
-                'customer_name'  => Auth::user()->name,
-                'user_id'        => Auth::id(),
+                'order_number' => Order::generateOrderNumber(),
+                'customer_name' => Auth::user()->name,
+                'user_id' => Auth::id(),
                 'payment_method' => $validated['payment_method'],
-                'total'          => $total,
-                'cash_received'  => $cashReceived,
-                'change_amount'  => $changeAmount,
-                'payment_proof'  => $paymentProofPath,
-                'status'         => $status,
-                'paid_at'        => now(),
+                'total' => $total,
+                'cash_received' => $cashReceived,
+                'change_amount' => $changeAmount,
+                'payment_proof' => $paymentProofPath,
+                'status' => $status,
+                'paid_at' => now(),
             ]);
 
             foreach ($orderItems as $item) {
@@ -174,7 +180,7 @@ class OrderController extends Controller
     private function resolveVariant(Product $product, ?string $variant): ?string
     {
         if ($product->category?->isCoffee()) {
-            if (!in_array($variant, ['base', 'lite'], true)) {
+            if (! in_array($variant, ['base', 'lite'], true)) {
                 throw ValidationException::withMessages([
                     'items' => "Varian Base atau Lite wajib dipilih untuk produk {$product->name}.",
                 ]);
@@ -211,7 +217,7 @@ class OrderController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $orders->map(fn(Order $order) => $this->formatOrder($order)),
+            'data' => $orders->map(fn (Order $order) => $this->formatOrder($order)),
         ]);
     }
 
@@ -228,7 +234,7 @@ class OrderController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $orders->map(fn(Order $order) => $this->formatOrder($order)),
+            'data' => $orders->map(fn (Order $order) => $this->formatOrder($order)),
         ]);
     }
 
@@ -246,7 +252,7 @@ class OrderController extends Controller
         if ($order->status !== 'selesai') {
             return response()->json([
                 'success' => false,
-                'message' => 'Pesanan belum selesai diproses.'
+                'message' => 'Pesanan belum selesai diproses.',
             ], 422);
         }
 
@@ -270,8 +276,8 @@ class OrderController extends Controller
         $path = (string) $order->payment_proof;
         if (
             $path === ''
-            || !str_starts_with($path, 'payment_proofs/')
-            || !Storage::disk('local')->exists($path)
+            || ! str_starts_with($path, 'payment_proofs/')
+            || ! Storage::disk('local')->exists($path)
         ) {
             abort(404);
         }
@@ -288,7 +294,7 @@ class OrderController extends Controller
     {
         $qrisPath = ShopSetting::getValue('qris_image');
 
-        if (!$qrisPath) {
+        if (! $qrisPath) {
             return response()->json([
                 'success' => false,
                 'message' => 'QRIS belum tersedia.',
@@ -298,7 +304,7 @@ class OrderController extends Controller
         return response()->json([
             'success' => true,
             'data' => [
-                'image_url' => 'storage/' . $qrisPath,
+                'image_url' => 'storage/'.$qrisPath,
             ],
         ]);
     }
@@ -309,27 +315,27 @@ class OrderController extends Controller
     private function formatOrder(Order $order): array
     {
         return [
-            'id'              => $order->id,
-            'order_number'    => $order->order_number,
-            'customer_name'   => $order->customer_name,
-            'payment_method'  => $order->payment_method,
-            'total'           => $order->total,
+            'id' => $order->id,
+            'order_number' => $order->order_number,
+            'customer_name' => $order->customer_name,
+            'payment_method' => $order->payment_method,
+            'total' => $order->total,
             'formatted_total' => $order->formatted_total,
-            'cash_received'   => $order->cash_received,
-            'change_amount'   => $order->change_amount,
+            'cash_received' => $order->cash_received,
+            'change_amount' => $order->change_amount,
             'payment_proof_url' => $order->payment_proof
-                ? url('/api/orders/' . $order->id . '/payment-proof')
+                ? url('/api/orders/'.$order->id.'/payment-proof')
                 : null,
-            'status'          => $order->status,
-            'status_label'    => $order->status_label,
-            'paid_at'         => $order->paid_at?->format('d/m/Y H:i'),
-            'created_at'      => $order->created_at->toIso8601String(),
-            'items'           => $order->items->map(fn($i) => [
+            'status' => $order->status,
+            'status_label' => $order->status_label,
+            'paid_at' => $order->paid_at?->format('d/m/Y H:i'),
+            'created_at' => $order->created_at->toIso8601String(),
+            'items' => $order->items->map(fn ($i) => [
                 'product_name' => $i->product_name,
-                'variant'      => $i->variant,
-                'quantity'     => $i->quantity,
-                'price'        => $i->price,
-                'subtotal'     => $i->subtotal,
+                'variant' => $i->variant,
+                'quantity' => $i->quantity,
+                'price' => $i->price,
+                'subtotal' => $i->subtotal,
             ])->toArray(),
         ];
     }

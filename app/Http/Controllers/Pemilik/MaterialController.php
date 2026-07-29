@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Pemilik;
 
 use App\Http\Controllers\Controller;
 use App\Models\Ingredient;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 
 class MaterialController extends Controller
@@ -16,7 +17,7 @@ class MaterialController extends Controller
         $query = Ingredient::query();
 
         if ($request->filled('search')) {
-            $query->where('nama_bahan', 'like', '%' . $request->search . '%');
+            $query->where('nama_bahan', 'like', '%'.$request->search.'%');
         }
 
         $ingredients = $query->orderBy('nama_bahan')->paginate(15)->withQueryString();
@@ -51,7 +52,7 @@ class MaterialController extends Controller
     public function update(Request $request, Ingredient $ingredient)
     {
         $validated = $request->validate([
-            'nama_bahan' => 'required|string|max:255|unique:ingredients,nama_bahan,' . $ingredient->id,
+            'nama_bahan' => 'required|string|max:255|unique:ingredients,nama_bahan,'.$ingredient->id,
             'satuan' => 'required|string|max:50',
             'stok' => 'required|numeric|min:0',
         ], [
@@ -69,7 +70,21 @@ class MaterialController extends Controller
      */
     public function destroy(Ingredient $ingredient)
     {
-        $ingredient->delete();
+        if ($ingredient->products()->exists()) {
+            return back()->with(
+                'error',
+                "Bahan baku \"{$ingredient->nama_bahan}\" masih digunakan dalam resep produk dan tidak dapat dihapus."
+            );
+        }
+
+        try {
+            $ingredient->delete();
+        } catch (QueryException) {
+            return back()->with(
+                'error',
+                "Bahan baku \"{$ingredient->nama_bahan}\" masih digunakan dan tidak dapat dihapus."
+            );
+        }
 
         return back()->with('success', "Bahan baku \"{$ingredient->nama_bahan}\" berhasil dihapus.");
     }

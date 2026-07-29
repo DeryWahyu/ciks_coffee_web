@@ -128,6 +128,47 @@ class KaryawanOrderWorkflowFeatureTest extends TestCase
         $this->assertEquals(8.0, (float) $ingredient->fresh()->stok);
     }
 
+    public function test_qris_verification_rejects_a_legacy_item_whose_recipe_is_missing(): void
+    {
+        $employee = $this->employee();
+        $customer = $this->customer();
+        $category = Category::create([
+            'name' => 'Makanan',
+            'slug' => 'makanan',
+            'is_active' => true,
+        ]);
+        $product = Product::create([
+            'category_id' => $category->id,
+            'name' => 'Produk Tanpa Resep',
+            'price' => 15000,
+            'is_active' => true,
+        ]);
+        $order = $this->makeOrder($customer, [
+            'status' => 'menunggu_verifikasi',
+            'payment_method' => 'qris',
+            'payment_proof' => 'payment_proofs/bukti.png',
+        ]);
+        $order->items()->create([
+            'product_id' => $product->id,
+            'product_name' => $product->name,
+            'quantity' => 1,
+            'price' => $product->price,
+            'subtotal' => $product->price,
+        ]);
+
+        $this->actingAs($employee)
+            ->from('/karyawan/orders')
+            ->patch(route('karyawan.orders.verify', $order))
+            ->assertRedirect('/karyawan/orders')
+            ->assertSessionHas('error');
+
+        $this->assertDatabaseHas('orders', [
+            'id' => $order->id,
+            'status' => 'menunggu_verifikasi',
+            'cashier_id' => null,
+        ]);
+    }
+
     public function test_employee_delete_endpoint_is_unavailable_and_order_is_preserved(): void
     {
         $employee = $this->employee();

@@ -4,10 +4,10 @@ namespace App\Http\Controllers\Karyawan;
 
 use App\Http\Controllers\Controller;
 use App\Models\Category;
+use App\Models\Ingredient;
 use App\Models\Order;
 use App\Models\Product;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -40,20 +40,20 @@ class PosController extends Controller
         $ingredientsData = [];
 
         if ($isCoffee) {
-            $ingredientsData['base'] = $product->ingredientsByVariant('base')->map(fn($i) => [
+            $ingredientsData['base'] = $product->ingredientsByVariant('base')->map(fn ($i) => [
                 'nama_bahan' => $i->nama_bahan,
                 'satuan' => $i->satuan,
                 'quantity' => $i->pivot->quantity,
                 'stok' => $i->stok,
             ]);
-            $ingredientsData['lite'] = $product->ingredientsByVariant('lite')->map(fn($i) => [
+            $ingredientsData['lite'] = $product->ingredientsByVariant('lite')->map(fn ($i) => [
                 'nama_bahan' => $i->nama_bahan,
                 'satuan' => $i->satuan,
                 'quantity' => $i->pivot->quantity,
                 'stok' => $i->stok,
             ]);
         } else {
-            $ingredientsData['default'] = $product->ingredientsByVariant(null)->map(fn($i) => [
+            $ingredientsData['default'] = $product->ingredientsByVariant(null)->map(fn ($i) => [
                 'nama_bahan' => $i->nama_bahan,
                 'satuan' => $i->satuan,
                 'quantity' => $i->pivot->quantity,
@@ -65,7 +65,7 @@ class PosController extends Controller
             'id' => $product->id,
             'name' => $product->name,
             'description' => $product->description,
-            'image' => $product->image ? asset('storage/' . $product->image) : null,
+            'image' => $product->image ? asset('storage/'.$product->image) : null,
             'price' => $product->price,
             'price_lite' => $product->price_lite,
             'formatted_price' => $product->formatted_price,
@@ -94,20 +94,39 @@ class PosController extends Controller
             'items.required' => 'Pesanan tidak boleh kosong.',
         ]);
 
-        $order = DB::transaction(function () use ($validated) {
+        $cashier = $request->user();
+
+        $order = DB::transaction(function () use ($validated, $cashier) {
             $total = 0;
             $orderItems = [];
+            $ingredientRequirements = [];
+
+            // Keep product availability, category, and pricing stable throughout checkout.
+            $products = Product::query()
+                ->with('category')
+                ->whereIn('id', collect($validated['items'])->pluck('product_id')->unique())
+                ->orderBy('id')
+                ->lockForUpdate()
+                ->get()
+                ->keyBy('id');
 
             foreach ($validated['items'] as $item) {
-                $product = Product::find($item['product_id']);
-                $variantLabel = $item['variant'] ?? null;
-                $unitPrice = ($variantLabel === 'lite' && $product->price_lite !== null) ? $product->price_lite : $product->price;
+                $product = $products->get($item['product_id']);
+
+                if (! $product || ! $product->is_active) {
+                    throw ValidationException::withMessages([
+                        'items' => 'Produk yang dipilih sudah tidak tersedia.',
+                    ]);
+                }
+
+                $variantLabel = $this->resolveVariant($product, $item['variant'] ?? null);
+                $unitPrice = $variantLabel === 'lite' ? $product->price_lite : $product->price;
                 $subtotal = $unitPrice * $item['quantity'];
                 $total += $subtotal;
 
                 $productName = $product->name;
                 if ($variantLabel) {
-                    $productName .= ' (' . ucfirst($variantLabel) . ')';
+                    $productName .= ' ('.ucfirst($variantLabel).')';
                 }
 
                 $orderItems[] = [
@@ -118,42 +137,56 @@ class PosController extends Controller
                     'price' => $unitPrice,
                     'subtotal' => $subtotal,
                 ];
+
+                // Aggregate every use of the same ingredient across all cart items.
+                foreach ($product->ingredientsByVariant($variantLabel) as $ingredient) {
+                    $required = (float) $ingredient->pivot->quantity * $item['quantity'];
+                    $ingredientRequirements[$ingredient->id] = ($ingredientRequirements[$ingredient->id] ?? 0) + $required;
+                }
             }
 
             if ($validated['payment_method'] === 'cash') {
                 $cashReceived = $validated['cash_received'] ?? $total;
                 if ($cashReceived < $total) {
                     throw ValidationException::withMessages([
-                        'cash_received' => 'Uang diterima kurang dari total belanja (Rp ' . number_format($total, 0, ',', '.') . ').'
+                        'cash_received' => 'Uang diterima kurang dari total belanja (Rp '.number_format($total, 0, ',', '.').').',
                     ]);
                 }
             } else {
                 $cashReceived = null;
             }
 
-            $changeAmount = $cashReceived ? max(0, $cashReceived - $total) : null;
+            $changeAmount = $cashReceived !== null ? max(0, $cashReceived - $total) : null;
 
-            // Validate Stock BEFORE creating order (locked to prevent race condition)
-            foreach ($validated['items'] as $item) {
-                $product = Product::find($item['product_id']);
-                $variant = $item['variant'] ?? null;
-                $ingredients = $product->ingredientsByVariantLocked($variant);
+            // Lock each ingredient once, validate the aggregate, then deduct once.
+            $lockedIngredients = Ingredient::query()
+                ->whereIn('id', array_keys($ingredientRequirements))
+                ->orderBy('id')
+                ->lockForUpdate()
+                ->get()
+                ->keyBy('id');
 
-                foreach ($ingredients as $ingredient) {
-                    $required = $ingredient->pivot->quantity * $item['quantity'];
-                    if ($ingredient->stok < $required) {
-                        throw ValidationException::withMessages([
-                            'items' => "Stok bahan {$ingredient->nama_bahan} tidak cukup untuk produk {$product->name}."
-                        ]);
-                    }
+            foreach ($ingredientRequirements as $ingredientId => $required) {
+                $ingredient = $lockedIngredients->get($ingredientId);
+
+                if (! $ingredient) {
+                    throw ValidationException::withMessages([
+                        'items' => 'Salah satu bahan pesanan tidak ditemukan.',
+                    ]);
+                }
+
+                if ((float) $ingredient->stok < $required) {
+                    throw ValidationException::withMessages([
+                        'items' => "Stok bahan {$ingredient->nama_bahan} tidak cukup untuk seluruh pesanan.",
+                    ]);
                 }
             }
 
             $order = Order::create([
                 'order_number' => Order::generateOrderNumber(),
                 'customer_name' => $validated['customer_name'],
-                'user_id' => Auth::id(),
-                'cashier_id' => Auth::id(),
+                'user_id' => $cashier->id,
+                'cashier_id' => $cashier->id,
                 'payment_method' => $validated['payment_method'],
                 'total' => $total,
                 'cash_received' => $cashReceived,
@@ -162,20 +195,12 @@ class PosController extends Controller
                 'paid_at' => now(),
             ]);
 
-            foreach ($orderItems as $item) {
-                $order->items()->create($item);
+            foreach ($orderItems as $orderItem) {
+                $order->items()->create($orderItem);
             }
 
-            // Deduct ingredient stock (rows already locked above)
-            foreach ($validated['items'] as $item) {
-                $product = Product::find($item['product_id']);
-                $variant = $item['variant'] ?? null;
-                $ingredients = $product->ingredientsByVariantLocked($variant);
-
-                foreach ($ingredients as $ingredient) {
-                    $deduction = $ingredient->pivot->quantity * $item['quantity'];
-                    $ingredient->decrement('stok', $deduction);
-                }
+            foreach ($ingredientRequirements as $ingredientId => $deduction) {
+                $lockedIngredients->get($ingredientId)->decrement('stok', $deduction);
             }
 
             return $order;
@@ -185,6 +210,7 @@ class PosController extends Controller
 
         return response()->json([
             'success' => true,
+            'message' => 'Pesanan berhasil diproses.',
             'order' => [
                 'id' => $order->id,
                 'order_number' => $order->order_number,
@@ -197,14 +223,50 @@ class PosController extends Controller
                 'status' => $order->status,
                 'status_label' => $order->status_label,
                 'paid_at' => $order->paid_at->format('d/m/Y H:i'),
-                'cashier' => Auth::user()->name,
-                'items' => $order->items->map(fn($i) => [
-                    'product_name' => $i->product_name,
-                    'quantity' => $i->quantity,
-                    'price' => $i->price,
-                    'subtotal' => $i->subtotal,
+                'cashier' => $cashier->name,
+                'items' => $order->items->map(fn ($item) => [
+                    'product_name' => $item->product_name,
+                    'quantity' => $item->quantity,
+                    'price' => $item->price,
+                    'subtotal' => $item->subtotal,
                 ]),
             ],
         ]);
+    }
+
+    /**
+     * Resolve the only recipe variant accepted for the selected product.
+     */
+    private function resolveVariant(Product $product, ?string $variant): ?string
+    {
+        if (! $product->category) {
+            throw ValidationException::withMessages([
+                'items' => "Kategori produk {$product->name} tidak ditemukan.",
+            ]);
+        }
+
+        if ($product->category->isCoffee()) {
+            if (! in_array($variant, ['base', 'lite'], true)) {
+                throw ValidationException::withMessages([
+                    'items' => "Varian Base atau Lite wajib dipilih untuk produk {$product->name}.",
+                ]);
+            }
+
+            if ($variant === 'lite' && $product->price_lite === null) {
+                throw ValidationException::withMessages([
+                    'items' => "Varian Lite tidak tersedia untuk produk {$product->name}.",
+                ]);
+            }
+
+            return $variant;
+        }
+
+        if ($variant !== null) {
+            throw ValidationException::withMessages([
+                'items' => "Produk {$product->name} tidak memiliki varian.",
+            ]);
+        }
+
+        return null;
     }
 }

@@ -349,12 +349,21 @@
 
                 const variantSec = document.getElementById('modal-variant-section');
                 const priceSec = document.getElementById('modal-price-section');
-                if (data.is_coffee && data.price_lite) {
-                    variantSec.classList.remove('hidden');
-                    priceSec.classList.add('hidden');
-                    document.getElementById('modal-price-base').textContent = data.formatted_price;
-                    document.getElementById('modal-price-lite').textContent = data.formatted_price_lite;
+                if (data.is_coffee) {
+                    // Coffee always uses an explicit recipe variant. Base-only
+                    // products keep the selector hidden but still submit "base".
                     document.querySelector('input[name="variant"][value="base"]').checked = true;
+
+                    if (data.price_lite) {
+                        variantSec.classList.remove('hidden');
+                        priceSec.classList.add('hidden');
+                        document.getElementById('modal-price-base').textContent = data.formatted_price;
+                        document.getElementById('modal-price-lite').textContent = data.formatted_price_lite;
+                    } else {
+                        variantSec.classList.add('hidden');
+                        priceSec.classList.remove('hidden');
+                        document.getElementById('modal-price-single').textContent = data.formatted_price;
+                    }
                 } else {
                     variantSec.classList.add('hidden');
                     priceSec.classList.remove('hidden');
@@ -447,8 +456,10 @@
         const qty = parseInt(document.getElementById('modal-qty').value) || 1;
         let variant = null, price = parseFloat(currentProduct.price);
 
-        if (currentProduct.is_coffee && currentProduct.price_lite) {
-            variant = document.querySelector('input[name="variant"]:checked')?.value || 'base';
+        if (currentProduct.is_coffee) {
+            variant = currentProduct.price_lite
+                ? (document.querySelector('input[name="variant"]:checked')?.value || 'base')
+                : 'base';
             price = variant === 'lite' ? parseFloat(currentProduct.price_lite) : parseFloat(currentProduct.price);
         }
 
@@ -593,7 +604,7 @@
                 headers: {'Content-Type':'application/json', 'Accept':'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content},
                 body: JSON.stringify({
                     customer_name: name, payment_method: method, cash_received: method === 'cash' ? cash : null,
-                    items: cart.map(i => ({product_id: i.id, variant: i.variant, quantity: i.qty, price: i.price}))
+                    items: cart.map(i => ({product_id: i.id, variant: i.variant, quantity: i.qty}))
                 })
             });
             const data = await response.json().catch(() => ({}));

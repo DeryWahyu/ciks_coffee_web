@@ -1,101 +1,103 @@
-﻿name: Build Docker Image
+name: Test and Deploy Web
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   pull_request:
-    branches:
-      - main
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: web-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      APP_ENV: testing
+      DB_CONNECTION: sqlite
+      DB_DATABASE: ':memory:'
+      CACHE_STORE: array
+      SESSION_DRIVER: array
+      QUEUE_CONNECTION: sync
+      BROADCAST_CONNECTION: 'null'
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to the Container registry
-        uses: docker/login-action@v3
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
-          registry: ghcr.io
-          username: derywahyu
-          password: ${{ secrets.DOCKER_TOKEN }}
-
-      - name: Build and push Docker Image
-        uses: docker/build-push-action@v5
+          persist-credentials: false
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2
         with:
-          context: .
-          file: docker/Dockerfile
-          push: true
-          tags: |
-            ghcr.io/derywahyu/ciks-coffee-web:latest
-            ghcr.io/derywahyu/ciks-coffee-web:sha-${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          php-version: '8.3'
+          extensions: pdo_mysql, pdo_sqlite, mbstring, gd, dom, xml, zip, curl, fileinfo, intl
+          coverage: none
+          tools: composer:v2
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install dependencies and prepare isolated test environment
+        run: |
+          cp .env.example .env
+          composer install --prefer-dist --no-interaction --no-progress
+          php artisan key:generate --no-interaction
+          npm ci --ignore-scripts
+      - name: Test application and deployment archive checks
+        run: |
+          php artisan test
+          python3 -m unittest discover -s deployment/ubuntu/tests -v
+      - name: Build production assets and dependencies
+        run: |
+          npm run build
+          composer install --no-dev --prefer-dist --no-interaction --no-progress --optimize-autoloader
+          composer check-platform-reqs --no-dev
+      - name: Package production release
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        run: bash deployment/ubuntu/build-release.sh "$GITHUB_SHA" "$RUNNER_TEMP/cikscoffee-web.tar.gz"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        with:
+          name: web-production-${{ github.sha }}
+          path: ${{ runner.temp }}/cikscoffee-web.tar.gz
+          if-no-files-found: error
+          retention-days: 3
 
   deploy:
     needs: build
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
     steps:
-      - name: Deploy to VPS
-        uses: appleboy/ssh-action@v1.0.3
-        env:
-          ENV_FILE: ${{ secrets.ENV_FILE }}
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          password: ${{ secrets.VPS_PASSWORD }}
-          port: ${{ secrets.VPS_PORT || 22 }}
-          envs: ENV_FILE
-          script: |
-            mkdir -p /opt/ciks-coffee/storage /opt/ciks-coffee/private-storage/firebase
-            echo "$ENV_FILE" > /opt/ciks-coffee/.env
-            # Kredensial Reverb disimpan hanya pada .env server dan dibuat ulang per deploy.
-            sed -i '/^BROADCAST_CONNECTION=/d; /^REVERB_/d; /^VITE_REVERB_/d; /^FIREBASE_/d' /opt/ciks-coffee/.env
-            REVERB_APP_ID="$(date +%s)"
-            REVERB_APP_KEY="$(openssl rand -hex 16)"
-            REVERB_APP_SECRET="$(openssl rand -hex 32)"
-            {
-              echo "BROADCAST_CONNECTION=reverb"
-              echo "REVERB_APP_ID=${REVERB_APP_ID}"
-              echo "REVERB_APP_KEY=${REVERB_APP_KEY}"
-              echo "REVERB_APP_SECRET=${REVERB_APP_SECRET}"
-              echo "REVERB_SERVER_HOST=0.0.0.0"
-              echo "REVERB_SERVER_PORT=8080"
-              echo "REVERB_HOST=127.0.0.1"
-              echo "REVERB_PORT=8080"
-              echo "REVERB_SCHEME=http"
-              echo "REVERB_ALLOWED_ORIGINS=cikscoffee.my.id"
-              echo "FIREBASE_PROJECT_ID=ciks-coffee"
-              echo "FIREBASE_CREDENTIALS=/var/www/html/storage/app/private/firebase/service-account.json"
-            } >> /opt/ciks-coffee/.env
-            test -s /opt/ciks-coffee/private-storage/firebase/service-account.json || {
-              echo "Firebase service-account belum tersedia di private storage server."
-              exit 1
-            }
-            echo ${{ secrets.DOCKER_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-            IMAGE_NAME="ghcr.io/derywahyu/ciks-coffee-web:sha-${{ github.sha }}"
-            
-            docker pull $IMAGE_NAME
-            
-            docker stop ciks-coffee-web || true
-            docker rm ciks-coffee-web || true
-            
-            docker run -d \
-              --name ciks-coffee-web \
-              --restart unless-stopped \
-              --network npm-network \
-              --network db-network \
-              -v /opt/ciks-coffee/.env:/var/www/html/.env \
-              -v /opt/ciks-coffee/storage:/var/www/html/storage/app/public \
-              -v /opt/ciks-coffee/private-storage:/var/www/html/storage/app/private \
-              $IMAGE_NAME
-
-            docker image prune -f --filter "dangling=true"
+          name: web-production-${{ github.sha }}
+          path: release
+      - name: Deploy release to VPS
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_PORT: ${{ secrets.VPS_PORT }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          : "${VPS_HOST:?}" "${VPS_PORT:?}" "${VPS_USER:?}" "${VPS_SSH_KEY:?}" "${VPS_KNOWN_HOSTS:?}"
+          install -d -m 0700 "$RUNNER_TEMP/vps-ssh"
+          printf '%s\n' "$VPS_SSH_KEY" > "$RUNNER_TEMP/vps-ssh/key"
+          printf '%s\n' "$VPS_KNOWN_HOSTS" > "$RUNNER_TEMP/vps-ssh/known_hosts"
+          chmod 0600 "$RUNNER_TEMP/vps-ssh/key"
+          trap 'rm -f "$RUNNER_TEMP/vps-ssh/key"' EXIT
+          digest=$(sha256sum release/cikscoffee-web.tar.gz | cut -d ' ' -f 1)
+          ssh -T -i "$RUNNER_TEMP/vps-ssh/key" -p "$VPS_PORT" \
+            -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile="$RUNNER_TEMP/vps-ssh/known_hosts" \
+            -o ConnectTimeout=20 -o ServerAliveInterval=15 -o ServerAliveCountMax=3 \
+            "$VPS_USER@$VPS_HOST" "deploy $GITHUB_SHA $digest" < release/cikscoffee-web.tar.gz
+      - name: Verify public HTTPS
+        run: |
+          curl --fail --silent --show-error --retry 3 --max-time 30 https://cikscoffee.biz.id/up > /dev/null
+          printf 'Deployed commit %s to https://cikscoffee.biz.id\n' "$GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"

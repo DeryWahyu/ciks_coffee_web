@@ -17,6 +17,9 @@
 /public/build
 /public/hot
 /public/storage
+/public/downloads
+/.release-revision
+**/__pycache__/
 /storage/*.key
 /storage/app/private/firebase/*.json
 /storage/pail

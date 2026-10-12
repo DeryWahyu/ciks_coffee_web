@@ -98,6 +98,58 @@ Manual APK download:
 Its SHA-256 is
 `ac47667733866eba2d5f39e0dc3baa8c6b38080da5710913f65f3d31dcdfcec1`.
 
+## Automatic deployment from GitHub
+
+The existing `.github/workflows/docker-build.yml` now runs native deployment
+to this VPS. Push to `main` to run PHP 8.3 tests, deployment archive checks,
+Vite builds on Node 22, and production Composer installation on GitHub runners.
+Pull requests run checks without deploying. `workflow_dispatch` can retry the
+current `main` version from the Actions tab.
+
+Production releases live under `/var/www/cikscoffee-releases/<commit-sha>`.
+`/var/www/cikscoffee` is a symlink to the active release. `.env`, storage, and APK
+downloads live in `/var/www/cikscoffee-shared`; their symlinks are attached to
+every release. Neither application keys nor Firebase credentials are rebuilt
+by CI. The initial production snapshot remains available as an `initial-*`
+release, and three subsequent release directories are retained.
+
+Each deployment validates its archive and checksum, checks PHP extensions,
+creates a database/storage backup, briefly enters maintenance mode, runs
+migrations and Laravel cache commands, atomically switches the active symlink,
+and restarts queue/Reverb. If activation or the origin health check fails, the
+previous code and its workers are restored. Database migrations are not
+automatically reversed; schema rollback requires reviewing the migration or
+restoring the private database backup.
+
+Both repositories use Actions secrets `VPS_HOST`, `VPS_PORT`, `VPS_USER`,
+`VPS_SSH_KEY`, and `VPS_KNOWN_HOSTS`. The deployed values target
+`103.119.237.38:20253` as `ciks-deploy`. Each repository has its own SSH key and
+a pinned server host key. Web keys can submit only web releases; mobile keys
+can submit only APKs. Interactive shells and SSH forwarding are disabled.
+The old Docker registry, root password, and `ENV_FILE` secrets are no longer
+used by these workflows.
+
+Server setup scripts are installed as root-owned executables:
+`/usr/local/bin/cikscoffee-ci-ssh`, `/usr/local/sbin/cikscoffee-ci-entry`,
+`/usr/local/sbin/cikscoffee-deploy-release`, and
+`/usr/local/lib/cikscoffee/validate-release.py`. Run `install-ci.sh` as root
+with the two public-key files for an initial setup or an explicit change to
+these helpers/Nginx. Routine application updates use CI rather than
+`install-app.sh`, which is for the first installation only.
+
+The mobile repository's `.github/workflows/flutter-build.yml` tests and builds
+on Flutter 3.41.6. It verifies the production API URL in every ABI, then
+publishes the APK to both a GitHub release and the VPS. Its
+`ANDROID_DEBUG_KEYSTORE_B64` secret preserves the existing manual-install
+certificate; the build number increases as `1000 + GITHUB_RUN_NUMBER`.
+This remains debug signing, not Play Store release signing.
+
+Latest APK: `https://cikscoffee.biz.id/downloads/cikscoffee-latest.apk`.
+The latest alias uses `private, no-store` cache headers so a new build is
+immediately available. Three APKs with immutable commit/checksum filenames
+are retained, along with the original manually deployed APK. Phone users
+download and install a new APK themselves; CI updates the server download.
+
 ## Maintenance
 
 Inspect services:

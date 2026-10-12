@@ -46,13 +46,14 @@ jobs:
           composer install --prefer-dist --no-interaction --no-progress
           php artisan key:generate --no-interaction
           npm ci --ignore-scripts
+      - name: Build assets required by HTML feature tests
+        run: npm run build
       - name: Test application and deployment archive checks
         run: |
           php artisan test
           python3 -m unittest discover -s deployment/ubuntu/tests -v
-      - name: Build production assets and dependencies
+      - name: Install production dependencies
         run: |
-          npm run build
           composer install --no-dev --prefer-dist --no-interaction --no-progress --optimize-autoloader
           composer check-platform-reqs --no-dev
       - name: Package production release

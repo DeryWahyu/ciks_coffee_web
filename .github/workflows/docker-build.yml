@@ -88,8 +88,8 @@ jobs:
           set -euo pipefail
           : "${VPS_HOST:?}" "${VPS_PORT:?}" "${VPS_USER:?}" "${VPS_SSH_KEY:?}" "${VPS_KNOWN_HOSTS:?}"
           install -d -m 0700 "$RUNNER_TEMP/vps-ssh"
-          printf '%s\n' "$VPS_SSH_KEY" > "$RUNNER_TEMP/vps-ssh/key"
-          printf '%s\n' "$VPS_KNOWN_HOSTS" > "$RUNNER_TEMP/vps-ssh/known_hosts"
+          printf '%s\n' "$VPS_SSH_KEY" | tr -d '\r' > "$RUNNER_TEMP/vps-ssh/key"
+          printf '%s\n' "$VPS_KNOWN_HOSTS" | tr -d '\r' > "$RUNNER_TEMP/vps-ssh/known_hosts"
           chmod 0600 "$RUNNER_TEMP/vps-ssh/key"
           trap 'rm -f "$RUNNER_TEMP/vps-ssh/key"' EXIT
           digest=$(sha256sum release/cikscoffee-web.tar.gz | cut -d ' ' -f 1)

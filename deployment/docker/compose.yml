@@ -1,0 +1,116 @@
+name: cikscoffee-dery
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: 5m
+    max-file: '2'
+
+services:
+  app:
+    image: cikscoffee-dery-runtime:php8.3.36
+    build:
+      context: ./runtime
+      dockerfile: docker/runtime.Dockerfile
+    container_name: cikscoffee-dery-app
+    restart: unless-stopped
+    init: true
+    mem_limit: 1280m
+    cpus: 1.25
+    pids_limit: 128
+    stop_grace_period: 90s
+    volumes:
+      - ./www:/var/www
+      - ./backups:/var/backups/cikscoffee
+      - ./secrets/db-client.cnf:/root/.my.cnf:ro
+    ports:
+      - '127.0.0.1:18088:80'
+    networks:
+      - private
+      - egress
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, /usr/local/bin/cikscoffee-health]
+      interval: 30s
+      timeout: 15s
+      retries: 3
+      start_period: 60s
+    logging: *logging
+
+  db:
+    image: mariadb:10.11@sha256:0d0945c57f75b3a3b9ebe71aedaaad005fa5305054e8fca3d2e42a8c92b43b5e
+    container_name: cikscoffee-dery-db
+    restart: unless-stopped
+    mem_limit: 512m
+    cpus: 0.5
+    pids_limit: 128
+    environment:
+      MARIADB_DATABASE: cikscoffee
+      MARIADB_USER: cikscoffee_app
+      MARIADB_PASSWORD_FILE: /run/secrets/db_app_password
+      MARIADB_ROOT_PASSWORD_FILE: /run/secrets/db_root_password
+    command:
+      - --innodb-buffer-pool-size=128M
+      - --max-connections=30
+      - --table-open-cache=400
+      - --performance-schema=OFF
+      - --skip-name-resolve
+    secrets:
+      - db_app_password
+      - db_root_password
+    volumes:
+      - database:/var/lib/mysql
+      - ./secrets/db-client.cnf:/root/.my.cnf:ro
+    networks:
+      - private
+    healthcheck:
+      test: [CMD, healthcheck.sh, --connect, --innodb_initialized]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    logging: *logging
+
+  tunnel:
+    image: cloudflare/cloudflared:2026.10.0@sha256:9b49eed8f62806d5d45ddf59ecefb5710429598ea6d3fcccd2af938f621b2b07
+    container_name: cikscoffee-dery-tunnel
+    profiles: [production]
+    restart: unless-stopped
+    mem_limit: 192m
+    cpus: 0.25
+    pids_limit: 64
+    # Keep the existing Cloudflare routes to 127.0.0.1:80 inside this stack.
+    network_mode: service:app
+    command:
+      - tunnel
+      - --no-autoupdate
+      - --protocol
+      - http2
+      - --metrics
+      - 127.0.0.1:2000
+      - run
+      - --token-file
+      - /run/secrets/cloudflare_token
+    secrets:
+      - cloudflare_token
+    depends_on:
+      app:
+        condition: service_healthy
+    logging: *logging
+
+networks:
+  private:
+    internal: true
+  egress: {}
+
+volumes:
+  database: {}
+
+secrets:
+  db_app_password:
+    file: ./secrets/db-app-password
+  db_root_password:
+    file: ./secrets/db-root-password
+  cloudflare_token:
+    file: ./secrets/cloudflare-token

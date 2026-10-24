@@ -1,5 +1,9 @@
 # CiksCoffee VPS deployment
 
+Production has moved to an isolated Docker stack on `45.66.153.149:20193`.
+Use [the Docker deployment guide](../docker/README.md) for current operations.
+The native Ubuntu instructions below document the source server.
+
 Checked and installed on 2026-10-12. Host: `103.119.237.38`, external SSH port
 `20253`, Ubuntu 24.04 LTS, 1 vCPU, 2 GB RAM, 20 GB virtual disk.
 

@@ -1,4 +1,4 @@
-name: Test and Deploy Web
+name: Test and Deploy Web to Docker
 
 on:
   push:
@@ -77,7 +77,7 @@ jobs:
         with:
           name: web-production-${{ github.sha }}
           path: release
-      - name: Deploy release to VPS
+      - name: Deploy release to isolated Docker stack
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_PORT: ${{ secrets.VPS_PORT }}

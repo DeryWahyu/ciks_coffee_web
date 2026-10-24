@@ -1,0 +1,3 @@
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+* * * * * www-data cd /var/www/cikscoffee && php artisan schedule:run >> /dev/null 2>&1
+30 19 * * * root /usr/local/bin/cikscoffee-backup >> /var/log/cikscoffee-backup.log 2>&1

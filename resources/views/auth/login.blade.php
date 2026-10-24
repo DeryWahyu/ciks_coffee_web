@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Ciks Coffee - Staff Management Portal Login">
-    <title>Login - Ciks Coffee</title>
+    <meta name="description" content="Masuk ke portal pengelolaan Ciks Coffee untuk pemilik dan karyawan.">
+    <title>Masuk - Ciks Coffee</title>
     <x-brand-icons />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -108,7 +108,7 @@
         <div class="hidden lg:flex lg:w-1/2 relative overflow-hidden">
             <img
                 src="{{ asset('images/background-Login.png') }}"
-                alt="Ciks Coffee Interior"
+                alt="Interior Ciks Coffee"
                 class="absolute inset-0 w-full h-full object-cover"
                 id="login-bg-image"
             >
@@ -119,7 +119,7 @@
                 <div class="animate-slide-in-left animate-delay-2">
                     <x-brand-logo :light="true" class="w-16 h-16 mb-6" />
                     <p class="text-white/70 text-sm font-medium tracking-[0.3em] uppercase mb-3">
-                        Est. 2026
+                        Sejak 2026
                     </p>
                     <h2 class="text-white text-4xl font-bold tracking-tight font-sans">
                         Ciks Coffee
@@ -145,10 +145,10 @@
                     </div>
 
                     <h2 class="text-2xl font-bold text-espresso font-sans">
-                        Welcome Back
+                        Selamat datang kembali
                     </h2>
                     <p class="text-caramel-dark mt-2 text-sm">
-                        Sign in to access the management portal.
+                        Masuk untuk mengakses portal pengelolaan Ciks Coffee.
                     </p>
                 </div>
 
@@ -175,7 +175,7 @@
                     {{-- Email Field --}}
                     <div class="animate-fade-in-up animate-delay-2">
                         <label for="email" class="block text-xs font-semibold text-espresso tracking-[0.15em] uppercase mb-3">
-                            Email Address
+                            Alamat email
                         </label>
                         <div class="input-line">
                             <div class="flex items-center gap-3 pb-3 border-b border-latte">
@@ -201,11 +201,11 @@
                     <div class="animate-fade-in-up animate-delay-3">
                         <div class="flex items-center justify-between mb-3">
                             <label for="password" class="block text-xs font-semibold text-espresso tracking-[0.15em] uppercase">
-                                Password
+                                Kata sandi
                             </label>
                             {{-- Forgot Password link (for future implementation) --}}
                             {{-- <a href="#" class="text-xs text-caramel-dark hover:text-espresso transition-colors duration-200">
-                                Forgot Password?
+                                Lupa kata sandi?
                             </a> --}}
                         </div>
                         <div class="input-line">
@@ -222,7 +222,7 @@
                                     required
                                     autocomplete="current-password"
                                 >
-                                <button type="button" id="toggle-password" class="text-caramel hover:text-espresso transition-colors duration-200" onclick="togglePassword()">
+                                <button type="button" id="toggle-password" class="text-caramel hover:text-espresso transition-colors duration-200" aria-label="Tampilkan kata sandi" aria-pressed="false" onclick="togglePassword()">
                                     <svg id="eye-icon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/>
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
@@ -252,7 +252,7 @@
                             </label>
                         </div>
                         <label for="remember" class="text-sm text-caramel-dark cursor-pointer select-none">
-                            Remember me for 30 days
+                            Ingat saya
                         </label>
                     </div>
 
@@ -263,7 +263,7 @@
                             id="login-button"
                             class="btn-shimmer w-full flex items-center justify-center gap-3 bg-espresso hover:bg-espresso-light text-cream py-4 px-6 text-sm font-semibold tracking-[0.2em] uppercase rounded-xl transition-all duration-300 hover:shadow-lg hover:shadow-espresso/20 active:scale-[0.98]"
                         >
-                            <span>Sign In</span>
+                            <span>Masuk</span>
                             <svg class="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/>
                             </svg>
@@ -274,7 +274,7 @@
                 {{-- Footer --}}
                 <div class="mt-10 pt-6 border-t border-latte animate-fade-in-up animate-delay-6">
                     <p class="text-xs text-caramel text-center">
-                        Authorized personnel only.
+                        Khusus pemilik dan karyawan.
                     </p>
                 </div>
             </div>
@@ -286,15 +286,20 @@
             const passwordInput = document.getElementById('password');
             const eyeIcon = document.getElementById('eye-icon');
             const eyeOffIcon = document.getElementById('eye-off-icon');
+            const toggle = document.getElementById('toggle-password');
 
             if (passwordInput.type === 'password') {
                 passwordInput.type = 'text';
                 eyeIcon.classList.add('hidden');
                 eyeOffIcon.classList.remove('hidden');
+                toggle.setAttribute('aria-label', 'Sembunyikan kata sandi');
+                toggle.setAttribute('aria-pressed', 'true');
             } else {
                 passwordInput.type = 'password';
                 eyeIcon.classList.remove('hidden');
                 eyeOffIcon.classList.add('hidden');
+                toggle.setAttribute('aria-label', 'Tampilkan kata sandi');
+                toggle.setAttribute('aria-pressed', 'false');
             }
         }
 

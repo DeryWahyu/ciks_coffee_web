@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Ciks Coffee - Staff Management Portal Login">
     <title>Login - Ciks Coffee</title>
+    <x-brand-icons />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -116,6 +117,7 @@
             {{-- Floating brand on image --}}
             <div class="relative z-10 flex flex-col justify-end p-12 pb-16">
                 <div class="animate-slide-in-left animate-delay-2">
+                    <x-brand-logo :light="true" class="w-16 h-16 mb-6" />
                     <p class="text-white/70 text-sm font-medium tracking-[0.3em] uppercase mb-3">
                         Est. 2026
                     </p>
@@ -136,14 +138,7 @@
                 {{-- Logo & Brand --}}
                 <div class="mb-10 animate-fade-in-up animate-delay-1">
                     <div class="flex items-center gap-3 mb-8">
-                        <svg class="w-9 h-9 text-espresso" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M8.5 2c-.3 1 .3 2 0 3" opacity="0.4"/>
-                            <path d="M11.5 2c-.3 1 .3 2 0 3" opacity="0.55"/>
-                            <path d="M14.5 2c-.3 1 .3 2 0 3" opacity="0.4"/>
-                            <path d="M4.5 7h13v5c0 3.3-2.7 6-6 6h-1c-3.3 0-6-2.7-6-6V7z"/>
-                            <path d="M17.5 9.5h1a3 3 0 010 6h-1"/>
-                            <path d="M3 21h16"/>
-                        </svg>
+                        <x-brand-logo class="w-12 h-12" />
                         <h1 class="text-xl font-extrabold text-espresso tracking-[0.15em] uppercase">
                             Ciks Coffee
                         </h1>

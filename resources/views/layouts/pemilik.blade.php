@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Dasbor') - Ciks Coffee</title>
+    <x-brand-icons />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -41,14 +42,7 @@
         <aside class="hidden lg:flex lg:flex-col w-64 bg-white border-r border-latte/60 fixed inset-y-0 left-0 z-30" id="sidebar">
             {{-- Brand --}}
             <div class="flex items-center gap-3 px-6 py-5 border-b border-latte/40">
-                <svg class="w-8 h-8 text-espresso" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M8.5 2c-.3 1 .3 2 0 3" opacity="0.4"/>
-                    <path d="M11.5 2c-.3 1 .3 2 0 3" opacity="0.55"/>
-                    <path d="M14.5 2c-.3 1 .3 2 0 3" opacity="0.4"/>
-                    <path d="M4.5 7h13v5c0 3.3-2.7 6-6 6h-1c-3.3 0-6-2.7-6-6V7z"/>
-                    <path d="M17.5 9.5h1a3 3 0 010 6h-1"/>
-                    <path d="M3 21h16"/>
-                </svg>
+                <x-brand-logo class="w-10 h-10" />
                 <div>
                     <h1 class="text-sm font-extrabold text-espresso tracking-[0.08em] uppercase">Ciks Coffee</h1>
                     <p class="text-[0.65rem] text-caramel font-medium">Management System</p>
@@ -192,14 +186,7 @@
         <div class="lg:hidden fixed top-0 inset-x-0 z-30 bg-espresso shadow-lg">
             <div class="flex items-center justify-between px-4 py-3">
                 <div class="flex items-center gap-2">
-                    <svg class="w-7 h-7 text-cream" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M8.5 2c-.3 1 .3 2 0 3" opacity="0.4"/>
-                        <path d="M11.5 2c-.3 1 .3 2 0 3" opacity="0.55"/>
-                        <path d="M14.5 2c-.3 1 .3 2 0 3" opacity="0.4"/>
-                        <path d="M4.5 7h13v5c0 3.3-2.7 6-6 6h-1c-3.3 0-6-2.7-6-6V7z"/>
-                        <path d="M17.5 9.5h1a3 3 0 010 6h-1"/>
-                        <path d="M3 21h16"/>
-                    </svg>
+                    <x-brand-logo :light="true" class="w-8 h-8" />
                     <span class="text-cream font-extrabold tracking-wider text-sm uppercase">Ciks Coffee</span>
                 </div>
                 <button onclick="document.getElementById('mobile-menu').classList.toggle('hidden')" class="text-cream p-1">

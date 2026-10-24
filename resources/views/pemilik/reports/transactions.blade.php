@@ -120,6 +120,7 @@
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm animate-fade-in my-auto">
             <div id="receipt-content" class="p-6">
                 <div class="text-center border-b border-dashed border-latte/60 pb-4 mb-4">
+                    <x-brand-logo style="display:block;width:40px;height:40px;margin:0 auto 8px;" />
                     <h3 class="text-base font-bold text-espresso font-sans">Ciks Coffee</h3>
                     <p class="text-[0.6rem] text-caramel mt-1">Terima kasih atas kunjungan Anda</p>
                 </div>
@@ -182,8 +183,14 @@
     function printReceipt() {
         const content = document.getElementById('receipt-content').innerHTML;
         const w = window.open('', '_blank', 'width=320,height=600');
+        if (!w) return;
         w.document.write(`<html><head><title>Struk</title><style>body{font-family:monospace,sans-serif;font-size:12px;padding:10px;max-width:280px;margin:0 auto}h3{margin:0;font-size:16px;text-align:center}.flex{display:flex;justify-content:space-between}.border-t,.border-b{border-top:1px dashed #ccc;padding-top:8px;margin-top:8px}.mb-4{margin-bottom:12px}.font-bold{font-weight:bold}.space-y-1>*+*{margin-top:4px}.space-y-2>*+*{margin-top:6px}span{display:inline-block}@media print{body{padding:0}}</style></head><body>${content}<div class="text-center border-t" style="margin-top:12px;padding-top:8px;text-align:center"><small>*** Terima Kasih ***</small></div></body></html>`);
-        w.document.close(); w.focus(); w.print(); w.close();
+        w.document.close();
+        Promise.all(Array.from(w.document.images, image => image.decode().catch(() => {}))).then(() => {
+            w.focus();
+            w.print();
+            w.close();
+        });
     }
 </script>
 @endpush

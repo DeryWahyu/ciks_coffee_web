@@ -142,6 +142,7 @@
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm animate-fade-in my-auto">
             <div id="receipt-content" class="p-6">
                 <div class="text-center border-b border-dashed border-latte/60 pb-4 mb-4">
+                    <x-brand-logo style="display:block;width:40px;height:40px;margin:0 auto 8px;" />
                     <h3 class="text-base font-bold text-espresso font-sans">Ciks Coffee</h3>
                     <p class="text-[0.6rem] text-caramel mt-1">Terima kasih atas kunjungan Anda</p>
                 </div>
@@ -247,7 +248,12 @@
         footer.style.cssText = 'margin-top:12px;padding-top:8px;text-align:center';
         footer.textContent = '*** Terima Kasih ***';
         w.document.body.append(footer);
-        w.document.close(); w.focus(); w.print(); w.close();
+        w.document.close();
+        Promise.all(Array.from(w.document.images, image => image.decode().catch(() => {}))).then(() => {
+            w.focus();
+            w.print();
+            w.close();
+        });
     }
 </script>
 @endpush

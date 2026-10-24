@@ -106,6 +106,21 @@ class Order extends Model
         return in_array($this->user?->role, [User::ROLE_KARYAWAN, User::ROLE_PEMILIK], true);
     }
 
+    /**
+     * Mobile orders become transactions only after their customer confirms pickup.
+     * POS orders retain their existing workflow; callers can still filter status.
+     */
+    public function scopeVisibleInTransactionHistory(Builder $query): Builder
+    {
+        return $query->where(function (Builder $orders) {
+            $orders->where('orders.status', 'diambil')
+                ->orWhereHas('user', fn (Builder $users) => $users->whereIn('role', [
+                    User::ROLE_KARYAWAN,
+                    User::ROLE_PEMILIK,
+                ]));
+        });
+    }
+
     public function isMobileOrder(): bool
     {
         return $this->user?->role === User::ROLE_PENGGUNA;

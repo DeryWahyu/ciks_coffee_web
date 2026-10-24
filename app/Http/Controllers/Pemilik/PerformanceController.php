@@ -20,7 +20,7 @@ class PerformanceController extends Controller
         $endDate = $request->get('end_date', Carbon::now()->endOfMonth()->format('Y-m-d'));
 
         // Revenue per employee (only karyawan, exclude pengguna/pemilik)
-        $employeeStats = Order::whereIn('orders.status', ['selesai', 'diambil'])
+        $employeeStats = Order::visibleInTransactionHistory()->whereIn('orders.status', ['selesai', 'diambil'])
             ->whereDate('orders.created_at', '>=', $startDate)
             ->whereDate('orders.created_at', '<=', $endDate)
             ->join('users', 'orders.cashier_id', '=', 'users.id')
@@ -73,6 +73,7 @@ class PerformanceController extends Controller
             ->join('orders', 'order_items.order_id', '=', 'orders.id')
             ->where('orders.cashier_id', $user->id)
             ->whereIn('orders.status', ['selesai', 'diambil'])
+            ->whereIn('orders.id', Order::visibleInTransactionHistory()->select('orders.id'))
             ->whereDate('orders.created_at', '>=', $startDate)
             ->whereDate('orders.created_at', '<=', $endDate)
             ->select(
@@ -88,6 +89,7 @@ class PerformanceController extends Controller
 
         // Employee summary stats
         $summary = Order::where('cashier_id', $user->id)
+            ->visibleInTransactionHistory()
             ->whereIn('status', ['selesai', 'diambil'])
             ->whereDate('created_at', '>=', $startDate)
             ->whereDate('created_at', '<=', $endDate)
@@ -96,6 +98,7 @@ class PerformanceController extends Controller
 
         // Recent orders
         $recentOrders = Order::with('items')
+            ->visibleInTransactionHistory()
             ->where('cashier_id', $user->id)
             ->whereIn('status', ['selesai', 'diambil'])
             ->whereDate('created_at', '>=', $startDate)
@@ -122,6 +125,7 @@ class PerformanceController extends Controller
             ->join('orders', 'order_items.order_id', '=', 'orders.id')
             ->join('products', 'order_items.product_id', '=', 'products.id')
             ->whereIn('orders.status', ['selesai', 'diambil'])
+            ->whereIn('orders.id', Order::visibleInTransactionHistory()->select('orders.id'))
             ->whereDate('orders.created_at', '>=', $startDate)
             ->whereDate('orders.created_at', '<=', $endDate)
             ->select(

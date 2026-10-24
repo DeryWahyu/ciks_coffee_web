@@ -107,7 +107,7 @@ class PemilikExportFormulaInjectionTest extends TestCase
             'cashier_id' => $owner->id,
             'payment_method' => 'cash',
             'total' => 15000,
-            'status' => 'selesai',
+            'status' => 'diambil',
             'paid_at' => now(),
         ]);
         $order->items()->create([

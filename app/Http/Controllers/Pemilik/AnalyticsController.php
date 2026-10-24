@@ -25,22 +25,22 @@ class AnalyticsController extends Controller
         $prevEnd = $startDate->copy()->subDay();
 
         // ==================== KPI STATS ====================
-        $currentRevenue = Order::whereIn('status', ['selesai', 'diambil'])
+        $currentRevenue = Order::visibleInTransactionHistory()->whereIn('status', ['selesai', 'diambil'])
             ->whereDate('created_at', '>=', $startDate)
             ->whereDate('created_at', '<=', $endDate)
             ->sum('total');
 
-        $prevRevenue = Order::whereIn('status', ['selesai', 'diambil'])
+        $prevRevenue = Order::visibleInTransactionHistory()->whereIn('status', ['selesai', 'diambil'])
             ->whereDate('created_at', '>=', $prevStart)
             ->whereDate('created_at', '<=', $prevEnd)
             ->sum('total');
 
-        $currentOrders = Order::whereIn('status', ['selesai', 'diambil'])
+        $currentOrders = Order::visibleInTransactionHistory()->whereIn('status', ['selesai', 'diambil'])
             ->whereDate('created_at', '>=', $startDate)
             ->whereDate('created_at', '<=', $endDate)
             ->count();
 
-        $prevOrders = Order::whereIn('status', ['selesai', 'diambil'])
+        $prevOrders = Order::visibleInTransactionHistory()->whereIn('status', ['selesai', 'diambil'])
             ->whereDate('created_at', '>=', $prevStart)
             ->whereDate('created_at', '<=', $prevEnd)
             ->count();
@@ -67,8 +67,8 @@ class AnalyticsController extends Controller
         $salesTrend = collect();
         for ($i = $days - 1; $i >= 0; $i--) {
             $date = Carbon::today()->subDays($i);
-            $rev = Order::whereIn('status', ['selesai', 'diambil'])->whereDate('created_at', $date)->sum('total');
-            $cnt = Order::whereIn('status', ['selesai', 'diambil'])->whereDate('created_at', $date)->count();
+            $rev = Order::visibleInTransactionHistory()->whereIn('status', ['selesai', 'diambil'])->whereDate('created_at', $date)->sum('total');
+            $cnt = Order::visibleInTransactionHistory()->whereIn('status', ['selesai', 'diambil'])->whereDate('created_at', $date)->count();
             $salesTrend->push([
                 'date' => $days <= 14 ? $date->translatedFormat('d M') : $date->format('d/m'),
                 'revenue' => (float)$rev,
@@ -80,6 +80,7 @@ class AnalyticsController extends Controller
         $topProducts = DB::table('order_items')
             ->join('orders', 'order_items.order_id', '=', 'orders.id')
             ->whereIn('orders.status', ['selesai', 'diambil'])
+            ->whereIn('orders.id', Order::visibleInTransactionHistory()->select('orders.id'))
             ->whereDate('orders.created_at', '>=', $startDate)
             ->whereDate('orders.created_at', '<=', $endDate)
             ->select(
@@ -94,7 +95,7 @@ class AnalyticsController extends Controller
             ->get();
 
         // ==================== PEAK HOURS ====================
-        $peakHours = Order::whereIn('status', ['selesai', 'diambil'])
+        $peakHours = Order::visibleInTransactionHistory()->whereIn('status', ['selesai', 'diambil'])
             ->whereDate('created_at', '>=', $startDate)
             ->whereDate('created_at', '<=', $endDate)
             ->select(DB::raw('HOUR(created_at) as hour'), DB::raw('COUNT(*) as count'), DB::raw('SUM(total) as revenue'))
@@ -113,7 +114,7 @@ class AnalyticsController extends Controller
         });
 
         // ==================== PAYMENT METHODS ====================
-        $paymentMethods = Order::whereIn('status', ['selesai', 'diambil'])
+        $paymentMethods = Order::visibleInTransactionHistory()->whereIn('status', ['selesai', 'diambil'])
             ->whereDate('created_at', '>=', $startDate)
             ->whereDate('created_at', '<=', $endDate)
             ->select('payment_method', DB::raw('COUNT(*) as count'), DB::raw('SUM(total) as total'))

@@ -52,7 +52,7 @@ class ExportController extends Controller
      */
     private function buildQuery(Request $request)
     {
-        $query = Order::with(['items', 'user', 'cashier'])
+        $query = Order::with(['items', 'user', 'cashier'])->visibleInTransactionHistory()
             ->whereIn('status', ['selesai', 'diambil']);
 
         if ($request->filled('date_from')) {

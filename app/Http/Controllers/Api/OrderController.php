@@ -8,6 +8,7 @@ use App\Models\Ingredient;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\ShopSetting;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -244,24 +245,29 @@ class OrderController extends Controller
     public function confirmPickup(Request $request, Order $order)
     {
         // Ensure the order belongs to the authenticated user
-        if ($order->user_id !== $request->user()->id) {
+        if ($request->user()->role !== User::ROLE_PENGGUNA || $order->user_id !== $request->user()->id) {
             return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
         }
 
-        // Only allow pickup confirmation for 'selesai' orders
-        if ($order->status !== 'selesai') {
+        return DB::transaction(function () use ($order) {
+            $lockedOrder = Order::query()->lockForUpdate()->findOrFail($order->id);
+            if (! in_array($lockedOrder->status, ['selesai', 'diambil'], true)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Pesanan belum selesai diproses.',
+                ], 422);
+            }
+
+            // Retries after a slow network response must not perform pickup twice.
+            if ($lockedOrder->status === 'selesai') {
+                $lockedOrder->update(['status' => 'diambil']);
+            }
+
             return response()->json([
-                'success' => false,
-                'message' => 'Pesanan belum selesai diproses.',
-            ], 422);
-        }
-
-        $order->update(['status' => 'diambil']);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Pesanan telah dikonfirmasi diambil.',
-        ]);
+                'success' => true,
+                'message' => 'Pesanan telah dikonfirmasi diambil.',
+            ]);
+        }, 3);
     }
 
     /**

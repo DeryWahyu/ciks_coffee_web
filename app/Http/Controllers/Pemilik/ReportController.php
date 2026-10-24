@@ -20,7 +20,7 @@ class ReportController extends Controller
         $startDate = $request->get('start_date', Carbon::now()->startOfMonth()->format('Y-m-d'));
         $endDate = $request->get('end_date', Carbon::now()->endOfMonth()->format('Y-m-d'));
 
-        $query = Order::whereIn('status', ['selesai', 'diambil'])
+        $query = Order::visibleInTransactionHistory()->whereIn('status', ['selesai', 'diambil'])
             ->whereDate('created_at', '>=', $startDate)
             ->whereDate('created_at', '<=', $endDate);
 
@@ -41,6 +41,7 @@ class ReportController extends Controller
         $topProducts = DB::table('order_items')
             ->join('orders', 'order_items.order_id', '=', 'orders.id')
             ->whereIn('orders.status', ['selesai', 'diambil'])
+            ->whereIn('orders.id', Order::visibleInTransactionHistory()->select('orders.id'))
             ->whereDate('orders.created_at', '>=', $startDate)
             ->whereDate('orders.created_at', '<=', $endDate)
             ->select('order_items.product_name', 'order_items.variant', DB::raw('SUM(order_items.quantity) as total_quantity'), DB::raw('SUM(order_items.subtotal) as total_revenue'))
@@ -85,7 +86,7 @@ class ReportController extends Controller
      */
     public function transactions(Request $request)
     {
-        $query = Order::with(['items', 'user', 'cashier'])->latest();
+        $query = Order::with(['items', 'user', 'cashier'])->visibleInTransactionHistory()->latest();
 
         if ($search = $request->get('search')) {
             $query->where(function ($q) use ($search) {
@@ -108,7 +109,7 @@ class ReportController extends Controller
 
         $orders = $query->paginate(20)->withQueryString();
 
-        $statsQuery = Order::query();
+        $statsQuery = Order::visibleInTransactionHistory();
         if ($search) {
             $statsQuery->where(function ($q) use ($search) {
                 $q->where('order_number', 'like', "%{$search}%")
@@ -124,7 +125,7 @@ class ReportController extends Controller
             'total_transactions' => $statsQuery->count(),
             'total_revenue' => $statsQuery->sum('total'),
             'avg_transaction' => $statsQuery->avg('total') ?? 0,
-            'today_count' => Order::whereDate('created_at', today())->count(),
+            'today_count' => Order::visibleInTransactionHistory()->whereDate('created_at', today())->count(),
         ];
 
         return view('pemilik.reports.transactions', compact('orders', 'stats'));
@@ -135,7 +136,9 @@ class ReportController extends Controller
      */
     public function receipt(Order $order)
     {
-        $order->load('items', 'user', 'cashier');
+        $order = Order::with(['items', 'user', 'cashier'])
+            ->visibleInTransactionHistory()
+            ->findOrFail($order->id);
 
         return response()->json([
             'order_number' => $order->order_number,

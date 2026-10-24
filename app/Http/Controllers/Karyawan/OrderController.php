@@ -48,6 +48,7 @@ class OrderController extends Controller
     {
         $userId = $request->user()->id;
         $query = Order::with(['items', 'user', 'cashier'])
+            ->visibleInTransactionHistory()
             ->where('cashier_id', $userId)
             ->latest();
 
@@ -80,7 +81,7 @@ class OrderController extends Controller
         $orders = $query->paginate(20)->withQueryString();
 
         // Summary stats
-        $statsQuery = Order::query()->where('cashier_id', $userId);
+        $statsQuery = Order::visibleInTransactionHistory()->where('cashier_id', $userId);
         if ($search) {
             $statsQuery->where(function ($q) use ($search) {
                 $q->where('order_number', 'like', "%{$search}%")
@@ -104,7 +105,7 @@ class OrderController extends Controller
             'total_transactions' => (clone $statsQuery)->count(),
             'total_revenue' => (clone $statsQuery)->sum('total'),
             'avg_transaction' => (clone $statsQuery)->avg('total') ?? 0,
-            'today_count' => Order::where('cashier_id', $userId)->whereDate('created_at', today())->count(),
+            'today_count' => Order::visibleInTransactionHistory()->where('cashier_id', $userId)->whereDate('created_at', today())->count(),
         ];
 
         return view('karyawan.orders.history', compact('orders', 'stats'));
@@ -330,7 +331,7 @@ class OrderController extends Controller
     {
         $userId = $request->user()->id;
 
-        $query = Order::where('cashier_id', $userId)->whereIn('status', ['selesai', 'diambil']);
+        $query = Order::visibleInTransactionHistory()->where('cashier_id', $userId)->whereIn('status', ['selesai', 'diambil']);
 
         // Filter by date range
         if ($dateFrom = $request->get('date_from')) {

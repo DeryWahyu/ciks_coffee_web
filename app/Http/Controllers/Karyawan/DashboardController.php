@@ -23,10 +23,10 @@ class DashboardController extends Controller
                 ->whereIn('status', ['menunggu_verifikasi', 'antrian_baru', 'sedang_dibuat'])->count(),
             'completed_orders' => \App\Models\Order::where('cashier_id', $userId)
                 ->whereDate('created_at', today())
-                ->whereIn('status', ['selesai', 'diambil'])->count(),
+                ->visibleInTransactionHistory()->whereIn('status', ['selesai', 'diambil'])->count(),
             'revenue' => \App\Models\Order::where('cashier_id', $userId)
                 ->whereDate('created_at', today())
-                ->whereIn('status', ['selesai', 'diambil'])->sum('total'),
+                ->visibleInTransactionHistory()->whereIn('status', ['selesai', 'diambil'])->sum('total'),
         ];
 
         // 7-day revenue chart data for this employee
@@ -34,7 +34,7 @@ class DashboardController extends Controller
         
         $chartData = \App\Models\Order::selectRaw('DATE(created_at) as date, SUM(total) as revenue')
             ->where('cashier_id', $userId)
-            ->whereIn('status', ['selesai', 'diambil'])
+            ->visibleInTransactionHistory()->whereIn('status', ['selesai', 'diambil'])
             ->where('created_at', '>=', $sevenDaysAgo)
             ->groupBy('date')
             ->orderBy('date', 'asc')

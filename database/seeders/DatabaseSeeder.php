@@ -16,21 +16,21 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         // Create default pemilik (owner) account
-        User::factory()->create([
+        User::firstOrCreate(['email' => 'pemilik@cikscoffee.com'], [
             'name' => 'Pemilik Ciks Coffee',
-            'email' => 'pemilik@cikscoffee.com',
             'password' => bcrypt('password'),
             'role' => 'pemilik',
             'is_active' => true,
         ]);
 
         // Create sample karyawan (employee) account
-        User::factory()->create([
+        User::firstOrCreate(['email' => 'karyawan@cikscoffee.com'], [
             'name' => 'Karyawan Demo',
-            'email' => 'karyawan@cikscoffee.com',
             'password' => bcrypt('password'),
             'role' => 'karyawan',
             'is_active' => true,
         ]);
+
+        $this->call(MenuCatalogSeeder::class);
     }
 }

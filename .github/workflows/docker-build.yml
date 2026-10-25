@@ -63,6 +63,7 @@ jobs:
         run: npm run build
       - name: Test application and deployment archive checks
         run: |
+          npm run test:notifications
           php artisan test
           python3 -m unittest discover -s deployment/ubuntu/tests -v
       - name: Test transactional consistency on MariaDB

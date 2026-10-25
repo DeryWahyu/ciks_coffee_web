@@ -3,7 +3,7 @@ const queue = document.querySelector('[data-order-queue-revision]');
 if (queue) {
     let checking = false;
     let changed = false;
-    const busy = () => document.querySelector('.ciks-alert-overlay.is-open, #proof-modal:not(.hidden), #receipt-modal:not(.hidden)')
+    const busy = () => document.querySelector('[data-order-sound-playing="true"], .ciks-alert-overlay.is-open, #proof-modal:not(.hidden), #receipt-modal:not(.hidden)')
         || ['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement?.tagName);
     const check = async () => {
         if (checking || document.hidden) return;
@@ -20,6 +20,7 @@ if (queue) {
         } finally { checking = false; }
     };
     window.addEventListener('ciks:mobile-order-received', check);
+    window.addEventListener('ciks:order-sound-finished', check);
     document.addEventListener('visibilitychange', check);
     window.setInterval(check, 15000);
 }

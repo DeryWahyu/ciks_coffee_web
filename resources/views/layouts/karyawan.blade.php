@@ -190,6 +190,7 @@
                                 <svg class="h-4.5 w-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.7" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0018.75 9.75V9A6.75 6.75 0 005.25 9v.75a8.967 8.967 0 01-1.56 5.022 23.848 23.848 0 005.454 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/></svg>
                                 <span id="order-notification-badge" class="absolute -right-1 -top-1 hidden min-w-5 rounded-full bg-red-500 px-1 text-center text-[0.58rem] font-bold leading-5 text-white shadow-sm"></span>
                             </button>
+                            <button type="button" id="order-notification-quick-enable" class="ml-1 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800">Aktifkan suara</button>
                             <div id="order-notification-panel" class="absolute right-0 z-[70] mt-2 hidden w-[min(21rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-latte/60 bg-cream-light shadow-2xl">
                                 <div class="border-b border-latte/50 bg-white px-4 py-3">
                                     <div class="flex items-start justify-between gap-3">
@@ -208,12 +209,14 @@
                                     <button type="button" id="order-notification-enable-sound" class="flex min-h-10 w-full items-center justify-center gap-2 rounded-xl bg-espresso px-3 py-2 text-xs font-bold text-cream transition hover:bg-espresso-light">
                                         Aktifkan suara
                                     </button>
+                                    <p id="order-notification-sound-status" role="status" class="text-[0.65rem] leading-5 text-caramel">Bel ramai dan ucapan “Ada pesanan baru masuk” diulang 3 kali.</p>
+                                    <button type="button" id="order-notification-stop-sound" class="hidden min-h-10 w-full rounded-xl border border-latte/70 bg-white px-3 py-2 text-xs font-bold text-espresso transition hover:bg-latte/20">Hentikan suara</button>
                                     <label class="flex cursor-pointer items-center justify-between gap-3 text-xs text-espresso">
                                         <span>Bisukan notifikasi</span>
                                         <input id="order-notification-mute" type="checkbox" class="h-4 w-4 rounded border-latte text-espresso focus:ring-caramel">
                                     </label>
                                     <label class="block text-xs text-espresso">
-                                        <span class="mb-2 block">Volume</span>
+                                        <span class="mb-2 flex items-center justify-between"><span>Volume</span><span id="order-notification-volume-value">100%</span></span>
                                         <input id="order-notification-volume" type="range" min="0" max="100" step="5" class="h-1.5 w-full cursor-pointer accent-espresso">
                                     </label>
                                     <a href="{{ route('karyawan.orders.index') }}" class="flex min-h-10 items-center justify-center rounded-xl border border-latte/70 bg-white px-3 py-2 text-xs font-bold text-espresso transition hover:bg-latte/20">Buka antrean pesanan</a>
@@ -271,6 +274,9 @@
         window.CiksEmployeeNotifications = {
             userId: @json((int) Auth::id()),
             queueUrl: @json(route('karyawan.orders.index')),
+            feedUrl: @json(route('karyawan.orders.notifications')),
+            soundUrl: @json(asset('audio/pesanan-baru-id.mp3')),
+            bellUrl: @json(asset('audio/bel-pesanan-ramai.wav')),
             reverb: {
                 key: @json(config('broadcasting.connections.reverb.key')),
                 // Nilai ini sengaja dibaca dari browser, bukan request Laravel.

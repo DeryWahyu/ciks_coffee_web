@@ -8,5 +8,5 @@ Broadcast::channel('App.Models.User.{id}', function (User $user, int $id): bool 
 });
 
 Broadcast::channel('karyawan.orders', function (User $user): bool {
-    return $user->role === 'karyawan';
+    return $user->is_active && $user->role === User::ROLE_KARYAWAN;
 });

@@ -4,6 +4,7 @@
     "type": "module",
     "scripts": {
         "build": "vite build",
+        "test:notifications": "node --test tests/JavaScript/employee-order-sound.test.js tests/JavaScript/employee-order-delivery.test.js tests/JavaScript/employee-order-feed.test.js",
         "dev": "vite"
     },
     "devDependencies": {

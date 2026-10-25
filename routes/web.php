@@ -3,6 +3,7 @@
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Karyawan\DashboardController as KaryawanDashboardController;
 use App\Http\Controllers\Karyawan\OrderController;
+use App\Http\Controllers\Karyawan\OrderNotificationController;
 use App\Http\Controllers\Karyawan\PosController;
 use App\Http\Controllers\Karyawan\TableController as KaryawanTableController;
 use App\Http\Controllers\Pemilik\AnalyticsController;
@@ -157,6 +158,7 @@ Route::middleware(['auth', 'auth.session', CheckRole::class.':karyawan'])
         // Antrean Pesanan
         Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
         Route::get('/orders/revision', [OrderController::class, 'revision'])->name('orders.revision');
+        Route::get('/orders/notifications', OrderNotificationController::class)->name('orders.notifications');
         Route::patch('/orders/{order}/status', [OrderController::class, 'updateStatus'])->name('orders.update-status');
         Route::patch('/orders/{order}/verify', [OrderController::class, 'verifyPayment'])->name('orders.verify');
         Route::get('/orders/{order}/payment-proof', [OrderController::class, 'paymentProof'])->name('orders.payment-proof');

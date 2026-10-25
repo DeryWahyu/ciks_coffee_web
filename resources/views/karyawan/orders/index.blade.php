@@ -4,6 +4,7 @@
 @section('page-description', 'Pesanan aktif tetap tampil sampai proses benar-benar tuntas')
 
 @section('content')
+<div data-order-queue-revision="{{ $revision }}" data-revision-url="{{ route('karyawan.orders.revision') }}" class="hidden"></div>
 {{-- Status Tabs --}}
 <div class="flex flex-wrap items-center gap-3 mb-6">
     <a href="{{ route('karyawan.orders.index') }}" class="px-4 py-2 text-xs font-semibold rounded-xl border transition-all {{ !$status ? 'bg-espresso text-cream border-espresso' : 'bg-white text-caramel border-latte/50 hover:border-caramel' }}">

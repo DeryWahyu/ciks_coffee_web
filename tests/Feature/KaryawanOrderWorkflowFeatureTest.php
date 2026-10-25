@@ -8,11 +8,18 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class KaryawanOrderWorkflowFeatureTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        Storage::fake('local');
+    }
 
     public function test_employee_cannot_skip_status_or_bypass_qris_verification(): void
     {
@@ -305,6 +312,10 @@ class KaryawanOrderWorkflowFeatureTest extends TestCase
 
     private function makeOrder(User $orderOwner, array $attributes = []): Order
     {
+        if (! empty($attributes['payment_proof'])) {
+            Storage::disk('local')->put($attributes['payment_proof'], 'test-proof');
+        }
+
         return Order::create(array_merge([
             'order_number' => 'CK-TEST-'.str_pad((string) (Order::count() + 1), 4, '0', STR_PAD_LEFT),
             'customer_name' => $orderOwner->name,

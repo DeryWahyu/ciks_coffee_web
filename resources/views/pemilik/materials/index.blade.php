@@ -186,6 +186,7 @@
             <h3 class="text-sm font-bold text-espresso uppercase tracking-wider mb-4">Edit Bahan Baku</h3>
             <form id="edit-form" method="POST" class="space-y-4">
                 @csrf @method('PUT')
+                <input type="hidden" name="expected_stock" id="edit-expected-stock">
                 <div>
                     <label for="edit-nama" class="block text-sm font-semibold text-espresso mb-1.5">Nama Bahan</label>
                     <input type="text" name="nama_bahan" id="edit-nama" required class="w-full px-4 py-2.5 text-sm bg-white border border-latte/60 rounded-xl focus:ring-2 focus:ring-caramel/30 focus:border-caramel outline-none transition">
@@ -215,6 +216,7 @@
         document.getElementById('edit-nama').value = nama;
         document.getElementById('edit-satuan').value = satuan;
         document.getElementById('edit-stok').value = stok;
+        document.getElementById('edit-expected-stock').value = stok;
         document.getElementById('edit-form').action = `/pemilik/materials/${id}`;
         document.getElementById('edit-modal').classList.remove('hidden');
     }

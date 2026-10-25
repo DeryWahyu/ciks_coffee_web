@@ -154,7 +154,10 @@
 @push('scripts')
 <script>
     function viewReceipt(orderId) {
-        fetch(`/pemilik/reports/transactions/${orderId}/receipt`).then(r => r.json()).then(data => {
+        fetch(`/pemilik/reports/transactions/${orderId}/receipt`, {headers: {'Accept':'application/json'}}).then(async response => {
+            if (!response.ok) throw new Error('Struk tidak dapat dimuat. Periksa akses atau sesi Anda.');
+            return response.json();
+        }).then(data => {
             document.getElementById('rcpt-number').textContent = data.order_number;
             document.getElementById('rcpt-customer').textContent = data.customer_name;
             document.getElementById('rcpt-cashier').textContent = data.cashier;
@@ -162,11 +165,13 @@
             document.getElementById('rcpt-payment').textContent = data.payment_method;
             document.getElementById('rcpt-total').textContent = data.formatted_total;
             document.getElementById('rcpt-status').textContent = data.status_label;
-            let itemsHtml = '';
-            data.items.forEach(i => {
-                itemsHtml += `<div class="flex justify-between text-xs"><span class="text-espresso">${i.product_name} x${i.quantity}</span><span class="font-medium text-espresso">Rp ${parseFloat(i.subtotal).toLocaleString('id-ID')}</span></div>`;
+            const rows = data.items.map(item => {
+                const row = document.createElement('div'); row.className = 'flex justify-between text-xs';
+                const name = document.createElement('span'); name.className = 'text-espresso'; name.textContent = `${item.product_name} x${item.quantity}`;
+                const amount = document.createElement('span'); amount.className = 'font-medium text-espresso'; amount.textContent = 'Rp ' + Number(item.subtotal).toLocaleString('id-ID');
+                row.append(name, amount); return row;
             });
-            document.getElementById('rcpt-items').innerHTML = itemsHtml;
+            document.getElementById('rcpt-items').replaceChildren(...rows);
             if (data.payment_method === 'cash' && data.cash_received) {
                 document.getElementById('rcpt-cash-row').classList.remove('hidden');
                 document.getElementById('rcpt-change-row').classList.remove('hidden');
@@ -177,7 +182,7 @@
                 document.getElementById('rcpt-change-row').classList.add('hidden');
             }
             document.getElementById('receipt-modal').classList.remove('hidden');
-        });
+        }).catch(error => window.CiksAlert.notify(error.message, 'error', 'Struk tidak tersedia'));
     }
     function closeReceipt() { document.getElementById('receipt-modal').classList.add('hidden'); }
     function printReceipt() {

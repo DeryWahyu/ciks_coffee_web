@@ -3,20 +3,33 @@
 namespace App\Http\Controllers\Karyawan;
 
 use App\Http\Controllers\Controller;
-use App\Models\Ingredient;
 use App\Models\Order;
-use App\Models\Product;
+use App\Models\User;
+use App\Services\CheckoutService;
+use App\Support\ReportDateRange;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 
 class OrderController extends Controller
 {
+    private function queueRevision(): string
+    {
+        return hash('sha256', Order::activeQueue()->orderBy('id')->get(['orders.id', 'orders.status', 'orders.cashier_id'])->toJson());
+    }
+
+    public function revision()
+    {
+        return response()->json(['revision' => $this->queueRevision()])->header('Cache-Control', 'private, no-store');
+    }
+
     /**
      * Show the shared queue of active orders.
      */
     public function index(Request $request)
     {
+        $revision = $this->queueRevision();
         $status = $request->get('status');
         $allowedStatuses = ['menunggu_verifikasi', 'antrian_baru', 'sedang_dibuat', 'selesai'];
         $activeOrders = Order::query()->activeQueue();
@@ -38,7 +51,7 @@ class OrderController extends Controller
                 ->count();
         }
 
-        return view('karyawan.orders.index', compact('orders', 'counts', 'status'));
+        return view('karyawan.orders.index', compact('orders', 'counts', 'status', 'revision'));
     }
 
     /**
@@ -46,6 +59,7 @@ class OrderController extends Controller
      */
     public function history(Request $request)
     {
+        ReportDateRange::validate($request, 'date_from', 'date_to');
         $userId = $request->user()->id;
         $query = Order::with(['items', 'user', 'cashier'])
             ->visibleInTransactionHistory()
@@ -181,6 +195,8 @@ class OrderController extends Controller
 
         try {
             $updatedOrder = DB::transaction(function () use ($order, $validated, $request) {
+                $cashier = User::query()->lockForUpdate()->findOrFail($request->user()->id);
+                abort_unless($cashier->is_active && $cashier->isKaryawan(), 403);
                 $lockedOrder = Order::query()->lockForUpdate()->findOrFail($order->id);
 
                 $allowedTransitions = [
@@ -218,6 +234,8 @@ class OrderController extends Controller
     {
         try {
             $verifiedOrder = DB::transaction(function () use ($order, $request) {
+                $cashier = User::query()->lockForUpdate()->findOrFail($request->user()->id);
+                abort_unless($cashier->is_active && $cashier->isKaryawan(), 403);
                 $lockedOrder = Order::query()
                     ->with('items')
                     ->lockForUpdate()
@@ -227,6 +245,7 @@ class OrderController extends Controller
                     $lockedOrder->status !== 'menunggu_verifikasi'
                     || $lockedOrder->payment_method !== 'qris'
                     || empty($lockedOrder->payment_proof)
+                    || ! Storage::disk('local')->exists($lockedOrder->payment_proof)
                 ) {
                     throw new \DomainException('Pesanan ini tidak dapat diverifikasi.');
                 }
@@ -235,57 +254,21 @@ class OrderController extends Controller
                     throw new \DomainException('Pesanan ini sudah ditangani oleh karyawan lain.');
                 }
 
-                $requirements = [];
-
-                foreach ($lockedOrder->items as $item) {
-                    $product = Product::query()->lockForUpdate()->find($item->product_id);
-
-                    if (! $product) {
-                        throw new \DomainException("Produk untuk item {$item->product_name} tidak ditemukan.");
-                    }
-
-                    $productIngredients = $product->ingredientsByVariant($item->variant);
-
-                    if ($productIngredients->isEmpty()) {
-                        throw new \DomainException("Resep untuk item {$item->product_name} tidak ditemukan.");
-                    }
-
-                    foreach ($productIngredients as $ingredient) {
-                        $required = (float) $ingredient->pivot->quantity * $item->quantity;
-                        $requirements[$ingredient->id] = ($requirements[$ingredient->id] ?? 0) + $required;
-                    }
-                }
-
-                $ingredients = Ingredient::query()
-                    ->whereIn('id', array_keys($requirements))
-                    ->orderBy('id')
-                    ->lockForUpdate()
-                    ->get()
-                    ->keyBy('id');
-
-                foreach ($requirements as $ingredientId => $required) {
-                    $ingredient = $ingredients->get($ingredientId);
-
-                    if (! $ingredient) {
-                        throw new \DomainException('Salah satu bahan pesanan tidak ditemukan.');
-                    }
-
-                    if ((float) $ingredient->stok < $required) {
-                        throw new \DomainException("Stok bahan {$ingredient->nama_bahan} tidak cukup untuk memverifikasi pesanan ini.");
-                    }
-                }
-
-                foreach ($requirements as $ingredientId => $required) {
-                    $ingredients->get($ingredientId)->decrement('stok', $required);
-                }
+                $service = app(CheckoutService::class);
+                $requirements = $service->requirementsForOrder($lockedOrder);
+                $ingredients = $service->lockIngredients($requirements);
+                $service->deduct($ingredients, $requirements);
 
                 $lockedOrder->update([
                     'status' => 'antrian_baru',
+                    'paid_at' => now(),
                     'cashier_id' => $request->user()->id,
                 ]);
 
                 return $lockedOrder->fresh();
             }, 3);
+        } catch (ValidationException $exception) {
+            return back()->with('error', collect($exception->errors())->flatten()->first());
         } catch (\DomainException $exception) {
             return back()->with('error', $exception->getMessage());
         }
@@ -329,9 +312,10 @@ class OrderController extends Controller
      */
     public function income(Request $request)
     {
+        ReportDateRange::validate($request, 'date_from', 'date_to');
         $userId = $request->user()->id;
 
-        $query = Order::visibleInTransactionHistory()->where('cashier_id', $userId)->whereIn('status', ['selesai', 'diambil']);
+        $query = Order::visibleInTransactionHistory()->where('cashier_id', $userId);
 
         // Filter by date range
         if ($dateFrom = $request->get('date_from')) {

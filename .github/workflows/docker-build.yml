@@ -18,6 +18,19 @@ jobs:
   build:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    services:
+      mariadb:
+        image: mariadb:10.11
+        env:
+          MARIADB_ROOT_PASSWORD: cikscoffee-ci-only
+          MARIADB_DATABASE: cikscoffee_audit_ci
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
     env:
       APP_ENV: testing
       DB_CONNECTION: sqlite
@@ -52,6 +65,18 @@ jobs:
         run: |
           php artisan test
           python3 -m unittest discover -s deployment/ubuntu/tests -v
+      - name: Test transactional consistency on MariaDB
+        env:
+          DB_CONNECTION: mysql
+          DB_HOST: 127.0.0.1
+          DB_PORT: '3306'
+          DB_DATABASE: cikscoffee_audit_ci
+          DB_USERNAME: root
+          DB_PASSWORD: cikscoffee-ci-only
+          DB_URL: ''
+        run: |
+          php artisan test
+          php artisan test tests/Integration/CheckoutConcurrencyTest.php
       - name: Install production dependencies
         run: |
           composer install --no-dev --prefer-dist --no-interaction --no-progress --optimize-autoloader

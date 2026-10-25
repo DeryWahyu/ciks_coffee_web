@@ -10,6 +10,7 @@ use App\Models\User;
 use Database\Seeders\DatabaseSeeder;
 use Database\Seeders\MenuCatalogSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Hash;
@@ -88,18 +89,23 @@ class MenuCatalogSeederTest extends TestCase
     public function test_lite_checkout_uses_seeded_price_and_deducts_the_lite_recipe_exactly_once(): void
     {
         Storage::fake('public');
+        Storage::fake('local');
         Event::fake([MobileOrderReceived::class]);
         $this->seed(MenuCatalogSeeder::class);
         $product = Product::where('name', 'Kopi Susu Gula Aren')->firstOrFail();
         Sanctum::actingAs(User::factory()->create(['role' => 'pengguna', 'is_active' => true]));
 
         $response = $this->postJson('/api/orders', [
-            'payment_method' => 'cash', 'cash_received' => 50000,
+            'payment_method' => 'qris', 'payment_proof' => UploadedFile::fake()->image('proof.png'),
             'items' => [['product_id' => $product->id, 'quantity' => 2, 'variant' => 'lite', 'price' => 1]],
         ])->assertCreated();
 
-        $this->assertDatabaseHas('orders', ['id' => $response->json('order.id'), 'total' => 42000, 'change_amount' => 8000]);
+        $this->assertDatabaseHas('orders', ['id' => $response->json('order.id'), 'total' => 42000, 'change_amount' => null, 'paid_at' => null]);
         $this->assertDatabaseHas('order_items', ['product_id' => $product->id, 'variant' => 'lite', 'price' => 21000, 'quantity' => 2, 'subtotal' => 42000]);
+        $this->assertDatabaseHas('ingredients', ['nama_bahan' => 'Biji Kopi', 'stok' => 5000]);
+        $this->actingAs(User::factory()->create(['role' => 'karyawan', 'is_active' => true]), 'web')
+            ->patch(route('karyawan.orders.verify', $response->json('order.id')))->assertSessionHas('success');
+        $this->patch(route('karyawan.orders.verify', $response->json('order.id')))->assertSessionHas('error');
         foreach (['Biji Kopi' => 4976, 'Susu UHT' => 19700, 'Sirup Gula Aren' => 2960, 'Air Mineral' => 29920, 'Es Batu' => 19760] as $name => $stock) {
             $this->assertDatabaseHas('ingredients', ['nama_bahan' => $name, 'stok' => $stock]);
         }

@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Karyawan;
 
 use App\Http\Controllers\Controller;
-
+use App\Models\Order;
 use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
@@ -14,27 +14,27 @@ class DashboardController extends Controller
     public function index()
     {
         $userId = Auth::id();
-        
+
         $todayStats = [
-            'total_orders' => \App\Models\Order::where('cashier_id', $userId)
+            'total_orders' => Order::where('cashier_id', $userId)
                 ->whereDate('created_at', today())->count(),
-            'pending_orders' => \App\Models\Order::where('cashier_id', $userId)
+            'pending_orders' => Order::where('cashier_id', $userId)
                 ->whereDate('created_at', today())
-                ->whereIn('status', ['menunggu_verifikasi', 'antrian_baru', 'sedang_dibuat'])->count(),
-            'completed_orders' => \App\Models\Order::where('cashier_id', $userId)
+                ->activeQueue()->count(),
+            'completed_orders' => Order::where('cashier_id', $userId)
                 ->whereDate('created_at', today())
                 ->visibleInTransactionHistory()->whereIn('status', ['selesai', 'diambil'])->count(),
-            'revenue' => \App\Models\Order::where('cashier_id', $userId)
+            'revenue' => Order::where('cashier_id', $userId)
                 ->whereDate('created_at', today())
-                ->visibleInTransactionHistory()->whereIn('status', ['selesai', 'diambil'])->sum('total'),
+                ->visibleInTransactionHistory()->sum('total'),
         ];
 
         // 7-day revenue chart data for this employee
         $sevenDaysAgo = now()->subDays(6)->startOfDay();
-        
-        $chartData = \App\Models\Order::selectRaw('DATE(created_at) as date, SUM(total) as revenue')
+
+        $chartData = Order::selectRaw('DATE(created_at) as date, SUM(total) as revenue')
             ->where('cashier_id', $userId)
-            ->visibleInTransactionHistory()->whereIn('status', ['selesai', 'diambil'])
+            ->visibleInTransactionHistory()
             ->where('created_at', '>=', $sevenDaysAgo)
             ->groupBy('date')
             ->orderBy('date', 'asc')

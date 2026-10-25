@@ -32,7 +32,7 @@
             <div class="ciks-receipt-content">
                 <p class="ciks-alert-kicker">Ciks Coffee · POS</p>
                 <h2 id="ciks-receipt-title">Konfirmasi pembayaran</h2>
-                <p class="ciks-receipt-caption">Pastikan detail pesanan sudah benar sebelum dicetak.</p>
+                <p class="ciks-receipt-caption">Pastikan pembayaran sudah diterima dan detail pesanan benar.</p>
                 <dl class="ciks-receipt-details">
                     <div><dt>Pelanggan</dt><dd id="ciks-receipt-customer">-</dd></div>
                     <div><dt>Pembayaran</dt><dd id="ciks-receipt-method">-</dd></div>

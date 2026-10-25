@@ -5,6 +5,7 @@ namespace App\Observers;
 use App\Jobs\SendOrderStatusPushNotification;
 use App\Models\DeviceToken;
 use App\Models\Order;
+use Illuminate\Support\Facades\DB;
 
 class OrderObserver
 {
@@ -26,12 +27,16 @@ class OrderObserver
             ->where('user_id', $order->user_id)
             ->pluck('id')
             ->each(function (int $deviceTokenId) use ($order, $previousStatus, $status): void {
-                SendOrderStatusPushNotification::dispatch(
-                    (int) $order->id,
-                    $deviceTokenId,
-                    $previousStatus,
-                    $status,
-                )->afterCommit();
+                $orderId = (int) $order->id;
+                DB::afterCommit(function () use ($orderId, $deviceTokenId, $previousStatus, $status): void {
+                    try {
+                        SendOrderStatusPushNotification::dispatch($orderId, $deviceTokenId, $previousStatus, $status);
+                    } catch (\Throwable $exception) {
+                        // The status is committed; report delivery failure without
+                        // telling the cashier that the transaction was rolled back.
+                        report($exception);
+                    }
+                });
             });
     }
 }

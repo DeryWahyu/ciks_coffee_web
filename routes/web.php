@@ -1,35 +1,33 @@
 <?php
 
 use App\Http\Controllers\Auth\LoginController;
-use App\Http\Controllers\Pemilik\DashboardController as PemilikDashboardController;
-use App\Http\Controllers\Pemilik\UserController;
-use App\Http\Controllers\Pemilik\ProductController;
-use App\Http\Controllers\Pemilik\CategoryController;
-use App\Http\Controllers\Pemilik\MaterialController;
-
-use App\Http\Controllers\Pemilik\ReportController;
+use App\Http\Controllers\Karyawan\DashboardController as KaryawanDashboardController;
+use App\Http\Controllers\Karyawan\OrderController;
+use App\Http\Controllers\Karyawan\PosController;
+use App\Http\Controllers\Karyawan\TableController as KaryawanTableController;
 use App\Http\Controllers\Pemilik\AnalyticsController;
-use App\Http\Controllers\Pemilik\ExportController;
+use App\Http\Controllers\Pemilik\CategoryController;
 use App\Http\Controllers\Pemilik\CustomerController;
+use App\Http\Controllers\Pemilik\DashboardController as PemilikDashboardController;
+use App\Http\Controllers\Pemilik\ExportController;
+use App\Http\Controllers\Pemilik\MaterialController;
+use App\Http\Controllers\Pemilik\PerformanceController;
+use App\Http\Controllers\Pemilik\ProductController;
+use App\Http\Controllers\Pemilik\ReportController;
 use App\Http\Controllers\Pemilik\SettingController;
 use App\Http\Controllers\Pemilik\TableController as PemilikTableController;
-use App\Http\Controllers\Karyawan\DashboardController as KaryawanDashboardController;
-use App\Http\Controllers\Karyawan\PosController;
-use App\Http\Controllers\Karyawan\OrderController;
-use App\Http\Controllers\Karyawan\TableController as KaryawanTableController;
-use App\Http\Controllers\Pemilik\PerformanceController;
-
+use App\Http\Controllers\Pemilik\UserController;
 use App\Http\Middleware\CheckRole;
-use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Response;
+use Illuminate\Support\Facades\Route;
 
 // Serve storage files with CORS for Flutter Web local development
 Route::get('/storage/{path}', function ($path) {
-    $filePath = storage_path('app/public/' . $path);
+    $filePath = storage_path('app/public/'.$path);
     $realPath = realpath($filePath);
     $basePath = realpath(storage_path('app/public'));
 
-    if (!$realPath || !$basePath || !str_starts_with($realPath, $basePath . DIRECTORY_SEPARATOR)) {
+    if (! $realPath || ! $basePath || ! str_starts_with($realPath, $basePath.DIRECTORY_SEPARATOR)) {
         abort(404);
     }
 
@@ -49,7 +47,7 @@ Route::get('/storage/{path}', function ($path) {
 |--------------------------------------------------------------------------
 */
 Route::middleware('guest')->group(function () {
-    Route::get('/', fn() => redirect()->route('login'));
+    Route::get('/', fn () => redirect()->route('login'));
     Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
     Route::post('/login', [LoginController::class, 'login'])->middleware('throttle:5,1');
 });
@@ -63,7 +61,7 @@ Route::post('/logout', [LoginController::class, 'logout'])
 | Pemilik Routes
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth', CheckRole::class . ':pemilik'])
+Route::middleware(['auth', 'auth.session', CheckRole::class.':pemilik'])
     ->prefix('pemilik')
     ->name('pemilik.')
     ->group(function () {
@@ -97,7 +95,6 @@ Route::middleware(['auth', CheckRole::class . ':pemilik'])
         Route::post('/materials', [MaterialController::class, 'store'])->name('materials.store');
         Route::put('/materials/{ingredient}', [MaterialController::class, 'update'])->name('materials.update');
         Route::delete('/materials/{ingredient}', [MaterialController::class, 'destroy'])->name('materials.destroy');
-
 
         // Laporan
         Route::get('/reports/sales', [ReportController::class, 'sales'])->name('reports.sales');
@@ -144,7 +141,7 @@ Route::middleware(['auth', CheckRole::class . ':pemilik'])
 | Karyawan Routes
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth', CheckRole::class . ':karyawan'])
+Route::middleware(['auth', 'auth.session', CheckRole::class.':karyawan'])
     ->prefix('karyawan')
     ->name('karyawan.')
     ->group(function () {
@@ -153,11 +150,13 @@ Route::middleware(['auth', CheckRole::class . ':karyawan'])
 
         // Point of Sales
         Route::get('/pos', [PosController::class, 'index'])->name('pos.index');
+        Route::get('/pos/payment-settings', [PosController::class, 'paymentSettings'])->name('pos.payment-settings');
         Route::get('/pos/{product}/detail', [PosController::class, 'productDetail'])->name('pos.detail');
         Route::post('/pos/checkout', [PosController::class, 'checkout'])->name('pos.checkout');
 
         // Antrean Pesanan
         Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
+        Route::get('/orders/revision', [OrderController::class, 'revision'])->name('orders.revision');
         Route::patch('/orders/{order}/status', [OrderController::class, 'updateStatus'])->name('orders.update-status');
         Route::patch('/orders/{order}/verify', [OrderController::class, 'verifyPayment'])->name('orders.verify');
         Route::get('/orders/{order}/payment-proof', [OrderController::class, 'paymentProof'])->name('orders.payment-proof');

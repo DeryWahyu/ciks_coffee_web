@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Pemilik;
 
 use App\Http\Controllers\Controller;
+use App\Models\Order;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class UserController extends Controller
 {
@@ -71,8 +73,12 @@ class UserController extends Controller
      */
     public function toggleStatus(User $user)
     {
-        DB::transaction(function () use ($user) {
+        $changed = DB::transaction(function () use ($user) {
             $lockedUser = User::query()->lockForUpdate()->findOrFail($user->id);
+            if ($lockedUser->is_active && $lockedUser->isKaryawan()
+                && Order::activeQueue()->where('cashier_id', $lockedUser->id)->exists()) {
+                return false;
+            }
             $lockedUser->update(['is_active' => ! $lockedUser->is_active]);
 
             if (! $lockedUser->is_active) {
@@ -80,7 +86,13 @@ class UserController extends Controller
             }
 
             $user->setRawAttributes($lockedUser->getAttributes(), true);
+
+            return true;
         });
+
+        if (! $changed) {
+            return back()->with('error', 'Karyawan masih menangani pesanan aktif. Selesaikan pesanan sebelum menonaktifkan akun.');
+        }
 
         $status = $user->is_active ? 'diaktifkan' : 'dinonaktifkan';
 
@@ -101,7 +113,16 @@ class UserController extends Controller
             'password.confirmed' => 'Konfirmasi password tidak cocok.',
         ]);
 
-        $user->update(['password' => $request->password]);
+        DB::transaction(function () use ($user, $request) {
+            $lockedUser = User::query()->lockForUpdate()->findOrFail($user->id);
+            $lockedUser->password = $request->password;
+            $lockedUser->setRememberToken(Str::random(60));
+            $lockedUser->save();
+            if (config('session.driver') === 'database') {
+                DB::connection(config('session.connection'))->table(config('session.table'))->where('user_id', $lockedUser->id)->delete();
+            }
+            $lockedUser->tokens()->delete();
+        }, 3);
 
         return redirect()->route('pemilik.users.index', ['tab' => $user->role])
             ->with('success', "Password untuk akun {$user->name} berhasil diubah.");

@@ -129,7 +129,7 @@
     <span id="mobile-cart-badge" class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[0.6rem] font-bold rounded-full items-center justify-center hidden">0</span>
 </button>
 {{-- Product Detail Modal --}}
-<div id="product-modal" class="fixed inset-0 z-50 hidden">
+<div id="product-modal" class="fixed inset-0 z-[120] hidden">
     <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="closeModal()"></div>
     <div class="absolute inset-0 overflow-y-auto flex items-center justify-center p-3 sm:p-4 py-12 sm:py-16">
         <div class="bg-white rounded-2xl shadow-2xl border border-latte/50 w-full max-w-lg animate-fade-in overflow-hidden my-auto">
@@ -209,7 +209,7 @@
 </div>
 
 {{-- Checkout Modal --}}
-<div id="checkout-modal" class="fixed inset-0 z-50 hidden">
+<div id="checkout-modal" class="fixed inset-0 z-[120] hidden">
     <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="closeCheckout()"></div>
     <div class="absolute inset-0 overflow-y-auto flex items-center justify-center p-3 sm:p-4 py-12 sm:py-16">
         <div class="bg-white rounded-2xl shadow-2xl border border-latte/50 w-full max-w-md animate-fade-in overflow-hidden my-auto">
@@ -235,10 +235,11 @@
                     <p id="checkout-change" class="text-xs text-green-600 font-medium mt-1.5 hidden"></p>
                 </div>
                 <div id="qris-section" class="hidden text-center">
+                    <img id="pos-qris-image" class="hidden max-h-64 mx-auto mb-3 rounded-xl" alt="QRIS Ciks Coffee">
                     <div class="py-6 bg-latte/20 rounded-xl">
                         <svg class="w-12 h-12 text-caramel/40 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0113.5 9.375v-4.5z"/><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 14.625v5.25h5.25v-3m0 0h.375a.375.375 0 00.375-.375v-.375"/></svg>
                         <p class="text-xs text-caramel font-medium">Pembayaran QRIS</p>
-                        <p class="text-[0.6rem] text-caramel/60 mt-1">Tunjukkan ke kasir untuk proses pembayaran</p>
+                        <p class="text-[0.6rem] text-caramel/60 mt-1">Kasir wajib memastikan pembayaran telah diterima sebelum memproses pesanan</p>
                     </div>
                 </div>
                 <div class="flex items-center justify-between bg-cream/50 rounded-xl p-3">
@@ -252,7 +253,7 @@
 </div>
 
 {{-- Receipt Modal --}}
-<div id="receipt-modal" class="fixed inset-0 z-50 hidden">
+<div id="receipt-modal" class="fixed inset-0 z-[120] hidden">
     <div class="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
     <div class="absolute inset-0 overflow-y-auto flex items-center justify-center p-3 sm:p-4 py-12 sm:py-16">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm animate-fade-in my-auto">
@@ -301,6 +302,78 @@
     // === State ===
     let cart = [];
     let currentProduct = null;
+    let checkoutBusy = false;
+    let preflightBusy = false;
+    let detailRequest = 0;
+    let selectedCategory = null;
+    const checkoutUrl = @json(route('karyawan.pos.checkout'));
+    const paymentStorageKey = @json('ciks:pos-payment:'.auth()->id());
+    let pendingPayment = null;
+    try { pendingPayment = JSON.parse(sessionStorage.getItem(paymentStorageKey) || 'null'); } catch {}
+    if (pendingPayment?.cart?.length && pendingPayment?.payload?.idempotency_key) cart = pendingPayment.cart;
+    else pendingPayment = null;
+    const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[character]));
+    const units = value => Math.round(Number(value) * 100);
+    const cartTotal = () => cart.reduce((sum, item) => sum + units(item.price) * item.qty, 0) / 100;
+    const quantity = value => Math.max(1, Math.min(2147483647, parseInt(value, 10) || 1));
+    function editableCart() {
+        if (checkoutBusy || preflightBusy) return false;
+        if (pendingPayment) {
+            window.CiksAlert.notify('Periksa kembali hasil pembayaran sebelumnya sebelum mengubah pesanan.', 'warning', 'Pembayaran belum terkonfirmasi');
+            return false;
+        }
+        return true;
+    }
+    function persistPayment(payment) {
+        pendingPayment = payment;
+        try {
+            if (payment) sessionStorage.setItem(paymentStorageKey, JSON.stringify(payment));
+            else sessionStorage.removeItem(paymentStorageKey);
+        } catch {}
+    }
+    function paymentKey() {
+        if (crypto.randomUUID) return crypto.randomUUID();
+        const bytes = crypto.getRandomValues(new Uint8Array(16));
+        bytes[6] = (bytes[6] & 15) | 64; bytes[8] = (bytes[8] & 63) | 128;
+        const hex = [...bytes].map(value => value.toString(16).padStart(2, '0')).join('');
+        return `${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}-${hex.slice(20)}`;
+    }
+    function recipeFor(product, variant) {
+        return product.ingredients?.[product.is_coffee ? variant : 'default'] || [];
+    }
+    function stockError(items) {
+        const totals = new Map();
+        for (const item of items) {
+            if (!item.ingredients?.length) return `Resep ${item.name} belum tersedia.`;
+            for (const ingredient of item.ingredients) {
+                const entry = totals.get(ingredient.id) || { required: 0, available: units(ingredient.stok), ingredient };
+                entry.required += units(ingredient.quantity) * item.qty;
+                entry.available = Math.min(entry.available, units(ingredient.stok));
+                totals.set(ingredient.id, entry);
+            }
+        }
+        for (const {required, available, ingredient} of totals.values()) {
+            if (required > available) return `Stok bahan "${ingredient.nama_bahan}" tidak cukup untuk seluruh keranjang. Dibutuhkan ${required / 100} ${ingredient.satuan}, tersedia ${available / 100} ${ingredient.satuan}.`;
+        }
+        return null;
+    }
+    async function refreshCart() {
+        const products = new Map();
+        await Promise.all([...new Set(cart.map(item => item.id))].map(async id => {
+            const response = await fetch(`/karyawan/pos/${id}/detail`, {headers: {'Accept':'application/json'}});
+            if (!response.ok) throw new Error('Salah satu produk sudah tidak tersedia. Periksa kembali keranjang.');
+            products.set(id, await response.json());
+        }));
+        cart = cart.map(item => {
+            const product = products.get(item.id);
+            if (item.variant === 'lite' && product.price_lite == null) throw new Error('Varian Lite sudah tidak tersedia. Periksa kembali keranjang.');
+            if (Boolean(item.variant) !== Boolean(product.is_coffee)) throw new Error('Kategori produk berubah. Pilih ulang produk di keranjang.');
+            return {...item, name: product.name, price: Number(item.variant === 'lite' ? product.price_lite : product.price), ingredients: recipeFor(product, item.variant)};
+        });
+        renderCart();
+        const error = stockError(cart);
+        if (error) throw new Error(error);
+    }
 
     // === Mobile Cart Toggle ===
     function toggleMobileCart() {
@@ -309,34 +382,33 @@
     }
 
     // === Category Filter ===
-    function filterCategory(catId) {
-        document.querySelectorAll('.cat-tab').forEach(t => t.classList.remove('active'));
-        if (catId === null) {
-            document.querySelector('[data-cat="all"]').classList.add('active');
-        } else {
-            document.querySelector(`[data-cat="${catId}"]`)?.classList.add('active');
-        }
+    function applyProductFilters() {
+        const search = document.getElementById('pos-search').value.toLowerCase();
         document.querySelectorAll('.product-card').forEach(card => {
-            const match = catId === null || card.dataset.category == catId;
-            card.style.display = match ? '' : 'none';
+            const categoryMatches = selectedCategory === null || card.dataset.category == selectedCategory;
+            card.style.display = categoryMatches && card.dataset.name.toLowerCase().includes(search) ? '' : 'none';
         });
     }
-
-    // === Search ===
-    document.getElementById('pos-search').addEventListener('input', function() {
-        const q = this.value.toLowerCase();
-        document.querySelectorAll('.product-card').forEach(card => {
-            const name = card.dataset.name.toLowerCase();
-            card.style.display = name.includes(q) ? '' : 'none';
-        });
-    });
+    function filterCategory(catId) {
+        selectedCategory = catId;
+        document.querySelectorAll('.cat-tab').forEach(tab => tab.classList.remove('active'));
+        document.querySelector(`[data-cat="${catId === null ? 'all' : catId}"]`)?.classList.add('active');
+        applyProductFilters();
+    }
+    document.getElementById('pos-search').addEventListener('input', applyProductFilters);
 
     // === Product Detail Modal ===
     function showProductDetail(el) {
+        if (!editableCart()) return;
+        const request = ++detailRequest;
         const id = el.dataset.id;
         fetch(`/karyawan/pos/${id}/detail`)
-            .then(r => r.json())
+            .then(async response => {
+                if (!response.ok) throw new Error('Produk sudah tidak tersedia. Muat ulang daftar produk.');
+                return response.json();
+            })
             .then(data => {
+                if (request !== detailRequest) return;
                 currentProduct = data;
                 document.getElementById('modal-name').textContent = data.name;
                 document.getElementById('modal-category').textContent = data.category;
@@ -355,7 +427,7 @@
                     // products keep the selector hidden but still submit "base".
                     document.querySelector('input[name="variant"][value="base"]').checked = true;
 
-                    if (data.price_lite) {
+                    if (data.price_lite != null) {
                         variantSec.classList.remove('hidden');
                         priceSec.classList.add('hidden');
                         document.getElementById('modal-price-base').textContent = data.formatted_price;
@@ -371,9 +443,21 @@
                     document.getElementById('modal-price-single').textContent = data.formatted_price;
                 }
 
+                if (data.is_coffee && data.price_lite != null) {
+                    const canMake = variant => {
+                        const ingredients = recipeFor(data, variant);
+                        return ingredients.length > 0 && ingredients.every(ingredient => units(ingredient.stok) >= units(ingredient.quantity));
+                    };
+                    for (const variant of ['base', 'lite']) {
+                        const input = document.querySelector(`input[name="variant"][value="${variant}"]`);
+                        input.disabled = !canMake(variant);
+                        input.closest('label').classList.toggle('opacity-40', input.disabled);
+                    }
+                    if (!canMake('base') && canMake('lite')) document.querySelector('input[name="variant"][value="lite"]').checked = true;
+                }
                 renderModalIngredients(data);
                 document.getElementById('product-modal').classList.remove('hidden');
-            });
+            }).catch(error => window.CiksAlert.notify(error.message, 'error', 'Produk tidak dapat dibuka'));
     }
 
     function renderModalIngredients(data) {
@@ -398,13 +482,13 @@
         container.classList.remove('hidden');
 
         items.forEach(ing => {
-            const stockOk = ing.stok >= ing.quantity;
+            const stockOk = units(ing.stok) >= units(ing.quantity);
             const row = document.createElement('div');
             row.className = 'flex items-center justify-between py-1.5 px-3 rounded-lg ' + (stockOk ? 'bg-green-50/50' : 'bg-red-50/50');
             row.innerHTML = `
-                <span class="text-xs text-espresso">${ing.nama_bahan}</span>
+                <span class="text-xs text-espresso">${escapeHtml(ing.nama_bahan)}</span>
                 <div class="flex items-center gap-2">
-                    <span class="text-xs font-medium ${stockOk ? 'text-green-600' : 'text-red-500'}">${ing.quantity} ${ing.satuan}</span>
+                    <span class="text-xs font-medium ${stockOk ? 'text-green-600' : 'text-red-500'}">${ing.quantity} ${escapeHtml(ing.satuan)}</span>
                     <span class="text-[0.6rem] ${stockOk ? 'text-green-500' : 'text-red-400'}">(stok: ${ing.stok})</span>
                 </div>
             `;
@@ -417,10 +501,10 @@
         r.addEventListener('change', () => { if (currentProduct) renderModalIngredients(currentProduct); });
     });
 
-    function closeModal() { document.getElementById('product-modal').classList.add('hidden'); currentProduct = null; }
+    function closeModal() { document.getElementById('product-modal').classList.add('hidden'); currentProduct = null; detailRequest += 1; }
     function changeQty(delta) {
         const inp = document.getElementById('modal-qty');
-        inp.value = Math.max(1, Math.min(99, parseInt(inp.value || 1) + delta));
+        inp.value = Math.min(99, quantity(quantity(inp.value) + delta));
     }
 
     // === Cart ===
@@ -435,30 +519,23 @@
     // Validasi stok bahan baku: cek kecukupan stok untuk kuantitas yang diminta,
     // termasuk qty item+varian yang sama yang sudah ada di keranjang (akumulatif).
     function validateIngredientStock(variant, requestedQty) {
-        const ingredients = getActiveIngredients(variant);
-        const cartKey = `${currentProduct.id}-${variant || 'default'}`;
-        const existingQty = (cart.find(i => i.key === cartKey)?.qty) || 0;
-        const totalQty = existingQty + requestedQty;
-
-        for (const ing of ingredients) {
-            const required = (parseFloat(ing.quantity) || 0) * totalQty;
-            if (parseFloat(ing.stok) < required) {
-                const need = required.toFixed(2).replace(/\.00$/, '');
-                const have = (parseFloat(ing.stok)).toFixed(2).replace(/\.00$/, '');
-                return `Stok bahan "${ing.nama_bahan}" tidak cukup untuk ${totalQty}x ${currentProduct.name}.` +
-                       `\nDibutuhkan: ${need} ${ing.satuan}, tersedia: ${have} ${ing.satuan}.`;
-            }
-        }
-        return null;
+        const key = `${currentProduct.id}-${variant || 'default'}`;
+        const candidate = cart.map(item => ({...item}));
+        const existing = candidate.find(item => item.key === key);
+        if (existing) {
+            existing.qty += requestedQty;
+            existing.ingredients = getActiveIngredients(variant);
+        } else candidate.push({key, name: currentProduct.name, qty: requestedQty, ingredients: getActiveIngredients(variant)});
+        return stockError(candidate);
     }
 
     function addToCartFromModal() {
-        if (!currentProduct) return;
-        const qty = parseInt(document.getElementById('modal-qty').value) || 1;
+        if (!currentProduct || !editableCart()) return;
+        const qty = Math.min(99, quantity(document.getElementById('modal-qty').value));
         let variant = null, price = parseFloat(currentProduct.price);
 
         if (currentProduct.is_coffee) {
-            variant = currentProduct.price_lite
+            variant = currentProduct.price_lite != null
                 ? (document.querySelector('input[name="variant"]:checked')?.value || 'base')
                 : 'base';
             price = variant === 'lite' ? parseFloat(currentProduct.price_lite) : parseFloat(currentProduct.price);
@@ -473,11 +550,11 @@
 
         const cartKey = `${currentProduct.id}-${variant || 'default'}`;
         const existing = cart.find(i => i.key === cartKey);
-        if (existing) { existing.qty += qty; }
+        if (existing) { existing.qty += qty; existing.ingredients = getActiveIngredients(variant); existing.price = price; }
         else {
             cart.push({
                 key: cartKey, id: currentProduct.id, name: currentProduct.name,
-                variant: variant, price: price, qty: qty
+                variant: variant, price: price, qty: qty, ingredients: getActiveIngredients(variant)
             });
         }
         renderCart();
@@ -488,12 +565,15 @@
         }
     }
 
-    function removeFromCart(key) { cart = cart.filter(i => i.key !== key); renderCart(); }
+    function removeFromCart(key) { if (!editableCart()) return; cart = cart.filter(item => item.key !== key); renderCart(); }
     function updateCartQty(key, delta) {
-        const item = cart.find(i => i.key === key);
-        if (item) { item.qty = Math.max(1, item.qty + delta); renderCart(); }
+        if (!editableCart()) return;
+        const candidate = cart.map(item => ({...item, qty: item.key === key ? quantity(item.qty + delta) : item.qty}));
+        const error = stockError(candidate);
+        if (error) { window.CiksAlert.notify(error, 'warning', 'Stok bahan belum cukup'); return; }
+        cart = candidate; renderCart();
     }
-    function clearCart() { cart = []; renderCart(); }
+    function clearCart() { if (!editableCart()) return; cart = []; renderCart(); }
 
     function renderCart() {
         const container = document.getElementById('cart-items');
@@ -524,7 +604,7 @@
             html += `
                 <div class="cart-item flex items-start gap-3 py-3 border-b border-latte/20 last:border-0">
                     <div class="flex-1 min-w-0">
-                        <p class="text-xs font-bold text-espresso truncate">${item.name}${variantLabel}</p>
+                        <p class="text-xs font-bold text-espresso truncate">${escapeHtml(item.name)}${variantLabel}</p>
                         <p class="text-[0.6rem] text-caramel mt-0.5">Rp ${item.price.toLocaleString('id-ID')} × ${item.qty}</p>
                     </div>
                     <div class="flex items-center gap-1.5">
@@ -551,80 +631,108 @@
         }
     }
 
-    function processOrder() {
-        if (cart.length === 0) return;
-        const total = cart.reduce((s,i) => s + i.price * i.qty, 0);
-        document.getElementById('checkout-total').textContent = 'Rp ' + total.toLocaleString('id-ID');
-        document.getElementById('checkout-customer').value = '';
-        document.getElementById('checkout-cash').value = '';
-        document.getElementById('checkout-change').classList.add('hidden');
-        document.querySelector('input[name="payment"][value="cash"]').checked = true;
-        togglePaymentMethod();
-        document.getElementById('checkout-modal').classList.remove('hidden');
+    async function processOrder() {
+        if (cart.length === 0 || checkoutBusy || preflightBusy) return;
+        preflightBusy = true;
+        const processButton = document.getElementById('btn-process-order');
+        processButton.disabled = true;
+        try {
+            if (!pendingPayment) await refreshCart();
+            const previous = pendingPayment?.payload;
+            document.getElementById('checkout-total').textContent = 'Rp ' + Number(previous?.expected_total ?? cartTotal()).toLocaleString('id-ID');
+            document.getElementById('checkout-customer').value = previous?.customer_name ?? '';
+            document.getElementById('checkout-cash').value = previous?.cash_received ?? '';
+            document.getElementById('checkout-change').classList.add('hidden');
+            document.querySelector(`input[name="payment"][value="${previous?.payment_method ?? 'cash'}"]`).checked = true;
+            document.querySelectorAll('#checkout-customer, #checkout-cash, input[name="payment"]').forEach(input => input.disabled = Boolean(previous));
+            togglePaymentMethod();
+            if (window.innerWidth < 1024) document.getElementById('cart-panel').classList.add('hidden');
+            document.getElementById('checkout-modal').classList.remove('hidden');
+        } catch (error) {
+            window.CiksAlert.notify(error.message, 'warning', 'Periksa keranjang');
+        } finally {
+            preflightBusy = false; processButton.disabled = cart.length === 0;
+        }
     }
-    function closeCheckout() { document.getElementById('checkout-modal').classList.add('hidden'); }
-
-    document.querySelectorAll('input[name="payment"]').forEach(r => {
-        r.addEventListener('change', togglePaymentMethod);
-    });
+    function closeCheckout(force = false) { if (!checkoutBusy || force) document.getElementById('checkout-modal').classList.add('hidden'); }
+    document.querySelectorAll('input[name="payment"]').forEach(radio => radio.addEventListener('change', togglePaymentMethod));
     function togglePaymentMethod() {
         const method = document.querySelector('input[name="payment"]:checked').value;
         document.getElementById('cash-section').style.display = method === 'cash' ? '' : 'none';
         document.getElementById('qris-section').style.display = method === 'qris' ? '' : 'none';
+        if (method === 'qris') {
+            fetch(@json(route('karyawan.pos.payment-settings')), {headers: {'Accept':'application/json'}, cache: 'no-store'})
+                .then(response => response.ok ? response.json() : {image_url: null})
+                .then(data => {
+                    const image = document.getElementById('pos-qris-image');
+                    image.classList.toggle('hidden', !data.image_url);
+                    if (data.image_url) image.src = data.image_url;
+                }).catch(() => document.getElementById('pos-qris-image').classList.add('hidden'));
+        }
     }
     function calcChange() {
-        const total = cart.reduce((s,i) => s + i.price * i.qty, 0);
-        const cash = parseFloat(document.getElementById('checkout-cash').value) || 0;
-        const changeEl = document.getElementById('checkout-change');
-        if (cash >= total) {
-            changeEl.textContent = 'Kembalian: Rp ' + (cash - total).toLocaleString('id-ID');
-            changeEl.classList.remove('hidden');
-        } else { changeEl.classList.add('hidden'); }
+        const change = units(document.getElementById('checkout-cash').value || 0) - units(cartTotal());
+        const changeElement = document.getElementById('checkout-change');
+        changeElement.classList.toggle('hidden', change < 0);
+        if (change >= 0) changeElement.textContent = 'Kembalian: Rp ' + (change / 100).toLocaleString('id-ID');
     }
-
     async function submitCheckout() {
-        const name = document.getElementById('checkout-customer').value.trim();
-        if (!name) { window.CiksAlert.notify('Nama pelanggan wajib diisi.', 'warning', 'Data belum lengkap'); return; }
-        const method = document.querySelector('input[name="payment"]:checked').value;
-        const total = cart.reduce((s,i) => s + i.price * i.qty, 0);
-        const cash = parseFloat(document.getElementById('checkout-cash').value) || 0;
-        if (method === 'cash' && cash < total) { window.CiksAlert.notify('Uang yang diterima kurang dari total pembayaran.', 'warning', 'Nominal belum cukup'); return; }
-
-        const approved = await window.CiksAlert.receiptConfirm({
-            customer: name,
-            paymentMethod: method === 'cash' ? 'Tunai' : 'QRIS',
-            total: 'Rp ' + total.toLocaleString('id-ID'),
-        });
-        if (!approved) return;
-
-        const btn = document.getElementById('btn-submit-checkout');
-        btn.disabled = true; btn.textContent = 'Memproses...';
+        if (checkoutBusy) return;
+        checkoutBusy = true;
+        const button = document.getElementById('btn-submit-checkout');
+        const label = button.innerHTML;
+        button.disabled = true;
         try {
-            const response = await fetch('/karyawan/pos/checkout', {
+            const method = document.querySelector('input[name="payment"]:checked').value;
+            const cash = Number(document.getElementById('checkout-cash').value || 0);
+            const payload = pendingPayment?.payload ?? {
+                customer_name: document.getElementById('checkout-customer').value.trim(), payment_method: method,
+                cash_received: method === 'cash' ? cash : null,
+                expected_total: cartTotal().toFixed(2), idempotency_key: paymentKey(),
+                items: cart.map(i => ({product_id: i.id, variant: i.variant, quantity: i.qty}))
+            };
+            if (!payload.customer_name) { window.CiksAlert.notify('Nama pelanggan wajib diisi.', 'warning', 'Data belum lengkap'); return; }
+            if (payload.payment_method === 'cash' && units(payload.cash_received) < units(payload.expected_total)) {
+                window.CiksAlert.notify('Uang yang diterima kurang dari total pembayaran.', 'warning', 'Nominal belum cukup'); return;
+            }
+            const approved = await window.CiksAlert.receiptConfirm({
+                customer: payload.customer_name, paymentMethod: payload.payment_method === 'cash' ? 'Tunai' : 'QRIS',
+                total: 'Rp ' + Number(payload.expected_total).toLocaleString('id-ID'),
+            });
+            if (!approved) return;
+            persistPayment({payload, cart});
+            document.querySelectorAll('#checkout-customer, #checkout-cash, input[name="payment"]').forEach(input => input.disabled = true);
+            button.textContent = 'Memproses...';
+            const response = await fetch(checkoutUrl, {
                 method: 'POST',
                 headers: {'Content-Type':'application/json', 'Accept':'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content},
-                body: JSON.stringify({
-                    customer_name: name, payment_method: method, cash_received: method === 'cash' ? cash : null,
-                    items: cart.map(i => ({product_id: i.id, variant: i.variant, quantity: i.qty}))
-                })
+                body: JSON.stringify(payload)
             });
             const data = await response.json().catch(() => ({}));
-            if (!response.ok) {
-                const validationMessage = data.errors ? Object.values(data.errors)[0]?.[0] : null;
-                throw new Error(validationMessage || data.message || 'Gagal memproses pesanan.');
+            if (!response.ok || !data.success) {
+                if (response.status === 422) {
+                    persistPayment(null);
+                    document.querySelectorAll('#checkout-customer, #checkout-cash, input[name="payment"]').forEach(input => input.disabled = false);
+                    if (data.errors?.expected_total) {
+                        closeCheckout(true);
+                        await refreshCart();
+                    }
+                }
+                const message = data.errors ? Object.values(data.errors)[0]?.[0] : null;
+                throw new Error(message || data.message || 'Hasil pembayaran belum dapat diperiksa. Coba kembali untuk memeriksa pembayaran yang sama.');
             }
-            if (!data.success) {
-                throw new Error(data.message || 'Gagal memproses pesanan.');
-            }
-            closeCheckout();
+            persistPayment(null);
+            closeCheckout(true);
             cart = []; renderCart();
             window.CiksAlert.notify(data.message || 'Pesanan berhasil diproses.', 'success', 'Pembayaran berhasil');
             showReceipt(data.order);
         } catch (error) {
-            window.CiksAlert.notify(error.message || 'Terjadi kesalahan koneksi.', 'error', 'Pesanan gagal diproses');
+            const suffix = pendingPayment ? ' Jangan membuat pembayaran baru; tekan kembali Bayar untuk memeriksa pembayaran yang sama.' : '';
+            window.CiksAlert.notify((error.message || 'Terjadi kesalahan koneksi.') + suffix, 'error', 'Periksa pembayaran');
         } finally {
-            btn.disabled = false;
-            btn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>Bayar Sekarang';
+            checkoutBusy = false;
+            button.disabled = false;
+            button.innerHTML = label;
         }
     }
 
@@ -637,11 +745,13 @@
         document.getElementById('rcpt-total').textContent = order.formatted_total;
         document.getElementById('rcpt-status').textContent = order.status_label;
         document.getElementById('rcpt-status').className = 'font-bold text-amber-600';
-        let itemsHtml = '';
-        order.items.forEach(i => {
-            itemsHtml += `<div class="flex justify-between text-xs"><span class="text-espresso">${i.product_name} x${i.quantity}</span><span class="font-medium text-espresso">Rp ${parseFloat(i.subtotal).toLocaleString('id-ID')}</span></div>`;
+        const rows = order.items.map(item => {
+            const row = document.createElement('div'); row.className = 'flex justify-between text-xs';
+            const name = document.createElement('span'); name.className = 'text-espresso'; name.textContent = `${item.product_name} x${item.quantity}`;
+            const amount = document.createElement('span'); amount.className = 'font-medium text-espresso'; amount.textContent = 'Rp ' + Number(item.subtotal).toLocaleString('id-ID');
+            row.append(name, amount); return row;
         });
-        document.getElementById('rcpt-items').innerHTML = itemsHtml;
+        document.getElementById('rcpt-items').replaceChildren(...rows);
         if (order.payment_method === 'cash' && order.cash_received) {
             document.getElementById('rcpt-cash-row').classList.remove('hidden');
             document.getElementById('rcpt-change-row').classList.remove('hidden');
@@ -666,5 +776,6 @@
             w.close();
         });
     }
+    renderCart();
 </script>
 @endpush

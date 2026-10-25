@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Pemilik;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\User;
+use App\Support\ReportDateRange;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -16,11 +17,12 @@ class PerformanceController extends Controller
      */
     public function employees(Request $request)
     {
+        ReportDateRange::validate($request, 'start_date', 'end_date');
         $startDate = $request->get('start_date', Carbon::now()->startOfMonth()->format('Y-m-d'));
         $endDate = $request->get('end_date', Carbon::now()->endOfMonth()->format('Y-m-d'));
 
         // Revenue per employee (only karyawan, exclude pengguna/pemilik)
-        $employeeStats = Order::visibleInTransactionHistory()->whereIn('orders.status', ['selesai', 'diambil'])
+        $employeeStats = Order::visibleInTransactionHistory()
             ->whereDate('orders.created_at', '>=', $startDate)
             ->whereDate('orders.created_at', '<=', $endDate)
             ->join('users', 'orders.cashier_id', '=', 'users.id')
@@ -42,6 +44,7 @@ class PerformanceController extends Controller
         // Enrich with user names
         $leaderboard = $employeeStats->map(function ($stat, $index) use ($users) {
             $user = $users->get($stat->user_id);
+
             return (object) [
                 'rank' => $index + 1,
                 'user_id' => $stat->user_id,
@@ -65,6 +68,7 @@ class PerformanceController extends Controller
      */
     public function employeeDetail(Request $request, User $user)
     {
+        ReportDateRange::validate($request, 'start_date', 'end_date');
         $startDate = $request->get('start_date', Carbon::now()->startOfMonth()->format('Y-m-d'));
         $endDate = $request->get('end_date', Carbon::now()->endOfMonth()->format('Y-m-d'));
 
@@ -72,7 +76,7 @@ class PerformanceController extends Controller
         $productsSold = DB::table('order_items')
             ->join('orders', 'order_items.order_id', '=', 'orders.id')
             ->where('orders.cashier_id', $user->id)
-            ->whereIn('orders.status', ['selesai', 'diambil'])
+
             ->whereIn('orders.id', Order::visibleInTransactionHistory()->select('orders.id'))
             ->whereDate('orders.created_at', '>=', $startDate)
             ->whereDate('orders.created_at', '<=', $endDate)
@@ -90,7 +94,7 @@ class PerformanceController extends Controller
         // Employee summary stats
         $summary = Order::where('cashier_id', $user->id)
             ->visibleInTransactionHistory()
-            ->whereIn('status', ['selesai', 'diambil'])
+
             ->whereDate('created_at', '>=', $startDate)
             ->whereDate('created_at', '<=', $endDate)
             ->selectRaw('COUNT(*) as total_orders, SUM(total) as total_revenue, AVG(total) as avg_order')
@@ -100,7 +104,7 @@ class PerformanceController extends Controller
         $recentOrders = Order::with('items')
             ->visibleInTransactionHistory()
             ->where('cashier_id', $user->id)
-            ->whereIn('status', ['selesai', 'diambil'])
+
             ->whereDate('created_at', '>=', $startDate)
             ->whereDate('created_at', '<=', $endDate)
             ->orderByDesc('created_at')
@@ -117,6 +121,7 @@ class PerformanceController extends Controller
      */
     public function products(Request $request)
     {
+        ReportDateRange::validate($request, 'start_date', 'end_date');
         $startDate = $request->get('start_date', Carbon::now()->startOfMonth()->format('Y-m-d'));
         $endDate = $request->get('end_date', Carbon::now()->endOfMonth()->format('Y-m-d'));
 
@@ -124,7 +129,7 @@ class PerformanceController extends Controller
         $productStats = DB::table('order_items')
             ->join('orders', 'order_items.order_id', '=', 'orders.id')
             ->join('products', 'order_items.product_id', '=', 'products.id')
-            ->whereIn('orders.status', ['selesai', 'diambil'])
+
             ->whereIn('orders.id', Order::visibleInTransactionHistory()->select('orders.id'))
             ->whereDate('orders.created_at', '>=', $startDate)
             ->whereDate('orders.created_at', '<=', $endDate)

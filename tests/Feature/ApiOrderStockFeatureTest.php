@@ -17,6 +17,12 @@ class ApiOrderStockFeatureTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        Storage::fake('local');
+    }
+
     public function test_coffee_requires_an_explicit_base_or_lite_variant(): void
     {
         $user = $this->customer();
@@ -106,7 +112,7 @@ class ApiOrderStockFeatureTest extends TestCase
         $this->assertSame('5.00', $ingredient->fresh()->stok);
     }
 
-    public function test_valid_checkout_deducts_the_aggregated_stock_once(): void
+    public function test_verified_qris_checkout_deducts_the_aggregated_stock_once(): void
     {
         $user = $this->customer();
         $category = $this->category('snack');
@@ -125,6 +131,9 @@ class ApiOrderStockFeatureTest extends TestCase
             ->assertJsonPath('success', true);
 
         $this->assertDatabaseCount('orders', 1);
+        $this->assertSame('10.00', $ingredient->fresh()->stok);
+        $employee = User::factory()->create(['role' => 'karyawan', 'is_active' => true]);
+        $this->actingAs($employee, 'web')->patch(route('karyawan.orders.verify', Order::firstOrFail()))->assertSessionHas('success');
         $this->assertSame('5.00', $ingredient->fresh()->stok);
     }
 
@@ -187,15 +196,14 @@ class ApiOrderStockFeatureTest extends TestCase
         $ingredient = $this->ingredient(10);
         $this->attachIngredient($product, $ingredient, 1, null);
         $payload = [
-            'payment_method' => 'cash',
-            'cash_received' => 100000,
+            'payment_method' => 'qris',
             'items' => [['product_id' => $product->id, 'quantity' => 1]],
         ];
 
         Sanctum::actingAs($user);
 
         foreach (range(1, 5) as $_) {
-            $this->postJson('/api/orders', $payload)->assertCreated();
+            $this->postJson('/api/orders', $payload + ['payment_proof' => UploadedFile::fake()->image('proof.png')])->assertCreated();
         }
 
         $this->postJson('/api/orders', $payload)->assertTooManyRequests();
@@ -250,8 +258,8 @@ class ApiOrderStockFeatureTest extends TestCase
         Sanctum::actingAs($user);
 
         return $this->postJson('/api/orders', [
-            'payment_method' => 'cash',
-            'cash_received' => 100000,
+            'payment_method' => 'qris',
+            'payment_proof' => UploadedFile::fake()->image('proof.png'),
             'items' => $items,
         ]);
     }

@@ -7,7 +7,9 @@ use App\Models\Category;
 use App\Models\Ingredient;
 use App\Models\Product;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 
 class ProductController extends Controller
 {
@@ -30,7 +32,7 @@ class ProductController extends Controller
 
         // Search
         if ($request->filled('search')) {
-            $query->where('name', 'like', '%' . $request->search . '%');
+            $query->where('name', 'like', '%'.$request->search.'%');
         }
 
         $products = $query->latest()->paginate(12)->withQueryString();
@@ -46,6 +48,7 @@ class ProductController extends Controller
     {
         $categories = Category::where('is_active', true)->orderBy('name')->get();
         $ingredients = Ingredient::orderBy('nama_bahan')->get();
+
         return view('pemilik.products.create', compact('categories', 'ingredients'));
     }
 
@@ -58,21 +61,21 @@ class ProductController extends Controller
             'name' => 'required|string|max:255',
             'category_id' => 'required|exists:categories,id',
             'description' => 'nullable|string|max:1000',
-            'price' => 'required|numeric|min:0',
-            'price_lite' => 'nullable|numeric|min:0',
+            'price' => 'required|numeric|decimal:0,2|min:0|max:9999999999.99',
+            'price_lite' => 'nullable|numeric|decimal:0,2|min:0|max:9999999999.99',
             'image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
             'is_active' => 'boolean',
             // Non-coffee ingredients
             'ingredients' => 'nullable|array',
-            'ingredients.*.id' => 'required|exists:ingredients,id',
-            'ingredients.*.quantity' => 'required|numeric|min:0.01',
+            'ingredients.*.id' => 'required|integer|distinct|exists:ingredients,id',
+            'ingredients.*.quantity' => 'required|numeric|decimal:0,2|min:0.01|max:99999999.99',
             // Coffee variant ingredients
             'ingredients_base' => 'nullable|array',
-            'ingredients_base.*.id' => 'required|exists:ingredients,id',
-            'ingredients_base.*.quantity' => 'required|numeric|min:0.01',
+            'ingredients_base.*.id' => 'required|integer|distinct|exists:ingredients,id',
+            'ingredients_base.*.quantity' => 'required|numeric|decimal:0,2|min:0.01|max:99999999.99',
             'ingredients_lite' => 'nullable|array',
-            'ingredients_lite.*.id' => 'required|exists:ingredients,id',
-            'ingredients_lite.*.quantity' => 'required|numeric|min:0.01',
+            'ingredients_lite.*.id' => 'required|integer|distinct|exists:ingredients,id',
+            'ingredients_lite.*.quantity' => 'required|numeric|decimal:0,2|min:0.01|max:99999999.99',
         ], [
             'name.required' => 'Nama produk wajib diisi.',
             'category_id.required' => 'Kategori wajib dipilih.',
@@ -80,16 +83,28 @@ class ProductController extends Controller
             'image.max' => 'Ukuran gambar maksimal 2MB.',
         ]);
 
+        $validated = $this->validateRecipeConfiguration($validated, $request);
+
         if ($request->hasFile('image')) {
             $validated['image'] = $request->file('image')->store('products', 'public');
+            if (! $validated['image']) {
+                throw ValidationException::withMessages(['image' => 'Gambar produk gagal disimpan.']);
+            }
         }
 
         $validated['is_active'] = $request->boolean('is_active', true);
 
-        $product = Product::create(collect($validated)->except(['ingredients', 'ingredients_base', 'ingredients_lite'])->toArray());
-
-        // Attach ingredients with variant
-        $this->syncIngredients($product, $validated);
+        try {
+            DB::transaction(function () use ($validated) {
+                $product = Product::create(collect($validated)->except(['ingredients', 'ingredients_base', 'ingredients_lite'])->toArray());
+                $this->syncIngredients($product, $validated);
+            }, 3);
+        } catch (\Throwable $exception) {
+            if (isset($validated['image']) && is_string($validated['image'])) {
+                $this->deleteImage($validated['image']);
+            }
+            throw $exception;
+        }
 
         return redirect()->route('pemilik.products.index')
             ->with('success', 'Produk berhasil ditambahkan.');
@@ -101,8 +116,9 @@ class ProductController extends Controller
     public function edit(Product $product)
     {
         $product->load('ingredients');
-        $categories = Category::where('is_active', true)->orderBy('name')->get();
+        $categories = Category::where('is_active', true)->orWhere('id', $product->category_id)->orderBy('name')->get();
         $ingredients = Ingredient::orderBy('nama_bahan')->get();
+
         return view('pemilik.products.edit', compact('product', 'categories', 'ingredients'));
     }
 
@@ -115,47 +131,92 @@ class ProductController extends Controller
             'name' => 'required|string|max:255',
             'category_id' => 'required|exists:categories,id',
             'description' => 'nullable|string|max:1000',
-            'price' => 'required|numeric|min:0',
-            'price_lite' => 'nullable|numeric|min:0',
+            'price' => 'required|numeric|decimal:0,2|min:0|max:9999999999.99',
+            'price_lite' => 'nullable|numeric|decimal:0,2|min:0|max:9999999999.99',
             'image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
             'is_active' => 'boolean',
             'ingredients' => 'nullable|array',
-            'ingredients.*.id' => 'required|exists:ingredients,id',
-            'ingredients.*.quantity' => 'required|numeric|min:0.01',
+            'ingredients.*.id' => 'required|integer|distinct|exists:ingredients,id',
+            'ingredients.*.quantity' => 'required|numeric|decimal:0,2|min:0.01|max:99999999.99',
             'ingredients_base' => 'nullable|array',
-            'ingredients_base.*.id' => 'required|exists:ingredients,id',
-            'ingredients_base.*.quantity' => 'required|numeric|min:0.01',
+            'ingredients_base.*.id' => 'required|integer|distinct|exists:ingredients,id',
+            'ingredients_base.*.quantity' => 'required|numeric|decimal:0,2|min:0.01|max:99999999.99',
             'ingredients_lite' => 'nullable|array',
-            'ingredients_lite.*.id' => 'required|exists:ingredients,id',
-            'ingredients_lite.*.quantity' => 'required|numeric|min:0.01',
+            'ingredients_lite.*.id' => 'required|integer|distinct|exists:ingredients,id',
+            'ingredients_lite.*.quantity' => 'required|numeric|decimal:0,2|min:0.01|max:99999999.99',
         ], [
             'name.required' => 'Nama produk wajib diisi.',
             'category_id.required' => 'Kategori wajib dipilih.',
             'price.required' => 'Harga wajib diisi.',
         ]);
 
+        $validated = $this->validateRecipeConfiguration($validated, $request);
+
         if ($request->hasFile('image')) {
-            if ($product->image) {
-                Storage::disk('public')->delete($product->image);
-            }
             $validated['image'] = $request->file('image')->store('products', 'public');
+            if (! $validated['image']) {
+                throw ValidationException::withMessages(['image' => 'Gambar produk gagal disimpan.']);
+            }
         }
 
         $category = Category::find($validated['category_id']);
-        if (!$category || !$category->isCoffee()) {
+        if (! $category || ! $category->isCoffee()) {
             $validated['price_lite'] = null;
         }
 
         $validated['is_active'] = $request->boolean('is_active', true);
 
-        $product->update(collect($validated)->except(['ingredients', 'ingredients_base', 'ingredients_lite'])->toArray());
-
-        // Detach all existing, then re-attach with variants
-        $product->ingredients()->detach();
-        $this->syncIngredients($product, $validated);
+        $previousImage = null;
+        try {
+            DB::transaction(function () use ($product, $validated, &$previousImage) {
+                $lockedProduct = Product::query()->lockForUpdate()->findOrFail($product->id);
+                $previousImage = $lockedProduct->image;
+                $lockedProduct->update(collect($validated)->except(['ingredients', 'ingredients_base', 'ingredients_lite'])->toArray());
+                $lockedProduct->ingredients()->detach();
+                $this->syncIngredients($lockedProduct, $validated);
+            }, 3);
+        } catch (\Throwable $exception) {
+            if (isset($validated['image']) && is_string($validated['image'])) {
+                $this->deleteImage($validated['image']);
+            }
+            throw $exception;
+        }
+        if (isset($validated['image']) && $previousImage && $previousImage !== $validated['image']) {
+            $this->deleteImage($previousImage);
+        }
 
         return redirect()->route('pemilik.products.index')
             ->with('success', 'Produk berhasil diperbarui.');
+    }
+
+    private function validateRecipeConfiguration(array $validated, Request $request): array
+    {
+        $category = Category::findOrFail($validated['category_id']);
+        if (! $category->isCoffee()) {
+            $validated['price_lite'] = null;
+        }
+        if ($request->boolean('is_active', true)) {
+            $fields = $category->isCoffee() ? ['ingredients_base'] : ['ingredients'];
+            if ($category->isCoffee() && isset($validated['price_lite'])) {
+                $fields[] = 'ingredients_lite';
+            }
+            foreach ($fields as $field) {
+                if (empty($validated[$field])) {
+                    throw ValidationException::withMessages([$field => 'Produk aktif wajib memiliki resep untuk setiap varian yang dijual.']);
+                }
+            }
+        }
+
+        return $validated;
+    }
+
+    private function deleteImage(string $path): void
+    {
+        try {
+            Storage::disk('public')->delete($path);
+        } catch (\Throwable $exception) {
+            report($exception);
+        }
     }
 
     /**
@@ -194,9 +255,29 @@ class ProductController extends Controller
      */
     public function toggleStatus(Product $product)
     {
-        $product->update(['is_active' => !$product->is_active]);
+        try {
+            $product = DB::transaction(function () use ($product) {
+                $locked = Product::query()->with('category')->lockForUpdate()->findOrFail($product->id);
+                if (! $locked->is_active) {
+                    $variants = $locked->category->isCoffee() ? ['base'] : [null];
+                    if ($locked->category->isCoffee() && $locked->price_lite !== null) {
+                        $variants[] = 'lite';
+                    }
+                    foreach ($variants as $variant) {
+                        if ($locked->ingredientsByVariant($variant)->isEmpty()) {
+                            throw new \DomainException('Lengkapi resep setiap varian sebelum mengaktifkan produk.');
+                        }
+                    }
+                }
+                $locked->update(['is_active' => ! $locked->is_active]);
 
+                return $locked;
+            }, 3);
+        } catch (\DomainException $exception) {
+            return back()->with('error', $exception->getMessage());
+        }
         $status = $product->is_active ? 'diaktifkan' : 'dinonaktifkan';
+
         return back()->with('success', "Produk \"{$product->name}\" berhasil {$status}.");
     }
 
@@ -205,19 +286,24 @@ class ProductController extends Controller
      */
     public function destroy(Product $product)
     {
-        // Check if the product has transaction history
-        $hasTransactions = \DB::table('order_items')->where('product_id', $product->id)->exists();
+        $image = null;
+        $deleted = DB::transaction(function () use ($product, &$image) {
+            $locked = Product::query()->lockForUpdate()->findOrFail($product->id);
+            if (DB::table('order_items')->where('product_id', $locked->id)->exists()) {
+                return false;
+            }
+            $image = $locked->image;
+            $locked->delete();
 
-        if ($hasTransactions) {
+            return true;
+        }, 3);
+        if (! $deleted) {
             return redirect()->route('pemilik.products.index')
                 ->with('error', 'Produk tidak dapat dihapus karena sudah memiliki riwayat transaksi/pesanan. Anda dapat menonaktifkan produk ini sebagai gantinya.');
         }
-
-        if ($product->image) {
-            Storage::disk('public')->delete($product->image);
+        if ($image) {
+            $this->deleteImage($image);
         }
-
-        $product->delete();
 
         return redirect()->route('pemilik.products.index')
             ->with('success', 'Produk berhasil dihapus.');

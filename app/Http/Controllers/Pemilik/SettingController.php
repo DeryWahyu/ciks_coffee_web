@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Pemilik;
 use App\Http\Controllers\Controller;
 use App\Models\ShopSetting;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 
 class SettingController extends Controller
 {
@@ -15,6 +17,7 @@ class SettingController extends Controller
     public function qris()
     {
         $qrisImage = ShopSetting::getValue('qris_image');
+
         return view('pemilik.settings.qris', compact('qrisImage'));
     }
 
@@ -32,15 +35,17 @@ class SettingController extends Controller
             'qris_image.max' => 'Ukuran gambar maksimal 2MB.',
         ]);
 
-        // Delete old image if exists
-        $oldImage = ShopSetting::getValue('qris_image');
-        if ($oldImage && Storage::disk('public')->exists($oldImage)) {
-            Storage::disk('public')->delete($oldImage);
-        }
-
-        // Store new image
         $path = $request->file('qris_image')->store('qris', 'public');
-        ShopSetting::setValue('qris_image', $path);
+        if (! $path) {
+            throw ValidationException::withMessages(['qris_image' => 'Gambar QRIS gagal disimpan.']);
+        }
+        try {
+            $oldImage = $this->replaceQris($path);
+        } catch (\Throwable $exception) {
+            $this->deleteImage($path);
+            throw $exception;
+        }
+        $this->deleteImage($oldImage);
 
         return redirect()->route('pemilik.settings.qris')
             ->with('success', 'Gambar QRIS berhasil diperbarui.');
@@ -51,13 +56,37 @@ class SettingController extends Controller
      */
     public function deleteQris()
     {
-        $oldImage = ShopSetting::getValue('qris_image');
-        if ($oldImage && Storage::disk('public')->exists($oldImage)) {
-            Storage::disk('public')->delete($oldImage);
-        }
-        ShopSetting::setValue('qris_image', null);
+        $oldImage = $this->replaceQris(null);
+        $this->deleteImage($oldImage);
 
         return redirect()->route('pemilik.settings.qris')
             ->with('success', 'Gambar QRIS berhasil dihapus.');
+    }
+
+    private function replaceQris(?string $path): ?string
+    {
+        return DB::transaction(function () use ($path) {
+            $setting = ShopSetting::where('key', 'qris_image')->lockForUpdate()->first();
+            $previous = $setting?->value;
+            if ($setting) {
+                $setting->update(['value' => $path]);
+            } else {
+                ShopSetting::setValue('qris_image', $path);
+            }
+
+            return $previous;
+        }, 3);
+    }
+
+    private function deleteImage(?string $path): void
+    {
+        if (! $path) {
+            return;
+        }
+        try {
+            Storage::disk('public')->delete($path);
+        } catch (\Throwable $exception) {
+            report($exception);
+        }
     }
 }

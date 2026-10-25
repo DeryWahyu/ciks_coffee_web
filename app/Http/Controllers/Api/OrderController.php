@@ -4,13 +4,12 @@ namespace App\Http\Controllers\Api;
 
 use App\Events\MobileOrderReceived;
 use App\Http\Controllers\Controller;
-use App\Models\Ingredient;
 use App\Models\Order;
-use App\Models\Product;
 use App\Models\ShopSetting;
 use App\Models\User;
+use App\Services\CheckoutService;
+use App\Support\Decimal;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
@@ -19,154 +18,79 @@ class OrderController extends Controller
 {
     /**
      * Create a new order from mobile app (customer checkout).
-     * Accepts multipart/form-data with optional payment_proof image.
+     * Accepts multipart/form-data with a required QRIS payment_proof image.
      */
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'payment_method' => 'required|in:cash,qris',
-            'cash_received' => 'nullable|numeric|min:0',
+            'payment_method' => 'required|in:qris',
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|exists:products,id',
             'items.*.variant' => 'nullable|in:base,lite',
-            'items.*.quantity' => 'required|integer|min:1',
-            'payment_proof' => 'required_if:payment_method,qris|image|mimes:jpg,jpeg,png,webp|max:3072',
+            'items.*.quantity' => 'required|integer|min:1|max:2147483647',
+            'payment_proof' => 'required|image|mimes:jpg,jpeg,png,webp|max:3072',
         ], [
             'items.required' => 'Pesanan tidak boleh kosong.',
-            'payment_proof.required_if' => 'Bukti pembayaran wajib diunggah untuk pembayaran QRIS.',
+            'payment_method.in' => 'Pembayaran pesanan mobile hanya mendukung QRIS.',
+            'payment_proof.required' => 'Bukti pembayaran wajib diunggah untuk pembayaran QRIS.',
             'payment_proof.max' => 'Ukuran bukti pembayaran maksimal 3MB.',
         ]);
 
-        $order = DB::transaction(function () use ($validated, $request) {
-            $total = 0;
-            $orderItems = [];
-            $ingredientRequirements = [];
+        abort_unless($request->user()->isPengguna(), 403);
+        $service = app(CheckoutService::class);
+        $proofHash = hash_file('sha256', $request->file('payment_proof')->getRealPath());
+        $items = array_map(fn ($item) => ['product_id' => (int) $item['product_id'],
+            'variant' => $item['variant'] ?? null, 'quantity' => (int) $item['quantity']], $validated['items']);
+        usort($items, fn ($a, $b) => [$a['product_id'], $a['variant'], $a['quantity']] <=> [$b['product_id'], $b['variant'], $b['quantity']]);
+        $fingerprint = hash('sha256', json_encode($items, JSON_THROW_ON_ERROR));
+        $paymentProofPath = $request->file('payment_proof')->store('payment_proofs', 'local');
+        if (! $paymentProofPath) {
+            throw ValidationException::withMessages(['payment_proof' => 'Bukti pembayaran gagal disimpan.']);
+        }
+        try {
+            $order = DB::transaction(function () use ($validated, $request, $service, $paymentProofPath, $proofHash, $fingerprint) {
+                $customer = User::query()->lockForUpdate()->findOrFail($request->user()->id);
+                abort_unless($customer->is_active && $customer->isPengguna(), 403);
+                $existing = Order::where('user_id', $customer->id)->where('payment_proof_hash', $proofHash)->first();
+                if ($existing) {
+                    if (! hash_equals((string) $existing->checkout_fingerprint, $fingerprint)) {
+                        throw ValidationException::withMessages(['payment_proof' => 'Bukti pembayaran ini sudah terhubung dengan pesanan lain.']);
+                    }
 
-            // Keep the selected product and recipe stable for the checkout.
-            $products = Product::query()
-                ->with('category')
-                ->whereIn('id', collect($validated['items'])->pluck('product_id')->unique())
-                ->lockForUpdate()
-                ->get()
-                ->keyBy('id');
-
-            foreach ($validated['items'] as $item) {
-                $product = $products->get($item['product_id']);
-
-                if (! $product || ! $product->is_active) {
-                    throw ValidationException::withMessages([
-                        'items' => 'Produk yang dipilih sudah tidak tersedia.',
-                    ]);
+                    return $existing;
                 }
+                $cart = $service->prepare($validated['items']);
+                $total = $cart['total_units'];
+                $service->lockIngredients($cart['requirements']);
+                $order = Order::create([
+                    'order_number' => Order::generateOrderNumber(),
+                    'customer_name' => $request->user()->name, 'user_id' => $request->user()->id,
+                    'payment_method' => $validated['payment_method'], 'total' => Decimal::value($total),
+                    'cash_received' => null, 'change_amount' => null,
+                    'payment_proof' => $paymentProofPath, 'status' => 'menunggu_verifikasi',
+                    'paid_at' => null, 'payment_proof_hash' => $proofHash, 'checkout_fingerprint' => $fingerprint,
+                ]);
+                $service->storeItems($order, $cart['items']);
 
-                $variantLabel = $this->resolveVariant($product, $item['variant'] ?? null);
-                $unitPrice = $variantLabel === 'lite' ? $product->price_lite : $product->price;
-                $subtotal = $unitPrice * $item['quantity'];
-                $total += $subtotal;
+                return $order;
+            }, 3);
+        } catch (\Throwable $exception) {
+            $this->discardUnusedProof($paymentProofPath);
+            throw $exception;
+        }
 
-                $productName = $product->name;
-                if ($variantLabel) {
-                    $productName .= ' ('.ucfirst($variantLabel).')';
-                }
-
-                $orderItems[] = [
-                    'product_id' => $product->id,
-                    'product_name' => $productName,
-                    'variant' => $variantLabel,
-                    'quantity' => $item['quantity'],
-                    'price' => $unitPrice,
-                    'subtotal' => $subtotal,
-                ];
-
-                // Sum all uses of the same ingredient before checking stock.
-                $ingredients = $product->ingredientsByVariant($variantLabel);
-
-                if ($ingredients->isEmpty()) {
-                    throw ValidationException::withMessages([
-                        'items' => "Produk {$product->name} belum memiliki resep yang valid.",
-                    ]);
-                }
-                foreach ($ingredients as $ingredient) {
-                    $required = (float) $ingredient->pivot->quantity * $item['quantity'];
-                    $ingredientRequirements[$ingredient->id] = ($ingredientRequirements[$ingredient->id] ?? 0) + $required;
-                }
-            }
-
-            if ($validated['payment_method'] === 'cash') {
-                $cashReceived = $validated['cash_received'] ?? $total;
-                if ($cashReceived < $total) {
-                    throw ValidationException::withMessages([
-                        'cash_received' => 'Uang diterima kurang dari total belanja.',
-                    ]);
-                }
-            } else {
-                $cashReceived = null;
-            }
-
-            $changeAmount = $cashReceived ? max(0, $cashReceived - $total) : null;
-
-            // Lock each ingredient once, in a stable order, then validate the
-            // complete requirement before creating an order or reducing stock.
-            $lockedIngredients = Ingredient::query()
-                ->whereIn('id', array_keys($ingredientRequirements))
-                ->orderBy('id')
-                ->lockForUpdate()
-                ->get()
-                ->keyBy('id');
-
-            foreach ($ingredientRequirements as $ingredientId => $required) {
-                $ingredient = $lockedIngredients->get($ingredientId);
-                if (! $ingredient || (float) $ingredient->stok < $required) {
-                    $ingredientName = $ingredient?->nama_bahan ?? 'yang dipilih';
-                    throw ValidationException::withMessages([
-                        'items' => "Stok bahan {$ingredientName} tidak cukup untuk pesanan ini.",
-                    ]);
-                }
-            }
-
-            // Handle payment proof upload
-            $paymentProofPath = null;
-            if ($request->hasFile('payment_proof')) {
-                $paymentProofPath = $request->file('payment_proof')
-                    ->store('payment_proofs', 'local');
-            }
-
-            // QRIS with proof → menunggu_verifikasi, otherwise → antrian_baru
-            $status = ($validated['payment_method'] === 'qris' && $paymentProofPath)
-                ? 'menunggu_verifikasi'
-                : 'antrian_baru';
-
-            // customer_name is taken from the authenticated user
-            $order = Order::create([
-                'order_number' => Order::generateOrderNumber(),
-                'customer_name' => Auth::user()->name,
-                'user_id' => Auth::id(),
-                'payment_method' => $validated['payment_method'],
-                'total' => $total,
-                'cash_received' => $cashReceived,
-                'change_amount' => $changeAmount,
-                'payment_proof' => $paymentProofPath,
-                'status' => $status,
-                'paid_at' => now(),
-            ]);
-
-            foreach ($orderItems as $item) {
-                $order->items()->create($item);
-            }
-
-            // Only deduct stock immediately for non-verification orders
-            // For menunggu_verifikasi, stock will be deducted upon approval
-            if ($status !== 'menunggu_verifikasi') {
-                foreach ($ingredientRequirements as $ingredientId => $deduction) {
-                    $lockedIngredients->get($ingredientId)->decrement('stok', $deduction);
-                }
-            }
-
-            return $order;
-        }, 3);
-
+        if ($order->payment_proof !== $paymentProofPath) {
+            $this->discardUnusedProof($paymentProofPath);
+        }
         $order->load('items');
-        MobileOrderReceived::dispatch($order);
+        // Replays must not announce another sale or turn notification failure into checkout failure.
+        if ($order->wasRecentlyCreated) {
+            try {
+                MobileOrderReceived::dispatch($order);
+            } catch (\Throwable $exception) {
+                report($exception);
+            }
+        }
 
         return response()->json([
             'success' => true,
@@ -174,35 +98,14 @@ class OrderController extends Controller
         ], 201);
     }
 
-    /**
-     * Resolve and validate the variant accepted for a product.
-     * Coffee always uses base or lite; other products must not have a variant.
-     */
-    private function resolveVariant(Product $product, ?string $variant): ?string
+    /** Cleanup failure must not hide a committed checkout or its original error. */
+    private function discardUnusedProof(string $path): void
     {
-        if ($product->category?->isCoffee()) {
-            if (! in_array($variant, ['base', 'lite'], true)) {
-                throw ValidationException::withMessages([
-                    'items' => "Varian Base atau Lite wajib dipilih untuk produk {$product->name}.",
-                ]);
-            }
-
-            if ($variant === 'lite' && $product->price_lite === null) {
-                throw ValidationException::withMessages([
-                    'items' => "Varian Lite tidak tersedia untuk produk {$product->name}.",
-                ]);
-            }
-
-            return $variant;
+        try {
+            Storage::disk('local')->delete($path);
+        } catch (\Throwable $exception) {
+            report($exception);
         }
-
-        if ($variant !== null) {
-            throw ValidationException::withMessages([
-                'items' => "Produk {$product->name} tidak memiliki varian.",
-            ]);
-        }
-
-        return null;
     }
 
     /**
@@ -298,7 +201,7 @@ class OrderController extends Controller
      */
     public function qrisImage()
     {
-        $qrisPath = ShopSetting::getValue('qris_image');
+        $qrisPath = ShopSetting::qrisImagePath();
 
         if (! $qrisPath) {
             return response()->json([

@@ -8,7 +8,9 @@ use App\Models\DeviceToken;
 use App\Models\Order;
 use App\Models\User;
 use App\Services\FirebaseCloudMessaging;
+use Illuminate\Contracts\Bus\Dispatcher;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
@@ -21,7 +23,7 @@ class OrderStatusPushNotificationTest extends TestCase
         Queue::fake();
         [$order, $deviceToken] = $this->makeOrderAndDevice('antrian_baru');
 
-        $order->update(['status' => 'sedang_dibuat']);
+        DB::transaction(fn () => $order->update(['status' => 'sedang_dibuat']));
 
         Queue::assertPushed(
             SendOrderStatusPushNotification::class,
@@ -81,6 +83,42 @@ class OrderStatusPushNotificationTest extends TestCase
         ))->handle($messaging);
 
         $this->assertModelMissing($deviceToken);
+    }
+
+    public function test_rolled_back_status_changes_do_not_queue_notifications(): void
+    {
+        Queue::fake();
+        [$order] = $this->makeOrderAndDevice('antrian_baru');
+        try {
+            DB::transaction(function () use ($order) {
+                $order->update(['status' => 'sedang_dibuat']);
+                throw new \RuntimeException('Rollback audit');
+            });
+        } catch (\RuntimeException) {
+        }
+        Queue::assertNothingPushed();
+        $this->assertSame('antrian_baru', $order->fresh()->status);
+    }
+
+    public function test_stale_ready_notifications_are_not_sent_after_customer_pickup(): void
+    {
+        [$order, $deviceToken] = $this->makeOrderAndDevice('selesai');
+        $order->updateQuietly(['status' => 'diambil']);
+        $messaging = $this->createMock(FirebaseCloudMessaging::class);
+        $messaging->expects($this->never())->method('sendToDevice');
+        (new SendOrderStatusPushNotification($order->id, $deviceToken->id, 'sedang_dibuat', 'selesai'))->handle($messaging);
+    }
+
+    public function test_push_queue_outage_does_not_fail_a_committed_cashier_status_update(): void
+    {
+        [$order] = $this->makeOrderAndDevice('antrian_baru');
+        $this->mock(Dispatcher::class, function ($mock) {
+            $mock->shouldReceive('dispatch')->once()->andThrow(new \RuntimeException('Audit: queue unavailable'));
+        });
+        $employee = User::factory()->create(['role' => 'karyawan', 'is_active' => true]);
+        $this->actingAs($employee)->patch(route('karyawan.orders.update-status', $order), ['status' => 'sedang_dibuat'])
+            ->assertSessionHas('success');
+        $this->assertSame('sedang_dibuat', $order->fresh()->status);
     }
 
     /**

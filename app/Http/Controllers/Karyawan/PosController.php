@@ -4,15 +4,25 @@ namespace App\Http\Controllers\Karyawan;
 
 use App\Http\Controllers\Controller;
 use App\Models\Category;
-use App\Models\Ingredient;
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\ShopSetting;
+use App\Models\User;
+use App\Services\CheckoutService;
+use App\Support\Decimal;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class PosController extends Controller
 {
+    public function paymentSettings()
+    {
+        $path = ShopSetting::qrisImagePath();
+
+        return response()->json(['image_url' => $path ? asset('storage/'.$path) : null]);
+    }
+
     /**
      * Show the Point of Sales interface.
      */
@@ -24,6 +34,7 @@ class PosController extends Controller
 
         $products = Product::with(['category', 'ingredients'])
             ->where('is_active', true)
+            ->whereHas('category', fn ($query) => $query->where('is_active', true))
             ->orderBy('name')
             ->get();
 
@@ -36,17 +47,20 @@ class PosController extends Controller
     public function productDetail(Product $product)
     {
         $product->load(['category', 'ingredients']);
+        abort_unless($product->is_active && $product->category?->is_active, 404);
         $isCoffee = $product->category->isCoffee();
         $ingredientsData = [];
 
         if ($isCoffee) {
             $ingredientsData['base'] = $product->ingredientsByVariant('base')->map(fn ($i) => [
+                'id' => $i->id,
                 'nama_bahan' => $i->nama_bahan,
                 'satuan' => $i->satuan,
                 'quantity' => $i->pivot->quantity,
                 'stok' => $i->stok,
             ]);
             $ingredientsData['lite'] = $product->ingredientsByVariant('lite')->map(fn ($i) => [
+                'id' => $i->id,
                 'nama_bahan' => $i->nama_bahan,
                 'satuan' => $i->satuan,
                 'quantity' => $i->pivot->quantity,
@@ -54,6 +68,7 @@ class PosController extends Controller
             ]);
         } else {
             $ingredientsData['default'] = $product->ingredientsByVariant(null)->map(fn ($i) => [
+                'id' => $i->id,
                 'nama_bahan' => $i->nama_bahan,
                 'satuan' => $i->satuan,
                 'quantity' => $i->pivot->quantity,
@@ -84,11 +99,13 @@ class PosController extends Controller
         $validated = $request->validate([
             'customer_name' => 'required|string|max:255',
             'payment_method' => 'required|in:cash,qris',
-            'cash_received' => 'nullable|numeric|min:0',
+            'cash_received' => 'required_if:payment_method,cash|nullable|numeric|decimal:0,2|min:0|max:9999999999.99',
+            'expected_total' => 'nullable|numeric|decimal:0,2|min:0|max:9999999999.99',
+            'idempotency_key' => 'nullable|uuid',
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|exists:products,id',
             'items.*.variant' => 'nullable|in:base,lite',
-            'items.*.quantity' => 'required|integer|min:1',
+            'items.*.quantity' => 'required|integer|min:1|max:2147483647',
         ], [
             'customer_name.required' => 'Nama pelanggan wajib diisi.',
             'items.required' => 'Pesanan tidak boleh kosong.',
@@ -96,120 +113,47 @@ class PosController extends Controller
 
         $cashier = $request->user();
 
-        $order = DB::transaction(function () use ($validated, $cashier) {
-            $total = 0;
-            $orderItems = [];
-            $ingredientRequirements = [];
+        $service = app(CheckoutService::class);
+        $fingerprint = $this->checkoutFingerprint($validated);
+        $order = DB::transaction(function () use ($validated, $cashier, $service, $fingerprint) {
+            // Serialize retries by this cashier before checking stock or prices.
+            $lockedCashier = User::query()->lockForUpdate()->findOrFail($cashier->id);
+            abort_unless($lockedCashier->is_active && $lockedCashier->isKaryawan(), 403);
+            $key = $validated['idempotency_key'] ?? null;
+            if ($key) {
+                $existing = Order::where('user_id', $cashier->id)->where('checkout_key', $key)->first();
+                if ($existing) {
+                    if (! hash_equals((string) $existing->checkout_fingerprint, $fingerprint)) {
+                        throw ValidationException::withMessages(['idempotency_key' => 'Identitas pembayaran ini sudah digunakan untuk pesanan berbeda.']);
+                    }
 
-            // Keep product availability, category, and pricing stable throughout checkout.
-            $products = Product::query()
-                ->with('category')
-                ->whereIn('id', collect($validated['items'])->pluck('product_id')->unique())
-                ->orderBy('id')
-                ->lockForUpdate()
-                ->get()
-                ->keyBy('id');
-
-            foreach ($validated['items'] as $item) {
-                $product = $products->get($item['product_id']);
-
-                if (! $product || ! $product->is_active) {
-                    throw ValidationException::withMessages([
-                        'items' => 'Produk yang dipilih sudah tidak tersedia.',
-                    ]);
-                }
-
-                $variantLabel = $this->resolveVariant($product, $item['variant'] ?? null);
-                $unitPrice = $variantLabel === 'lite' ? $product->price_lite : $product->price;
-                $subtotal = $unitPrice * $item['quantity'];
-                $total += $subtotal;
-
-                $productName = $product->name;
-                if ($variantLabel) {
-                    $productName .= ' ('.ucfirst($variantLabel).')';
-                }
-
-                $orderItems[] = [
-                    'product_id' => $product->id,
-                    'product_name' => $productName,
-                    'variant' => $variantLabel,
-                    'quantity' => $item['quantity'],
-                    'price' => $unitPrice,
-                    'subtotal' => $subtotal,
-                ];
-
-                // Aggregate every use of the same ingredient across all cart items.
-                $ingredients = $product->ingredientsByVariant($variantLabel);
-
-                if ($ingredients->isEmpty()) {
-                    throw ValidationException::withMessages([
-                        'items' => "Produk {$product->name} belum memiliki resep yang valid.",
-                    ]);
-                }
-
-                foreach ($ingredients as $ingredient) {
-                    $required = (float) $ingredient->pivot->quantity * $item['quantity'];
-                    $ingredientRequirements[$ingredient->id] = ($ingredientRequirements[$ingredient->id] ?? 0) + $required;
+                    return $existing;
                 }
             }
 
-            if ($validated['payment_method'] === 'cash') {
-                $cashReceived = $validated['cash_received'] ?? $total;
-                if ($cashReceived < $total) {
-                    throw ValidationException::withMessages([
-                        'cash_received' => 'Uang diterima kurang dari total belanja (Rp '.number_format($total, 0, ',', '.').').',
-                    ]);
-                }
-            } else {
-                $cashReceived = null;
+            $cart = $service->prepare($validated['items']);
+            $total = $cart['total_units'];
+            if (isset($validated['expected_total']) && Decimal::units($validated['expected_total']) !== $total) {
+                throw ValidationException::withMessages(['expected_total' => 'Harga produk berubah. Periksa kembali keranjang sebelum melakukan pembayaran.']);
             }
-
-            $changeAmount = $cashReceived !== null ? max(0, $cashReceived - $total) : null;
-
-            // Lock each ingredient once, validate the aggregate, then deduct once.
-            $lockedIngredients = Ingredient::query()
-                ->whereIn('id', array_keys($ingredientRequirements))
-                ->orderBy('id')
-                ->lockForUpdate()
-                ->get()
-                ->keyBy('id');
-
-            foreach ($ingredientRequirements as $ingredientId => $required) {
-                $ingredient = $lockedIngredients->get($ingredientId);
-
-                if (! $ingredient) {
-                    throw ValidationException::withMessages([
-                        'items' => 'Salah satu bahan pesanan tidak ditemukan.',
-                    ]);
-                }
-
-                if ((float) $ingredient->stok < $required) {
-                    throw ValidationException::withMessages([
-                        'items' => "Stok bahan {$ingredient->nama_bahan} tidak cukup untuk seluruh pesanan.",
-                    ]);
-                }
+            $cash = $validated['payment_method'] === 'cash' ? Decimal::units($validated['cash_received']) : null;
+            if ($cash !== null && $cash < $total) {
+                throw ValidationException::withMessages(['cash_received' => 'Uang diterima kurang dari total belanja.']);
             }
-
+            $ingredients = $service->lockIngredients($cart['requirements']);
             $order = Order::create([
                 'order_number' => Order::generateOrderNumber(),
                 'customer_name' => $validated['customer_name'],
-                'user_id' => $cashier->id,
-                'cashier_id' => $cashier->id,
+                'user_id' => $cashier->id, 'cashier_id' => $cashier->id,
                 'payment_method' => $validated['payment_method'],
-                'total' => $total,
-                'cash_received' => $cashReceived,
-                'change_amount' => $changeAmount,
-                'status' => 'antrian_baru',
-                'paid_at' => now(),
+                'total' => Decimal::value($total),
+                'cash_received' => $cash !== null ? Decimal::value($cash) : null,
+                'change_amount' => $cash !== null ? Decimal::value($cash - $total) : null,
+                'status' => 'antrian_baru', 'paid_at' => now(),
+                'checkout_key' => $key, 'checkout_fingerprint' => $key ? $fingerprint : null,
             ]);
-
-            foreach ($orderItems as $orderItem) {
-                $order->items()->create($orderItem);
-            }
-
-            foreach ($ingredientRequirements as $ingredientId => $deduction) {
-                $lockedIngredients->get($ingredientId)->decrement('stok', $deduction);
-            }
+            $service->storeItems($order, $cart['items']);
+            $service->deduct($ingredients, $cart['requirements']);
 
             return $order;
         }, 3);
@@ -242,39 +186,19 @@ class PosController extends Controller
         ]);
     }
 
-    /**
-     * Resolve the only recipe variant accepted for the selected product.
-     */
-    private function resolveVariant(Product $product, ?string $variant): ?string
+    private function checkoutFingerprint(array $validated): string
     {
-        if (! $product->category) {
-            throw ValidationException::withMessages([
-                'items' => "Kategori produk {$product->name} tidak ditemukan.",
-            ]);
-        }
+        $items = array_map(fn ($item) => [
+            'product_id' => (int) $item['product_id'],
+            'variant' => $item['variant'] ?? null, 'quantity' => (int) $item['quantity'],
+        ], $validated['items']);
+        usort($items, fn ($a, $b) => [$a['product_id'], $a['variant'], $a['quantity']] <=> [$b['product_id'], $b['variant'], $b['quantity']]);
 
-        if ($product->category->isCoffee()) {
-            if (! in_array($variant, ['base', 'lite'], true)) {
-                throw ValidationException::withMessages([
-                    'items' => "Varian Base atau Lite wajib dipilih untuk produk {$product->name}.",
-                ]);
-            }
-
-            if ($variant === 'lite' && $product->price_lite === null) {
-                throw ValidationException::withMessages([
-                    'items' => "Varian Lite tidak tersedia untuk produk {$product->name}.",
-                ]);
-            }
-
-            return $variant;
-        }
-
-        if ($variant !== null) {
-            throw ValidationException::withMessages([
-                'items' => "Produk {$product->name} tidak memiliki varian.",
-            ]);
-        }
-
-        return null;
+        return hash('sha256', json_encode([
+            'customer' => $validated['customer_name'], 'payment' => $validated['payment_method'],
+            'cash' => $validated['payment_method'] === 'cash' ? Decimal::units($validated['cash_received']) : null,
+            'expected_total' => isset($validated['expected_total']) ? Decimal::units($validated['expected_total']) : null,
+            'items' => $items,
+        ], JSON_THROW_ON_ERROR));
     }
 }

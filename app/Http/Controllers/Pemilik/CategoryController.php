@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Pemilik;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class CategoryController extends Controller
 {
@@ -14,6 +16,7 @@ class CategoryController extends Controller
     public function index()
     {
         $categories = Category::withCount('products')->orderBy('name')->get();
+
         return view('pemilik.products.categories', compact('categories'));
     }
 
@@ -29,6 +32,10 @@ class CategoryController extends Controller
             'name.unique' => 'Kategori ini sudah ada.',
         ]);
 
+        $validated['slug'] = Str::slug($validated['name']) ?: 'kategori-'.Str::uuid();
+        if (Category::where('slug', $validated['slug'])->exists()) {
+            throw ValidationException::withMessages(['name' => 'Identitas kategori ini sudah digunakan. Pilih nama yang berbeda.']);
+        }
         Category::create($validated);
 
         return back()->with('success', 'Kategori berhasil ditambahkan.');
@@ -40,7 +47,7 @@ class CategoryController extends Controller
     public function update(Request $request, Category $category)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:100|unique:categories,name,' . $category->id,
+            'name' => 'required|string|max:100|unique:categories,name,'.$category->id,
         ]);
 
         $category->update($validated);
@@ -53,8 +60,9 @@ class CategoryController extends Controller
      */
     public function toggleStatus(Category $category)
     {
-        $category->update(['is_active' => !$category->is_active]);
+        $category->update(['is_active' => ! $category->is_active]);
         $status = $category->is_active ? 'diaktifkan' : 'dinonaktifkan';
+
         return back()->with('success', "Kategori \"{$category->name}\" berhasil {$status}.");
     }
 }

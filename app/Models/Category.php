@@ -31,11 +31,8 @@ class Category extends Model
             }
         });
 
-        static::updating(function (Category $category) {
-            if ($category->isDirty('name')) {
-                $category->slug = Str::slug($category->name);
-            }
-        });
+        // The slug identifies recipe semantics (notably "coffee"). Renaming
+        // a display label must not turn existing Base/Lite recipes into defaults.
     }
 
     /**

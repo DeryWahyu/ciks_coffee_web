@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Decimal;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -69,6 +70,10 @@ class Product extends Model
      */
     public function ingredientsByVariant(?string $variant)
     {
+        if ($this->relationLoaded('ingredients')) {
+            return $this->ingredients->filter(fn ($ingredient) => $ingredient->pivot->variant === $variant)->values();
+        }
+
         return $this->ingredients()->wherePivot('variant', $variant)->get();
     }
 
@@ -87,13 +92,18 @@ class Product extends Model
     /**
      * Cek ketersediaan produk berdasarkan stok bahan baku.
      *
-     * Produk dianggap tersedia bila untuk setiap varian yang dijual
+     * Produk dianggap tersedia bila minimal satu varian yang dijual
      * (coffee: base selalu, lite bila ada price_lite; non-coffee: default)
      * seluruh bahannya cukup untuk 1 porsi. Variabel $reason akan berisi
      * keterangan bahan yang kurang (untuk pesan ke klien).
      */
     public function isAvailable(?string &$reason = null): bool
     {
+        if (! $this->is_active || ! $this->category?->is_active) {
+            $reason = 'Produk atau kategori sedang tidak aktif.';
+
+            return false;
+        }
         $variantsToCheck = [];
         $isCoffee = $this->category && $this->category->isCoffee();
 
@@ -113,20 +123,28 @@ class Product extends Model
                 $variantLabel = $variant ? ' '.ucfirst($variant) : '';
                 $reason = "Resep{$variantLabel} untuk {$this->name} belum dikonfigurasi.";
 
-                return false;
+                continue;
             }
 
-            foreach ($ingredients as $ingredient) {
-                if ($ingredient->stok < $ingredient->pivot->quantity) {
+            $requirements = $ingredients->groupBy('id')->map(fn ($rows) => $rows->sum(fn ($ingredient) => Decimal::units($ingredient->pivot->quantity)));
+            $available = true;
+            foreach ($ingredients->unique('id') as $ingredient) {
+                if ($requirements[$ingredient->id] <= 0 || Decimal::units($ingredient->stok) < $requirements[$ingredient->id]) {
                     $variantLabel = $variant ? ' ('.ucfirst($variant).')' : '';
                     $reason = "Bahan {$ingredient->nama_bahan} kurang untuk {$this->name}{$variantLabel}.";
 
-                    return false;
+                    $available = false;
+                    break;
                 }
+            }
+            if ($available) {
+                $reason = null;
+
+                return true;
             }
         }
 
-        return true;
+        return false;
     }
 
     /**

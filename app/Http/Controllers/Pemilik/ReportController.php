@@ -3,8 +3,9 @@
 namespace App\Http\Controllers\Pemilik;
 
 use App\Http\Controllers\Controller;
+use App\Models\Ingredient;
 use App\Models\Order;
-use App\Models\OrderItem;
+use App\Support\ReportDateRange;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -16,11 +17,12 @@ class ReportController extends Controller
      */
     public function sales(Request $request)
     {
+        ReportDateRange::validate($request, 'start_date', 'end_date');
         // Default to current month
         $startDate = $request->get('start_date', Carbon::now()->startOfMonth()->format('Y-m-d'));
         $endDate = $request->get('end_date', Carbon::now()->endOfMonth()->format('Y-m-d'));
 
-        $query = Order::visibleInTransactionHistory()->whereIn('status', ['selesai', 'diambil'])
+        $query = Order::visibleInTransactionHistory()
             ->whereDate('created_at', '>=', $startDate)
             ->whereDate('created_at', '<=', $endDate);
 
@@ -28,7 +30,7 @@ class ReportController extends Controller
         $totalRevenue = (clone $query)->sum('total');
         $totalOrders = (clone $query)->count();
         $totalCustomers = (clone $query)->distinct('customer_name')->count('customer_name');
-        
+
         // Sales per day for the chart/table
         $salesByDate = (clone $query)
             ->select(DB::raw('DATE(created_at) as date'), DB::raw('SUM(total) as revenue'), DB::raw('COUNT(*) as orders_count'))
@@ -40,7 +42,7 @@ class ReportController extends Controller
         // We join order_items to orders to filter by date and status
         $topProducts = DB::table('order_items')
             ->join('orders', 'order_items.order_id', '=', 'orders.id')
-            ->whereIn('orders.status', ['selesai', 'diambil'])
+
             ->whereIn('orders.id', Order::visibleInTransactionHistory()->select('orders.id'))
             ->whereDate('orders.created_at', '>=', $startDate)
             ->whereDate('orders.created_at', '<=', $endDate)
@@ -60,8 +62,8 @@ class ReportController extends Controller
      */
     public function inventory()
     {
-        $ingredients = \App\Models\Ingredient::orderBy('stok', 'asc')->get();
-        
+        $ingredients = Ingredient::orderBy('stok', 'asc')->get();
+
         $totalIngredients = $ingredients->count();
         // Assuming stock < 20 is "Low"
         $lowStockCount = $ingredients->where('stok', '<=', 20)->count();
@@ -72,7 +74,7 @@ class ReportController extends Controller
             return [
                 'name' => $item->nama_bahan,
                 'stok' => (float) $item->stok,
-                'satuan' => $item->satuan
+                'satuan' => $item->satuan,
             ];
         })->values();
 
@@ -86,12 +88,13 @@ class ReportController extends Controller
      */
     public function transactions(Request $request)
     {
+        ReportDateRange::validate($request, 'date_from', 'date_to');
         $query = Order::with(['items', 'user', 'cashier'])->visibleInTransactionHistory()->latest();
 
         if ($search = $request->get('search')) {
             $query->where(function ($q) use ($search) {
                 $q->where('order_number', 'like', "%{$search}%")
-                  ->orWhere('customer_name', 'like', "%{$search}%");
+                    ->orWhere('customer_name', 'like', "%{$search}%");
             });
         }
         if ($dateFrom = $request->get('date_from')) {
@@ -113,13 +116,21 @@ class ReportController extends Controller
         if ($search) {
             $statsQuery->where(function ($q) use ($search) {
                 $q->where('order_number', 'like', "%{$search}%")
-                  ->orWhere('customer_name', 'like', "%{$search}%");
+                    ->orWhere('customer_name', 'like', "%{$search}%");
             });
         }
-        if ($dateFrom) $statsQuery->whereDate('created_at', '>=', $dateFrom);
-        if ($dateTo) $statsQuery->whereDate('created_at', '<=', $dateTo);
-        if ($payment) $statsQuery->where('payment_method', $payment);
-        if ($status) $statsQuery->where('status', $status);
+        if ($dateFrom) {
+            $statsQuery->whereDate('created_at', '>=', $dateFrom);
+        }
+        if ($dateTo) {
+            $statsQuery->whereDate('created_at', '<=', $dateTo);
+        }
+        if ($payment) {
+            $statsQuery->where('payment_method', $payment);
+        }
+        if ($status) {
+            $statsQuery->where('status', $status);
+        }
 
         $stats = [
             'total_transactions' => $statsQuery->count(),
@@ -151,7 +162,7 @@ class ReportController extends Controller
             'status_label' => $order->status_label,
             'paid_at' => $order->paid_at?->format('d/m/Y H:i'),
             'cashier' => $order->cashier->name ?? '-',
-            'items' => $order->items->map(fn($i) => [
+            'items' => $order->items->map(fn ($i) => [
                 'product_name' => $i->product_name,
                 'quantity' => $i->quantity,
                 'price' => $i->price,

@@ -4,10 +4,16 @@ namespace App\Http\Controllers\Pemilik;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
+use App\Support\ReportDateRange;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 class ExportController extends Controller
 {
@@ -23,8 +29,7 @@ class ExportController extends Controller
 
     private function itemSummary(Order $order): string
     {
-        $items = $order->items->map(fn($item) =>
-            $item->product_name . ($item->variant ? " ({$item->variant})" : '') . " x{$item->quantity}"
+        $items = $order->items->map(fn ($item) => $item->product_name.($item->variant ? " ({$item->variant})" : '')." x{$item->quantity}"
         )->join(', ');
 
         return $this->safeSpreadsheetText($items);
@@ -52,8 +57,8 @@ class ExportController extends Controller
      */
     private function buildQuery(Request $request)
     {
-        $query = Order::with(['items', 'user', 'cashier'])->visibleInTransactionHistory()
-            ->whereIn('status', ['selesai', 'diambil']);
+        ReportDateRange::validate($request, 'date_from', 'date_to');
+        $query = Order::with(['items', 'user', 'cashier'])->visibleInTransactionHistory();
 
         if ($request->filled('date_from')) {
             $query->whereDate('created_at', '>=', $request->date_from);
@@ -75,7 +80,7 @@ class ExportController extends Controller
     {
         $orders = $this->buildQuery($request)->get();
 
-        $filename = 'laporan_penjualan_' . now()->format('Y-m-d_His') . '.csv';
+        $filename = 'laporan_penjualan_'.now()->format('Y-m-d_His').'.csv';
 
         $headers = [
             'Content-Type' => 'text/csv; charset=UTF-8',
@@ -85,7 +90,7 @@ class ExportController extends Controller
         $callback = function () use ($orders) {
             $file = fopen('php://output', 'w');
             // BOM for Excel UTF-8
-            fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF));
+            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
 
             fputcsv($file, ['No', 'No. Order', 'Tanggal', 'Pelanggan', 'Kasir', 'Metode Bayar', 'Item', 'Total']);
 
@@ -115,20 +120,20 @@ class ExportController extends Controller
     {
         $orders = $this->buildQuery($request)->get();
 
-        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $spreadsheet = new Spreadsheet;
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('Laporan Penjualan');
 
         // Header styling
         $headerStyle = [
             'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF'], 'size' => 11],
-            'fill' => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['rgb' => '3E2723']],
-            'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '3E2723']],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
         ];
 
         $headers = ['No', 'No. Order', 'Tanggal', 'Pelanggan', 'Kasir', 'Metode Bayar', 'Item', 'Total (Rp)'];
         foreach ($headers as $col => $h) {
-            $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col + 1) . '1', $h);
+            $sheet->setCellValue(Coordinate::stringFromColumnIndex($col + 1).'1', $h);
         }
         $sheet->getStyle('A1:H1')->applyFromArray($headerStyle);
 
@@ -160,9 +165,9 @@ class ExportController extends Controller
         $sheet->getStyle("H2:H{$row}")->getNumberFormat()
             ->setFormatCode('#,##0');
 
-        $filename = 'laporan_penjualan_' . now()->format('Y-m-d_His') . '.xlsx';
+        $filename = 'laporan_penjualan_'.now()->format('Y-m-d_His').'.xlsx';
 
-        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+        $writer = new Xlsx($spreadsheet);
 
         return response()->streamDownload(function () use ($writer) {
             $writer->save('php://output');
@@ -185,7 +190,7 @@ class ExportController extends Controller
         $pdf = Pdf::loadView('pemilik.exports.pdf', compact('orders', 'dateFrom', 'dateTo', 'grandTotal'))
             ->setPaper('a4', 'landscape');
 
-        $filename = 'laporan_penjualan_' . now()->format('Y-m-d_His') . '.pdf';
+        $filename = 'laporan_penjualan_'.now()->format('Y-m-d_His').'.pdf';
 
         return $pdf->download($filename);
     }

@@ -7,10 +7,13 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\DB;
 
 class Order extends Model
 {
     use HasFactory;
+
+    protected $hidden = ['checkout_key', 'checkout_fingerprint', 'payment_proof_hash'];
 
     protected $fillable = [
         'order_number',
@@ -24,6 +27,9 @@ class Order extends Model
         'payment_proof',
         'status',
         'paid_at',
+        'checkout_key',
+        'checkout_fingerprint',
+        'payment_proof_hash',
     ];
 
     protected function casts(): array
@@ -39,27 +45,32 @@ class Order extends Model
     /**
      * Generate unique order number: CK-YYYYMMDD-XXXX
      *
-     * Uses lockForUpdate to prevent race conditions when called
-     * inside a DB transaction. The caller (controller) is responsible
-     * for wrapping the call in DB::transaction().
+     * Locks a daily counter, including the first order of the day. The caller
+     * holds its checkout transaction until both the number and order commit.
      */
     public static function generateOrderNumber(): string
     {
-        $today = now()->format('Ymd');
-        $prefix = "CK-{$today}-";
+        return DB::transaction(function () {
+            $time = now();
+            $day = $time->toDateString();
+            $prefix = 'CK-'.$time->format('Ymd').'-';
+            DB::table('order_number_sequences')->insertOrIgnore(['day' => $day, 'last_number' => 0]);
+            $sequence = DB::table('order_number_sequences')->where('day', $day)->lockForUpdate()->first();
+            $lastNumber = (int) $sequence->last_number;
+            if ($lastNumber === 0) {
+                // Bootstrap from existing transactions without rewriting their numbers.
+                foreach (static::where('order_number', 'like', $prefix.'%')->pluck('order_number') as $number) {
+                    $suffix = substr($number, strlen($prefix));
+                    if (ctype_digit($suffix)) {
+                        $lastNumber = max($lastNumber, (int) $suffix);
+                    }
+                }
+            }
+            $nextNumber = $lastNumber + 1;
+            DB::table('order_number_sequences')->where('day', $day)->update(['last_number' => $nextNumber]);
 
-        $lastOrder = static::where('order_number', 'like', $prefix.'%')
-            ->lockForUpdate()
-            ->orderByDesc('order_number')
-            ->first();
-
-        $nextNumber = 1;
-        if ($lastOrder) {
-            $lastNum = (int) substr($lastOrder->order_number, -4);
-            $nextNumber = $lastNum + 1;
-        }
-
-        return $prefix.str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+            return $prefix.str_pad((string) $nextNumber, 4, '0', STR_PAD_LEFT);
+        }, 3);
     }
 
     public function user(): BelongsTo

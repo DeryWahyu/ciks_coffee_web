@@ -4,8 +4,11 @@ namespace App\Http\Controllers\Pemilik;
 
 use App\Http\Controllers\Controller;
 use App\Models\Ingredient;
+use App\Support\Decimal;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class MaterialController extends Controller
 {
@@ -33,7 +36,7 @@ class MaterialController extends Controller
         $validated = $request->validate([
             'nama_bahan' => 'required|string|max:255|unique:ingredients,nama_bahan',
             'satuan' => 'required|string|max:50',
-            'stok' => 'required|numeric|min:0',
+            'stok' => 'required|numeric|decimal:0,2|min:0|max:9999999999.99',
         ], [
             'nama_bahan.required' => 'Nama bahan wajib diisi.',
             'nama_bahan.unique' => 'Bahan baku ini sudah ada.',
@@ -54,13 +57,26 @@ class MaterialController extends Controller
         $validated = $request->validate([
             'nama_bahan' => 'required|string|max:255|unique:ingredients,nama_bahan,'.$ingredient->id,
             'satuan' => 'required|string|max:50',
-            'stok' => 'required|numeric|min:0',
+            'stok' => 'required|numeric|decimal:0,2|min:0|max:9999999999.99',
+            'expected_stock' => 'required|numeric|decimal:0,2|min:0|max:9999999999.99',
         ], [
             'nama_bahan.required' => 'Nama bahan wajib diisi.',
             'nama_bahan.unique' => 'Bahan baku ini sudah ada.',
         ]);
 
-        $ingredient->update($validated);
+        DB::transaction(function () use ($ingredient, $validated) {
+            $lockedIngredient = Ingredient::query()->lockForUpdate()->findOrFail($ingredient->id);
+            if (Decimal::units($lockedIngredient->stok) !== Decimal::units($validated['expected_stock'])) {
+                throw ValidationException::withMessages(['stok' => 'Stok telah berubah karena transaksi atau pembaruan lain. Muat ulang data sebelum mengubah stok.']);
+            }
+            if ($lockedIngredient->satuan !== $validated['satuan'] && (
+                $lockedIngredient->products()->exists()
+                || DB::table('order_item_ingredients')->where('ingredient_id', $lockedIngredient->id)->exists()
+            )) {
+                throw ValidationException::withMessages(['satuan' => 'Satuan bahan yang sudah dipakai dalam resep atau pesanan tidak dapat diubah.']);
+            }
+            $lockedIngredient->update(collect($validated)->except('expected_stock')->all());
+        }, 3);
 
         return back()->with('success', 'Bahan baku berhasil diperbarui.');
     }

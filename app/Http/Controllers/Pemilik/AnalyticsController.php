@@ -15,7 +15,8 @@ class AnalyticsController extends Controller
      */
     public function index(Request $request)
     {
-        $period = $request->get('period', '30'); // 7, 30, 90 days
+        $request->validate(['period' => 'nullable|in:7,30,90']);
+        $period = $request->input('period') ?: '30'; // 7, 30, 90 days
         $days = (int) $period;
         $startDate = Carbon::today()->subDays($days - 1);
         $endDate = Carbon::today();
@@ -25,22 +26,22 @@ class AnalyticsController extends Controller
         $prevEnd = $startDate->copy()->subDay();
 
         // ==================== KPI STATS ====================
-        $currentRevenue = Order::visibleInTransactionHistory()->whereIn('status', ['selesai', 'diambil'])
+        $currentRevenue = Order::visibleInTransactionHistory()
             ->whereDate('created_at', '>=', $startDate)
             ->whereDate('created_at', '<=', $endDate)
             ->sum('total');
 
-        $prevRevenue = Order::visibleInTransactionHistory()->whereIn('status', ['selesai', 'diambil'])
+        $prevRevenue = Order::visibleInTransactionHistory()
             ->whereDate('created_at', '>=', $prevStart)
             ->whereDate('created_at', '<=', $prevEnd)
             ->sum('total');
 
-        $currentOrders = Order::visibleInTransactionHistory()->whereIn('status', ['selesai', 'diambil'])
+        $currentOrders = Order::visibleInTransactionHistory()
             ->whereDate('created_at', '>=', $startDate)
             ->whereDate('created_at', '<=', $endDate)
             ->count();
 
-        $prevOrders = Order::visibleInTransactionHistory()->whereIn('status', ['selesai', 'diambil'])
+        $prevOrders = Order::visibleInTransactionHistory()
             ->whereDate('created_at', '>=', $prevStart)
             ->whereDate('created_at', '<=', $prevEnd)
             ->count();
@@ -48,11 +49,11 @@ class AnalyticsController extends Controller
         $currentAvg = $currentOrders > 0 ? $currentRevenue / $currentOrders : 0;
         $prevAvg = $prevOrders > 0 ? $prevRevenue / $prevOrders : 0;
 
-        $currentCustomers = Order::whereDate('created_at', '>=', $startDate)
+        $currentCustomers = Order::visibleInTransactionHistory()->whereDate('created_at', '>=', $startDate)
             ->whereDate('created_at', '<=', $endDate)
             ->distinct('customer_name')->count('customer_name');
 
-        $prevCustomers = Order::whereDate('created_at', '>=', $prevStart)
+        $prevCustomers = Order::visibleInTransactionHistory()->whereDate('created_at', '>=', $prevStart)
             ->whereDate('created_at', '<=', $prevEnd)
             ->distinct('customer_name')->count('customer_name');
 
@@ -67,11 +68,11 @@ class AnalyticsController extends Controller
         $salesTrend = collect();
         for ($i = $days - 1; $i >= 0; $i--) {
             $date = Carbon::today()->subDays($i);
-            $rev = Order::visibleInTransactionHistory()->whereIn('status', ['selesai', 'diambil'])->whereDate('created_at', $date)->sum('total');
-            $cnt = Order::visibleInTransactionHistory()->whereIn('status', ['selesai', 'diambil'])->whereDate('created_at', $date)->count();
+            $rev = Order::visibleInTransactionHistory()->whereDate('created_at', $date)->sum('total');
+            $cnt = Order::visibleInTransactionHistory()->whereDate('created_at', $date)->count();
             $salesTrend->push([
                 'date' => $days <= 14 ? $date->translatedFormat('d M') : $date->format('d/m'),
-                'revenue' => (float)$rev,
+                'revenue' => (float) $rev,
                 'orders' => $cnt,
             ]);
         }
@@ -79,7 +80,7 @@ class AnalyticsController extends Controller
         // ==================== TOP PRODUCTS ====================
         $topProducts = DB::table('order_items')
             ->join('orders', 'order_items.order_id', '=', 'orders.id')
-            ->whereIn('orders.status', ['selesai', 'diambil'])
+
             ->whereIn('orders.id', Order::visibleInTransactionHistory()->select('orders.id'))
             ->whereDate('orders.created_at', '>=', $startDate)
             ->whereDate('orders.created_at', '<=', $endDate)
@@ -95,7 +96,7 @@ class AnalyticsController extends Controller
             ->get();
 
         // ==================== PEAK HOURS ====================
-        $peakHours = Order::visibleInTransactionHistory()->whereIn('status', ['selesai', 'diambil'])
+        $peakHours = Order::visibleInTransactionHistory()
             ->whereDate('created_at', '>=', $startDate)
             ->whereDate('created_at', '<=', $endDate)
             ->select(DB::raw('HOUR(created_at) as hour'), DB::raw('COUNT(*) as count'), DB::raw('SUM(total) as revenue'))
@@ -106,15 +107,16 @@ class AnalyticsController extends Controller
         // Fill missing hours 0-23
         $hourlyData = collect(range(0, 23))->map(function ($h) use ($peakHours) {
             $found = $peakHours->firstWhere('hour', $h);
+
             return [
                 'hour' => sprintf('%02d:00', $h),
                 'count' => $found ? $found->count : 0,
-                'revenue' => $found ? (float)$found->revenue : 0,
+                'revenue' => $found ? (float) $found->revenue : 0,
             ];
         });
 
         // ==================== PAYMENT METHODS ====================
-        $paymentMethods = Order::visibleInTransactionHistory()->whereIn('status', ['selesai', 'diambil'])
+        $paymentMethods = Order::visibleInTransactionHistory()
             ->whereDate('created_at', '>=', $startDate)
             ->whereDate('created_at', '<=', $endDate)
             ->select('payment_method', DB::raw('COUNT(*) as count'), DB::raw('SUM(total) as total'))

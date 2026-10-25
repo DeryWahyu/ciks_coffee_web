@@ -34,7 +34,7 @@ class SendOrderStatusPushNotification implements ShouldQueue
         $order = Order::query()->find($this->orderId);
         $deviceToken = DeviceToken::query()->find($this->deviceTokenId);
 
-        if (! $order || ! $deviceToken || $deviceToken->user_id !== $order->user_id) {
+        if (! $order || ! $deviceToken || $deviceToken->user_id !== $order->user_id || $order->status !== $this->status) {
             return;
         }
 

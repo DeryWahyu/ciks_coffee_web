@@ -8,6 +8,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -15,6 +16,16 @@ use Tests\TestCase;
 class OrderQueueRealtimeTest extends TestCase
 {
     use DatabaseMigrations;
+
+    protected function tearDown(): void
+    {
+        // These tests commit pickup fixtures. Clear them before older enum schemas
+        // are restored; production status values must never be silently rewritten.
+        if ($this->app && Schema::hasTable('orders')) {
+            DB::table('orders')->delete();
+        }
+        parent::tearDown();
+    }
 
     public function test_mobile_pickup_publishes_one_queue_change_after_commit_and_retry_is_idempotent(): void
     {

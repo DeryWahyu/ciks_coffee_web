@@ -29,20 +29,47 @@ class OrderController extends Controller
      */
     public function index(Request $request)
     {
+        return view('karyawan.orders.index', $this->queueData($request));
+    }
+
+    public function snapshot(Request $request)
+    {
         $revision = $this->queueRevision();
-        $status = $request->get('status');
+        if ($request->query('revision') === $revision) {
+            return response()->noContent()->header('Cache-Control', 'private, no-store');
+        }
+        $data = $this->queueData($request);
+
+        return response()->json([
+            'revision' => $data['revision'],
+            'html' => view('karyawan.orders.partials.queue', $data)->render(),
+            'url' => route('karyawan.orders.index', array_filter([
+                'status' => $data['status'],
+                'page' => $data['orders']->currentPage() > 1 ? $data['orders']->currentPage() : null,
+            ], fn ($value) => $value !== null)),
+        ])->header('Cache-Control', 'private, no-store');
+    }
+
+    private function queueData(Request $request): array
+    {
+        $revision = $this->queueRevision();
         $allowedStatuses = ['menunggu_verifikasi', 'antrian_baru', 'sedang_dibuat', 'selesai'];
+        $status = in_array($request->query('status'), $allowedStatuses, true) ? $request->query('status') : null;
         $activeOrders = Order::query()->activeQueue();
 
         $query = (clone $activeOrders)
             ->with(['items', 'user', 'cashier'])
-            ->latest();
+            ->latest()->orderByDesc('id');
 
         if ($status && in_array($status, $allowedStatuses, true)) {
             $query->where('status', $status);
         }
 
-        $orders = $query->paginate(15)->withQueryString();
+        $orders = (clone $query)->paginate(15);
+        if ($orders->currentPage() > $orders->lastPage()) {
+            $orders = (clone $query)->paginate(15, ['*'], 'page', $orders->lastPage());
+        }
+        $orders->withPath(route('karyawan.orders.index'))->appends(array_filter(['status' => $status]));
         $counts = [];
 
         foreach ($allowedStatuses as $queueStatus) {
@@ -51,7 +78,7 @@ class OrderController extends Controller
                 ->count();
         }
 
-        return view('karyawan.orders.index', compact('orders', 'counts', 'status', 'revision'));
+        return compact('orders', 'counts', 'status', 'revision');
     }
 
     /**

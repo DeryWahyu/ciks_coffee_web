@@ -1,5 +1,5 @@
 <div id="ciks-alert-system">
-    <div id="ciks-toast-stack" class="ciks-toast-stack" aria-live="polite" aria-atomic="true"></div>
+    <div id="ciks-toast-stack" class="ciks-toast-stack" aria-live="polite" aria-atomic="true" @if($plainNotificationCards ?? false) data-plain-notification-cards @endif></div>
 
     <div id="ciks-alert-sheet" class="ciks-alert-overlay" aria-hidden="true">
         <button type="button" class="ciks-alert-backdrop" data-ciks-sheet-cancel aria-label="Tutup konfirmasi"></button>
@@ -53,6 +53,7 @@
     .ciks-toast-stack { position:fixed; z-index:1200; right:1.25rem; bottom:1.25rem; display:grid; gap:.7rem; width:min(24rem,calc(100vw - 2rem)); pointer-events:none; }
     .ciks-toast { display:grid; grid-template-columns:auto 1fr auto; align-items:start; gap:.7rem; padding:.85rem .9rem; border:1px solid rgba(92,56,37,.13); border-left:4px solid var(--ciks-coffee); border-radius:1rem; color:var(--ciks-espresso); background:rgba(255,250,244,.98); box-shadow:0 18px 44px rgba(45,27,18,.2); transform:translateY(1rem); opacity:0; animation:ciks-toast-in .28s ease forwards; pointer-events:auto; }
     .ciks-toast.success { border-left-color:var(--ciks-success); } .ciks-toast.error { border-left-color:var(--ciks-danger); } .ciks-toast.warning { border-left-color:#c98021; }
+    .ciks-toast-stack[data-plain-notification-cards] .ciks-toast { border:0; }
     .ciks-toast-icon { display:grid; place-items:center; width:1.8rem; height:1.8rem; border-radius:50%; color:#fff; background:var(--ciks-coffee); font-size:.82rem; font-weight:800; } .ciks-toast.success .ciks-toast-icon { background:var(--ciks-success); } .ciks-toast.error .ciks-toast-icon { background:var(--ciks-danger); } .ciks-toast.warning .ciks-toast-icon { background:#c98021; }
     .ciks-toast-title { margin:0 0 .12rem; font-size:.83rem; font-weight:800; letter-spacing:.01em; } .ciks-toast-message { margin:0; color:#6f5547; font-size:.79rem; line-height:1.45; } .ciks-toast-close { appearance:none; border:0; background:transparent; color:#8d7567; cursor:pointer; font-size:1.15rem; line-height:1; padding:.05rem; }
     .ciks-alert-overlay { position:fixed; z-index:1250; inset:0; display:grid; place-items:center; padding:1rem; visibility:hidden; opacity:0; transition:opacity .2s ease,visibility .2s ease; } .ciks-alert-overlay.is-open { visibility:visible; opacity:1; } .ciks-alert-backdrop { position:absolute; inset:0; appearance:none; border:0; background:rgba(33,18,11,.56); backdrop-filter:blur(3px); cursor:default; }

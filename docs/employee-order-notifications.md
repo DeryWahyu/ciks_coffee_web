@@ -74,8 +74,10 @@ per akun pada browser. Pada pemuatan ulang, aplikasi mencoba memulihkan audio
 yang sebelumnya diaktifkan; tombol aktivasi tetap tersedia jika browser
 memblokirnya. Kebijakan ini mengikuti [aturan autoplay browser](https://developer.mozilla.org/en-US/docs/Web/Media/Guides/Autoplay).
 
-Pembaruan otomatis halaman antrean menunggu suara selesai agar ketiga ucapan
-tidak terpotong. Tombol berhenti dan bisu langsung membatalkan suara. Jika browser
+Antrean kini memperbarui daftar dan jumlah status langsung tanpa reload halaman,
+sehingga pembaruan tidak perlu menunggu suara dan tidak memotong ketiga ucapan.
+Lihat [pembaruan antrean realtime](order-queue-realtime.md). Tombol berhenti dan
+bisu langsung membatalkan suara. Jika browser
 menginterupsi audio, status pemutaran dilepas agar aktivasi dapat dicoba kembali.
 Panel notifikasi juga dijaga agar tetap berada dalam batas layar kecil.
 

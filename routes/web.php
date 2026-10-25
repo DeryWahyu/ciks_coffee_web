@@ -158,6 +158,7 @@ Route::middleware(['auth', 'auth.session', CheckRole::class.':karyawan'])
         // Antrean Pesanan
         Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
         Route::get('/orders/revision', [OrderController::class, 'revision'])->name('orders.revision');
+        Route::get('/orders/snapshot', [OrderController::class, 'snapshot'])->name('orders.snapshot');
         Route::get('/orders/notifications', OrderNotificationController::class)->name('orders.notifications');
         Route::patch('/orders/{order}/status', [OrderController::class, 'updateStatus'])->name('orders.update-status');
         Route::patch('/orders/{order}/verify', [OrderController::class, 'verifyPayment'])->name('orders.verify');

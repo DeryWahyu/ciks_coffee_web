@@ -5,6 +5,12 @@ Pesanan tetap berada di antrean aktif sampai pelanggan menekan **Sudah Ambil**
 di aplikasi dan menyetujui dialog konfirmasi. API pickup kemudian mengubah
 status menjadi `diambil`.
 
+Web karyawan menerima event perubahan antrean setelah commit dan memperbarui
+kartu, jumlah status, serta pagination tanpa memuat ulang halaman. Modal dan
+suara notifikasi dapat tetap berjalan selama pembaruan. Lihat
+[antrean realtime tanpa reload](order-queue-realtime.md) untuk implementasi dan
+hasil pengujiannya.
+
 Riwayat transaksi pemilik/karyawan, detail struk riwayat pemilik, ringkasan,
 pendapatan, laporan penjualan, analitik, performa, dan ekspor memakai aturan
 yang sama melalui `Order::visibleInTransactionHistory()`. Pesanan POS yang

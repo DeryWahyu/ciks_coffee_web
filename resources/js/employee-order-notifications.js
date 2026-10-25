@@ -234,10 +234,12 @@ if (config?.userId) {
         const echo = window.createCiksEcho?.(config.reverb);
         const channel = echo?.private('karyawan.orders');
         channel?.listen('.mobile-order.created', handleOrder);
-        channel?.subscribed?.(() => feed?.poll());
+        const updateQueue = payload => window.dispatchEvent(new CustomEvent('ciks:order-queue-updated', { detail: payload }));
+        channel?.listen('.order-queue.updated', updateQueue);
+        channel?.subscribed?.(() => { feed?.poll(); updateQueue(); });
         const connection = echo?.connector?.pusher?.connection;
         connection?.bind('connected', () => {
-            state.realtimeConnected = true; updateConnection(); feed?.poll();
+            state.realtimeConnected = true; updateConnection(); feed?.poll(); updateQueue();
         });
         const disconnected = () => { state.realtimeConnected = false; updateConnection(); feed?.poll(); };
         connection?.bind('disconnected', disconnected);

@@ -167,6 +167,123 @@ class PosOrderStockFeatureTest extends TestCase
         $this->assertStringNotContainsString('quantity: i.qty, price: i.price', $template);
     }
 
+    public function test_pos_displays_portions_limited_by_the_scarcest_ingredient(): void
+    {
+        $product = $this->product($this->category('snack'));
+        $this->attachIngredient($product, $this->ingredient(1.25), 0.25, null);
+        $this->attachIngredient($product, $this->ingredient(0.59), 0.20, null);
+
+        $this->assertSame(2, $product->availableQuantity());
+        $this->actingAs(User::factory()->create(['role' => User::ROLE_KARYAWAN, 'is_active' => true]))
+            ->get(route('karyawan.pos.index'))
+            ->assertOk()->assertSee('Sisa: 2 porsi');
+
+        $this->getJson(route('karyawan.pos.stock'))
+            ->assertOk()->assertJsonPath("products.{$product->id}.stock_quantities.default", 2)
+            ->assertHeader('Cache-Control', 'no-store, private');
+    }
+
+    public function test_sold_out_card_is_a_disabled_button_with_a_clear_label(): void
+    {
+        $product = $this->product($this->category('snack'));
+        $this->attachIngredient($product, $this->ingredient(0.19), 0.20, null);
+
+        $response = $this->actingAs(User::factory()->create(['role' => User::ROLE_KARYAWAN, 'is_active' => true]))
+            ->get(route('karyawan.pos.index'))->assertOk();
+        $document = new \DOMDocument;
+        @$document->loadHTML($response->getContent());
+        $xpath = new \DOMXPath($document);
+        $buttons = $xpath->query('//button[@data-id="'.$product->id.'"]');
+        $this->assertCount(1, $buttons);
+        $this->assertTrue($buttons->item(0)->hasAttribute('disabled'));
+        $this->assertSame('true', $buttons->item(0)->getAttribute('aria-disabled'));
+        $this->assertStringContainsString('Stok habis', $buttons->item(0)->textContent);
+        $this->assertStringContainsString('Sisa: 0 porsi', $buttons->item(0)->textContent);
+    }
+
+    public function test_coffee_remains_selectable_when_only_lite_has_stock(): void
+    {
+        $product = $this->product($this->category('coffee'));
+        $product->update(['price_lite' => 12000]);
+        $ingredient = $this->ingredient(0.30);
+        $this->attachIngredient($product, $ingredient, 0.40, 'base');
+        $this->attachIngredient($product, $ingredient, 0.10, 'lite');
+
+        $this->assertSame(0, $product->availableQuantity('base'));
+        $this->assertSame(3, $product->availableQuantity('lite'));
+        $this->actingAs(User::factory()->create(['role' => User::ROLE_KARYAWAN, 'is_active' => true]))
+            ->getJson(route('karyawan.pos.detail', $product))
+            ->assertOk()
+            ->assertJsonPath('stock_quantities.base', 0)
+            ->assertJsonPath('stock_quantities.lite', 3);
+
+        $response = $this->get(route('karyawan.pos.index'))->assertOk()->assertSee('Base: 0 · Lite: 3 porsi');
+        $document = new \DOMDocument;
+        @$document->loadHTML($response->getContent());
+        $button = (new \DOMXPath($document))->query('//button[@data-id="'.$product->id.'"]')->item(0);
+        $this->assertFalse($button->hasAttribute('disabled'));
+    }
+
+    public function test_unsold_variants_and_invalid_recipes_have_zero_stock(): void
+    {
+        $category = $this->category('coffee');
+        $coffee = $this->product($category);
+        $ingredient = $this->ingredient(10);
+        $this->attachIngredient($coffee, $ingredient, 1, 'lite');
+        $this->assertSame(0, $coffee->availableQuantity('lite'));
+        $this->assertSame(0, $coffee->availableQuantity('base'));
+        $this->assertSame(0, $coffee->availableQuantity());
+
+        $invalid = $this->product($category, true, 'Resep nol');
+        $this->attachIngredient($invalid, $ingredient, 0, 'base');
+        $this->assertSame(0, $invalid->availableQuantity('base'));
+        $ingredient->update(['stok' => -1]);
+        $valid = $this->product($category, true, 'Stok negatif');
+        $this->attachIngredient($valid, $ingredient, 1, 'base');
+        $this->assertSame(0, $valid->availableQuantity('base'));
+    }
+
+    public function test_duplicate_recipe_rows_are_aggregated_when_counting_portions(): void
+    {
+        $product = $this->product($this->category('snack'));
+        $ingredient = $this->ingredient(1);
+        $this->attachIngredient($product, $ingredient, 0.30, null);
+        $this->attachIngredient($product, $ingredient, 0.30, null);
+        $this->assertSame(1, $product->availableQuantity());
+    }
+
+    public function test_stock_snapshot_updates_every_product_sharing_an_ingredient_after_checkout(): void
+    {
+        $category = $this->category('snack');
+        $first = $this->product($category, true, 'Roti A');
+        $second = $this->product($category, true, 'Roti B');
+        $ingredient = $this->ingredient(0.60);
+        $this->attachIngredient($first, $ingredient, 0.30, null);
+        $this->attachIngredient($second, $ingredient, 0.20, null);
+        $this->checkout([['product_id' => $first->id, 'quantity' => 2]])->assertOk();
+        $this->getJson(route('karyawan.pos.stock'))->assertOk()
+            ->assertJsonPath("products.{$first->id}.stock_quantities.default", 0)
+            ->assertJsonPath("products.{$second->id}.stock_quantities.default", 0);
+        $this->assertSame('0.00', $ingredient->fresh()->stok);
+    }
+
+    public function test_stock_snapshot_omits_inactive_products_and_categories_and_requires_employee_access(): void
+    {
+        $category = $this->category('snack');
+        $inactive = $this->product($category, false);
+        $hiddenCategory = $this->category('meal');
+        $hiddenCategory->update(['is_active' => false]);
+        $hidden = $this->product($hiddenCategory);
+        $this->assertSame(0, $hidden->availableQuantity());
+        $this->assertSame(0, $inactive->availableQuantity());
+
+        $this->getJson(route('karyawan.pos.stock'))->assertUnauthorized();
+        $this->actingAs(User::factory()->create(['role' => User::ROLE_PEMILIK, 'is_active' => true]))
+            ->getJson(route('karyawan.pos.stock'))->assertForbidden();
+        $this->actingAs(User::factory()->create(['role' => User::ROLE_KARYAWAN, 'is_active' => true]))
+            ->getJson(route('karyawan.pos.stock'))->assertOk()->assertExactJson(['products' => []]);
+    }
+
     private function checkout(array $items)
     {
         $employee = User::factory()->create([

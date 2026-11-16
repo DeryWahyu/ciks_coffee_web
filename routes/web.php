@@ -78,6 +78,7 @@ Route::middleware(['auth', 'auth.session', CheckRole::class.':pemilik'])
 
         // Kelola Data Produk & Harga
         Route::get('/products', [ProductController::class, 'index'])->name('products.index');
+        Route::get('/products/stock', [ProductController::class, 'stock'])->name('products.stock');
         Route::get('/products/create', [ProductController::class, 'create'])->name('products.create');
         Route::post('/products', [ProductController::class, 'store'])->name('products.store');
         Route::get('/products/{product}/edit', [ProductController::class, 'edit'])->name('products.edit');
@@ -152,6 +153,7 @@ Route::middleware(['auth', 'auth.session', CheckRole::class.':karyawan'])
         // Point of Sales
         Route::get('/pos', [PosController::class, 'index'])->name('pos.index');
         Route::get('/pos/payment-settings', [PosController::class, 'paymentSettings'])->name('pos.payment-settings');
+        Route::get('/pos/stock', [PosController::class, 'stock'])->name('pos.stock');
         Route::get('/pos/{product}/detail', [PosController::class, 'productDetail'])->name('pos.detail');
         Route::post('/pos/checkout', [PosController::class, 'checkout'])->name('pos.checkout');
 
@@ -175,6 +177,11 @@ Route::middleware(['auth', 'auth.session', CheckRole::class.':karyawan'])
         // Ketersediaan meja (sumber data untuk antarmuka Tahap 3)
         Route::get('/meja', [KaryawanTableController::class, 'index'])->name('tables.index');
         Route::get('/meja/data', [KaryawanTableController::class, 'layout'])->name('tables.data');
+        Route::put('/meja/layout/{floorLayout}', [KaryawanTableController::class, 'updateLayout'])->name('tables.layout.update');
+        Route::post('/meja', [KaryawanTableController::class, 'store'])->name('tables.store');
+        Route::put('/meja/{coffeeTable}', [KaryawanTableController::class, 'update'])->name('tables.update');
+        Route::delete('/meja/{coffeeTable}', [KaryawanTableController::class, 'destroy'])->name('tables.destroy');
+        Route::patch('/meja/{coffeeTable}/toggle-active', [KaryawanTableController::class, 'updateActiveState'])->name('tables.toggle-active');
         Route::patch('/meja/{coffeeTable}/status', [KaryawanTableController::class, 'updateStatus'])->name('tables.status.update');
 
     });

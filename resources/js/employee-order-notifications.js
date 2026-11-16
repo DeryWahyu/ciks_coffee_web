@@ -34,6 +34,7 @@ if (config?.userId) {
     };
     let delivery;
     let leaving = false;
+    const activePointers = new Set();
     const received = new Set();
     const persist = () => {
         try { localStorage.setItem(preferenceKey, JSON.stringify({ muted: state.muted, volume: state.volume, enabled: state.enabled })); }
@@ -61,7 +62,9 @@ if (config?.userId) {
         }
         nodes.stop?.classList.toggle('hidden', !state.playing);
         if (nodes.quickEnable) {
-            nodes.quickEnable.classList.toggle('hidden', state.unlocked && !state.muted && state.volume > 0);
+            const hide = state.unlocked && !state.muted && state.volume > 0;
+            // Audio unlocks on pointerdown. Keep the header still until the click finishes.
+            if (!hide || activePointers.size === 0) nodes.quickEnable.classList.toggle('hidden', hide);
             nodes.quickEnable.textContent = state.muted || state.volume === 0 ? 'Nyalakan suara' : 'Aktifkan suara';
             nodes.quickEnable.disabled = state.activating || state.expired;
         }
@@ -185,6 +188,11 @@ if (config?.userId) {
     const activateAfterGesture = () => {
         if (!state.expired && !sound.unlocked) unlockSound();
     };
+    document.addEventListener('pointerdown', event => activePointers.add(event.pointerId), { capture: true, passive: true });
+    const finishPointer = event => setTimeout(() => { activePointers.delete(event.pointerId); updateUi(); }, 0);
+    document.addEventListener('pointerup', finishPointer, { capture: true, passive: true });
+    document.addEventListener('pointercancel', finishPointer, { capture: true, passive: true });
+    window.addEventListener('blur', () => { activePointers.clear(); updateUi(); });
     document.addEventListener('pointerdown', activateAfterGesture, { passive: true });
     document.addEventListener('keydown', activateAfterGesture);
 

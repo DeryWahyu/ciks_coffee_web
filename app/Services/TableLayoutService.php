@@ -17,8 +17,8 @@ class TableLayoutService
     /**
      * Persist a layout edit and all supplied table coordinates atomically.
      *
-     * @param array<string, mixed> $layoutAttributes
-     * @param array<int, array<string, mixed>> $tablePositions
+     * @param  array<string, mixed>  $layoutAttributes
+     * @param  array<int, array<string, mixed>>  $tablePositions
      *
      * @throws AuthorizationException
      * @throws InvalidArgumentException
@@ -31,10 +31,6 @@ class TableLayoutService
         array $tablePositions,
     ): FloorLayout {
         $this->assertActorCanManage($actor);
-
-        if ($tablePositions === []) {
-            throw new InvalidArgumentException('Minimal satu posisi meja harus dikirim.');
-        }
 
         return DB::transaction(function () use ($floorLayout, $layoutAttributes, $tablePositions): FloorLayout {
             $lockedLayout = FloorLayout::query()
@@ -81,6 +77,17 @@ class TableLayoutService
                 'background_config',
             ]);
 
+            if (array_key_exists('background_config', $layoutChanges)) {
+                $previousConfig = $lockedLayout->background_config ?? [];
+                $incomingConfig = $layoutChanges['background_config'];
+                $nextConfig = $incomingConfig === null ? [] : array_replace($previousConfig, $incomingConfig);
+                // A partial editor update must retain server-owned seed identity.
+                if (array_key_exists('source', $previousConfig)) {
+                    $nextConfig['source'] = $previousConfig['source'];
+                }
+                $layoutChanges['background_config'] = $nextConfig;
+            }
+
             if ($layoutChanges !== []) {
                 $lockedLayout->fill($layoutChanges);
 
@@ -110,7 +117,7 @@ class TableLayoutService
     }
 
     /**
-     * @param array<string, mixed> $attributes
+     * @param  array<string, mixed>  $attributes
      *
      * @throws AuthorizationException
      * @throws InvalidArgumentException
@@ -150,7 +157,7 @@ class TableLayoutService
     }
 
     /**
-     * @param array<string, mixed> $attributes
+     * @param  array<string, mixed>  $attributes
      *
      * @throws AuthorizationException
      * @throws InvalidArgumentException
@@ -263,7 +270,7 @@ class TableLayoutService
     }
 
     /**
-     * @param array<string, mixed> $geometry
+     * @param  array<string, mixed>  $geometry
      *
      * @throws InvalidArgumentException
      */
@@ -287,7 +294,7 @@ class TableLayoutService
     }
 
     /**
-     * @param array<string, mixed> $geometry
+     * @param  array<string, mixed>  $geometry
      */
     private function toFloat(array $geometry, string $key): float
     {
@@ -303,7 +310,7 @@ class TableLayoutService
      */
     private function assertActorCanManage(User $actor): void
     {
-        if (! $actor->is_active || ! $actor->isPemilik()) {
+        if (! $actor->is_active || (! $actor->isPemilik() && ! $actor->isKaryawan())) {
             throw new AuthorizationException('Anda tidak memiliki izin untuk mengatur denah meja.');
         }
     }

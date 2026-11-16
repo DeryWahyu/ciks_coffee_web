@@ -50,11 +50,10 @@ class ProductController extends Controller
 
         $products = $query->latest()->get();
 
-        // Return only fields required by the mobile catalogue. Recipe, stock,
-        // pivot, and internal model metadata must never be serialized here.
+        // Expose sellable portions only; recipes and raw ingredient stock stay private.
         $products = $products->map(function (Product $product): array {
-            $reason = null;
-            $isAvailable = $product->isAvailable($reason);
+            $stockQuantities = $product->stockQuantities();
+            $isAvailable = max($stockQuantities) > 0;
 
             return [
                 'id' => $product->id,
@@ -70,6 +69,7 @@ class ProductController extends Controller
                     'slug' => $product->category->slug,
                 ] : null,
                 'is_available' => $isAvailable,
+                'stock_quantities' => $stockQuantities,
                 'unavailable_reason' => $isAvailable
                     ? null
                     : 'Produk sedang tidak tersedia.',
@@ -79,6 +79,6 @@ class ProductController extends Controller
         return response()->json([
             'success' => true,
             'data' => $products,
-        ]);
+        ])->header('Cache-Control', 'no-store, private');
     }
 }

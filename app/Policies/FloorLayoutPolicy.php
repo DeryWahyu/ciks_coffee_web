@@ -21,10 +21,10 @@ class FloorLayoutPolicy
     }
 
     /**
-     * Only the owner may configure layout structure and positions.
+     * Active owners and employees may configure layout structure and positions.
      */
     public function manage(User $user, FloorLayout $floorLayout): bool
     {
-        return $user->is_active && $user->isPemilik();
+        return $user->is_active && ($user->isPemilik() || $user->isKaryawan());
     }
 }

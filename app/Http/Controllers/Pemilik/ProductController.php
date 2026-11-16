@@ -18,7 +18,7 @@ class ProductController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Product::with('category');
+        $query = Product::with(['category', 'ingredients']);
 
         // Filter by category
         if ($request->filled('category')) {
@@ -39,6 +39,22 @@ class ProductController extends Controller
         $categories = Category::where('is_active', true)->orderBy('name')->get();
 
         return view('pemilik.products.index', compact('products', 'categories'));
+    }
+
+    public function stock(Request $request)
+    {
+        $validated = $request->validate([
+            'ids' => 'required|array|min:1|max:12',
+            'ids.*' => 'required|integer|distinct|min:1',
+        ]);
+        $products = Product::with(['category', 'ingredients'])->whereIn('id', $validated['ids'])->get();
+
+        return response()->json(['products' => $products->mapWithKeys(fn (Product $product) => [$product->id => [
+            'stock_quantities' => $product->stockQuantities(),
+            'is_coffee' => $product->category?->isCoffee() ?? false,
+            'has_lite' => $product->hasLitePrice(),
+            'is_active' => $product->is_active && (bool) $product->category?->is_active,
+        ]])])->header('Cache-Control', 'no-store, private');
     }
 
     /**

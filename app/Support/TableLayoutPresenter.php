@@ -69,6 +69,15 @@ class TableLayoutPresenter
      */
     private static function present(FloorLayout $floorLayout, bool $includeOperationalFields, bool $includeInactive): array
     {
+        $background = config('floor_plan.background');
+        $backgroundImage = is_array($background) && is_file(public_path($background['path']))
+            ? [
+                'url' => asset($background['path']),
+                'width' => $background['width'],
+                'height' => $background['height'],
+                'alt' => $background['alt'],
+            ]
+            : null;
         /** @var Collection<int, CoffeeTable> $tables */
         $tables = $floorLayout->relationLoaded('coffeeTables')
             ? $floorLayout->coffeeTables
@@ -91,6 +100,7 @@ class TableLayoutPresenter
                 'description' => $floorLayout->description,
                 'canvas_width' => $floorLayout->canvas_width,
                 'canvas_height' => $floorLayout->canvas_height,
+                'background_image' => $backgroundImage,
                 'background_config' => $floorLayout->background_config,
                 'is_active' => $includeOperationalFields ? $floorLayout->is_active : null,
                 'updated_at' => $floorLayout->updated_at?->toIso8601String(),

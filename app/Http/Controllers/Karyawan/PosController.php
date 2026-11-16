@@ -38,7 +38,22 @@ class PosController extends Controller
             ->orderBy('name')
             ->get();
 
-        return view('karyawan.pos.index', compact('categories', 'products'));
+        $productStocks = $products->mapWithKeys(fn (Product $product) => [$product->id => $this->stockData($product)]);
+
+        return view('karyawan.pos.index', compact('categories', 'products', 'productStocks'));
+    }
+
+    /** A single snapshot also refreshes products that share ingredients. */
+    public function stock()
+    {
+        $products = Product::with(['category', 'ingredients'])
+            ->where('is_active', true)
+            ->whereHas('category', fn ($query) => $query->where('is_active', true))
+            ->orderBy('id')->get();
+
+        return response()->json([
+            'products' => $products->mapWithKeys(fn (Product $product) => [$product->id => $this->stockData($product)]),
+        ])->header('Cache-Control', 'no-store, private');
     }
 
     /**
@@ -48,26 +63,26 @@ class PosController extends Controller
     {
         $product->load(['category', 'ingredients']);
         abort_unless($product->is_active && $product->category?->is_active, 404);
+
+        return response()->json([
+            ...$this->stockData($product),
+            'name' => $product->name,
+            'description' => $product->description,
+            'image' => $product->image ? asset('storage/'.$product->image) : null,
+            'price' => $product->price,
+            'formatted_price' => $product->formatted_price,
+            'formatted_price_lite' => $product->formatted_price_lite,
+            'category' => $product->category->name,
+        ])->header('Cache-Control', 'no-store, private');
+    }
+
+    private function stockData(Product $product): array
+    {
         $isCoffee = $product->category->isCoffee();
         $ingredientsData = [];
-
-        if ($isCoffee) {
-            $ingredientsData['base'] = $product->ingredientsByVariant('base')->map(fn ($i) => [
-                'id' => $i->id,
-                'nama_bahan' => $i->nama_bahan,
-                'satuan' => $i->satuan,
-                'quantity' => $i->pivot->quantity,
-                'stok' => $i->stok,
-            ]);
-            $ingredientsData['lite'] = $product->ingredientsByVariant('lite')->map(fn ($i) => [
-                'id' => $i->id,
-                'nama_bahan' => $i->nama_bahan,
-                'satuan' => $i->satuan,
-                'quantity' => $i->pivot->quantity,
-                'stok' => $i->stok,
-            ]);
-        } else {
-            $ingredientsData['default'] = $product->ingredientsByVariant(null)->map(fn ($i) => [
+        foreach ($isCoffee ? ['base', 'lite'] : [null] as $variant) {
+            $key = $variant ?? 'default';
+            $ingredientsData[$key] = $product->ingredientsByVariant($variant)->map(fn ($i) => [
                 'id' => $i->id,
                 'nama_bahan' => $i->nama_bahan,
                 'satuan' => $i->satuan,
@@ -76,19 +91,13 @@ class PosController extends Controller
             ]);
         }
 
-        return response()->json([
+        return [
             'id' => $product->id,
-            'name' => $product->name,
-            'description' => $product->description,
-            'image' => $product->image ? asset('storage/'.$product->image) : null,
-            'price' => $product->price,
             'price_lite' => $product->price_lite,
-            'formatted_price' => $product->formatted_price,
-            'formatted_price_lite' => $product->formatted_price_lite,
-            'category' => $product->category->name,
             'is_coffee' => $isCoffee,
             'ingredients' => $ingredientsData,
-        ]);
+            'stock_quantities' => $product->stockQuantities(),
+        ];
     }
 
     /**

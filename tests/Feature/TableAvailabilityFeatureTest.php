@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\CoffeeTable;
+use App\Models\FloorLayout;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
@@ -17,6 +18,9 @@ class TableAvailabilityFeatureTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        // These scenarios supply their own layouts instead of the initial canvas.
+        FloorLayout::query()->delete();
 
         $this->withSession(['_token' => 'table-test-csrf-token']);
         $this->withHeader('X-CSRF-TOKEN', 'table-test-csrf-token');

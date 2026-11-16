@@ -7,7 +7,7 @@
 @section('content')
 <div class="flex flex-col lg:flex-row gap-6 pb-20 lg:pb-0">
     {{-- Left: Product Menu --}}
-    <div class="flex-1">
+    <div class="flex-1 min-w-0">
         {{-- Search & Category Filter --}}
         <div class="mb-5 flex flex-wrap items-center gap-3">
             <div class="relative flex-1 min-w-0">
@@ -31,7 +31,12 @@
         {{-- Product Grid --}}
         <div id="product-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
             @forelse ($products as $product)
-                <div class="product-card bg-white rounded-2xl shadow-sm border border-latte/50 overflow-hidden cursor-pointer group hover:shadow-md hover:border-caramel/40 transition-all duration-300"
+                @php
+                    $stock = $productStocks[$product->id];
+                    $soldOut = max($stock['stock_quantities']) === 0;
+                @endphp
+                <button type="button" @disabled($soldOut) aria-disabled="{{ $soldOut ? 'true' : 'false' }}"
+                     class="product-card flex flex-col min-w-0 w-full bg-white rounded-2xl shadow-sm border border-latte/50 overflow-hidden text-left group transition-all duration-300"
                      data-id="{{ $product->id }}"
                      data-name="{{ $product->name }}"
                      data-price="{{ $product->price }}"
@@ -40,7 +45,7 @@
                      data-category="{{ $product->category_id }}"
                      data-is-coffee="{{ $product->category->isCoffee() ? '1' : '0' }}"
                      onclick="showProductDetail(this)">
-                    <div class="relative aspect-square bg-latte/20 overflow-hidden">
+                    <div class="relative w-full shrink-0 aspect-square bg-latte/20 overflow-hidden">
                         @if ($product->image)
                             <img src="{{ '/storage/' . $product->image }}" alt="{{ $product->name }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
                         @else
@@ -51,8 +56,9 @@
                         <div class="absolute top-2 right-2">
                             <span class="px-2 py-0.5 rounded-full text-[0.6rem] font-bold uppercase tracking-wider bg-espresso/80 text-cream backdrop-blur-sm">{{ $product->category->name }}</span>
                         </div>
+                        <span class="product-stock-badge absolute bottom-2 left-2 px-2 py-1 rounded-lg bg-espresso/90 text-cream text-[0.65rem] font-bold" @if (! $soldOut) hidden @endif>Habis</span>
                     </div>
-                    <div class="p-2 sm:p-3">
+                    <div class="w-full p-2 sm:p-3">
                         <h3 class="text-[0.65rem] sm:text-xs font-bold text-espresso truncate mb-1">{{ $product->name }}</h3>
                         <p class="mb-1.5 text-[0.58rem] leading-[0.875rem] text-caramel-dark line-clamp-2 sm:text-[0.65rem] sm:leading-4">{{ $product->description ?: 'Deskripsi belum tersedia.' }}</p>
                         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-0.5">
@@ -61,8 +67,16 @@
                                 <span class="text-[0.55rem] sm:text-[0.6rem] text-caramel font-medium">Lite: {{ $product->formatted_price_lite }}</span>
                             @endif
                         </div>
+                        <p class="product-stock mt-2 text-[0.65rem] font-semibold text-caramel-dark">
+                            @if ($product->category->isCoffee() && $product->hasLitePrice())
+                                Base: {{ $stock['stock_quantities']['base'] }} · Lite: {{ $stock['stock_quantities']['lite'] }} porsi
+                            @else
+                                Sisa: {{ max($stock['stock_quantities']) }} porsi
+                            @endif
+                        </p>
+                        <p class="product-stock-note mt-1 text-[0.6rem] text-espresso" @if (! $soldOut) hidden @endif>Stok habis</p>
                     </div>
-                </div>
+                </button>
             @empty
                 <div class="col-span-full">
                     <div class="bg-white rounded-2xl shadow-sm border border-latte/50 p-12 text-center">
@@ -160,6 +174,7 @@
                             <div class="peer-checked:border-espresso peer-checked:bg-espresso/5 border-2 border-latte/60 rounded-xl p-3 text-center transition-all">
                                 <p class="text-sm font-bold text-espresso">Base</p>
                                 <p id="modal-price-base" class="text-xs text-caramel mt-0.5"></p>
+                                <p id="modal-stock-base" class="text-xs text-espresso mt-1"></p>
                             </div>
                         </label>
                         <label class="flex-1 cursor-pointer">
@@ -167,6 +182,7 @@
                             <div class="peer-checked:border-espresso peer-checked:bg-espresso/5 border-2 border-latte/60 rounded-xl p-3 text-center transition-all">
                                 <p class="text-sm font-bold text-espresso">Lite</p>
                                 <p id="modal-price-lite" class="text-xs text-caramel mt-0.5"></p>
+                                <p id="modal-stock-lite" class="text-xs text-espresso mt-1"></p>
                             </div>
                         </label>
                     </div>
@@ -189,17 +205,18 @@
 
                 {{-- Quantity --}}
                 <div>
+                    <p id="modal-stock" class="text-xs font-semibold text-caramel-dark mb-2" aria-live="polite"></p>
                     <label class="block text-xs font-bold text-espresso uppercase tracking-wider mb-2">Jumlah</label>
                     <div class="flex items-center gap-3">
-                        <button type="button" onclick="changeQty(-1)" class="w-10 h-10 rounded-xl bg-latte/30 hover:bg-latte/50 text-espresso font-bold text-lg transition flex items-center justify-center">−</button>
+                        <button type="button" id="modal-qty-minus" onclick="changeQty(-1)" class="w-10 h-10 rounded-xl bg-latte/30 hover:bg-latte/50 text-espresso font-bold text-lg transition flex items-center justify-center">−</button>
                         <input type="number" id="modal-qty" value="1" min="1" max="99" class="w-16 text-center text-sm font-bold text-espresso border border-latte/60 rounded-xl py-2 focus:ring-2 focus:ring-caramel/30 outline-none">
-                        <button type="button" onclick="changeQty(1)" class="w-10 h-10 rounded-xl bg-latte/30 hover:bg-latte/50 text-espresso font-bold text-lg transition flex items-center justify-center">+</button>
+                        <button type="button" id="modal-qty-plus" onclick="changeQty(1)" class="w-10 h-10 rounded-xl bg-latte/30 hover:bg-latte/50 text-espresso font-bold text-lg transition flex items-center justify-center">+</button>
                     </div>
                 </div>
             </div>
 
             <div class="px-4 sm:px-6 pb-4 sm:pb-6">
-                <button onclick="addToCartFromModal()" class="w-full bg-espresso hover:bg-espresso-light text-cream text-sm font-semibold py-3 rounded-xl transition-all duration-200 hover:shadow-md flex items-center justify-center gap-2">
+                <button id="modal-add-to-cart" onclick="addToCartFromModal()" class="w-full bg-espresso hover:bg-espresso-light text-cream text-sm font-semibold py-3 rounded-xl transition-all duration-200 hover:shadow-md flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
                     Tambahkan ke Pesanan
                 </button>
@@ -289,10 +306,18 @@
 
 @push('styles')
 <style>
+    #main-content { min-width: 0; }
     .cat-tab { border-color: rgba(215,204,200,0.5); color: #A1887F; background: white; }
     .cat-tab:hover { border-color: #A1887F; color: #3E2723; }
     .cat-tab.active { border-color: #3E2723; background-color: #3E2723; color: #F5F5DC; }
     .cart-item { animation: slideIn 0.25s ease-out; }
+    .product-card:not(:disabled) { cursor: pointer; }
+    .product-card:not(:disabled):hover { border-color: #A1887F; box-shadow: 0 4px 6px -1px #3E272314; }
+    .product-card:disabled { cursor: not-allowed; }
+    .product-card:disabled img { filter: grayscale(1); opacity: .4; }
+    .product-card:disabled > div { background-color: #F5F5DC; }
+    .product-card:disabled > div:last-child { opacity: .65; }
+    .product-card:disabled .group-hover\:scale-105 { transform: none; }
     @keyframes slideIn { from { opacity:0; transform:translateX(12px); } to { opacity:1; transform:translateX(0); } }
 </style>
 @endpush
@@ -306,6 +331,10 @@
     let preflightBusy = false;
     let detailRequest = 0;
     let selectedCategory = null;
+    let productStocks = @json($productStocks);
+    const ingredientStocks = new Map();
+    let stockRefreshVersion = 0;
+    const stockUrl = @json(route('karyawan.pos.stock'));
     const checkoutUrl = @json(route('karyawan.pos.checkout'));
     const paymentStorageKey = @json('ciks:pos-payment:'.auth()->id());
     let pendingPayment = null;
@@ -341,14 +370,112 @@
     function recipeFor(product, variant) {
         return product.ingredients?.[product.is_coffee ? variant : 'default'] || [];
     }
+    function cartRecipe(item) {
+        return productStocks[item.id] ? recipeFor(productStocks[item.id], item.variant) : (item.ingredients || []);
+    }
+    function rememberStock(product) {
+        for (const recipe of Object.values(product.ingredients || {})) {
+            for (const ingredient of recipe) ingredientStocks.set(ingredient.id, units(ingredient.stok));
+        }
+    }
+    function remainingStock(product, variant, includeCart = true) {
+        if (!product) return 0;
+        const key = product.is_coffee ? variant : 'default';
+        const recipe = recipeFor(product, variant);
+        if (!recipe.length || !(product.stock_quantities?.[key] > 0)) return 0;
+        const reserved = new Map(), requirements = new Map();
+        if (includeCart) {
+            for (const item of cart) {
+                for (const ingredient of cartRecipe(item)) {
+                    reserved.set(ingredient.id, (reserved.get(ingredient.id) || 0) + units(ingredient.quantity) * item.qty);
+                }
+            }
+        }
+        for (const ingredient of recipe) {
+            const required = units(ingredient.quantity);
+            if (!(required > 0)) return 0;
+            requirements.set(ingredient.id, (requirements.get(ingredient.id) || 0) + required);
+        }
+        return Math.max(0, Math.min(product.stock_quantities[key], ...recipe.map(ingredient => Math.floor(
+            ((ingredientStocks.get(ingredient.id) ?? units(ingredient.stok)) - (reserved.get(ingredient.id) || 0)) / requirements.get(ingredient.id)
+        ))));
+    }
+    function productVariants(product) {
+        return product?.is_coffee ? (product.price_lite != null ? ['base', 'lite'] : ['base']) : [null];
+    }
+    function renderProductStocks() {
+        document.querySelectorAll('.product-card').forEach(card => {
+            const product = productStocks[card.dataset.id];
+            const variants = productVariants(product);
+            const counts = variants.map(variant => remainingStock(product, variant));
+            const soldOut = Math.max(...counts) === 0;
+            const inCart = soldOut && variants.some(variant => remainingStock(product, variant, false) > 0);
+            card.disabled = soldOut;
+            card.setAttribute('aria-disabled', String(soldOut));
+            card.querySelector('.product-stock').textContent = variants.length > 1
+                ? `Base: ${counts[0].toLocaleString('id-ID')} · Lite: ${counts[1].toLocaleString('id-ID')} porsi`
+                : `Sisa: ${counts[0].toLocaleString('id-ID')} porsi`;
+            const badge = card.querySelector('.product-stock-badge');
+            badge.hidden = !soldOut;
+            badge.textContent = inCart ? 'Di keranjang' : 'Habis';
+            const note = card.querySelector('.product-stock-note');
+            note.hidden = !soldOut;
+            note.textContent = inCart ? 'Sisa stok sudah di keranjang' : (product ? 'Stok habis' : 'Produk tidak tersedia');
+        });
+        updateModalStock();
+    }
+    async function refreshProductStocks() {
+        const version = ++stockRefreshVersion;
+        try {
+            const response = await fetch(stockUrl, {headers: {'Accept': 'application/json'}, cache: 'no-store', signal: AbortSignal.timeout(8000)});
+            if (!response.ok) return false;
+            const data = await response.json();
+            if (version !== stockRefreshVersion) return false;
+            productStocks = data.products;
+            ingredientStocks.clear();
+            Object.values(productStocks).forEach(rememberStock);
+            renderProductStocks();
+            return true;
+        } catch { return false; }
+    }
+    function selectedVariant() {
+        return currentProduct?.is_coffee ? (currentProduct.price_lite != null
+            ? document.querySelector('input[name="variant"]:checked')?.value || 'base' : 'base') : null;
+    }
+    function updateModalStock() {
+        if (!currentProduct) return;
+        const product = productStocks[currentProduct.id];
+        if (currentProduct.is_coffee) {
+            for (const variant of ['base', 'lite']) {
+                const available = remainingStock(product, variant);
+                const input = document.querySelector(`input[name="variant"][value="${variant}"]`);
+                input.disabled = available === 0;
+                input.closest('label').classList.toggle('opacity-40', input.disabled);
+                document.getElementById(`modal-stock-${variant}`).textContent = available > 0 ? `Sisa ${available.toLocaleString('id-ID')} porsi` : 'Habis';
+            }
+        }
+        const available = remainingStock(product, selectedVariant());
+        const input = document.getElementById('modal-qty');
+        input.max = Math.min(99, available);
+        input.value = available > 0 ? Math.min(quantity(input.value), Number(input.max)) : 1;
+        input.disabled = available === 0;
+        document.getElementById('modal-stock').textContent = available > 0
+            ? `Sisa ${available.toLocaleString('id-ID')} porsi yang dapat ditambahkan` : 'Stok habis atau sudah ada di keranjang.';
+        document.getElementById('modal-add-to-cart').disabled = available === 0;
+        document.getElementById('modal-qty-minus').disabled = available === 0 || Number(input.value) <= 1;
+        document.getElementById('modal-qty-plus').disabled = available === 0 || Number(input.value) >= Number(input.max);
+    }
     function stockError(items) {
         const totals = new Map();
         for (const item of items) {
-            if (!item.ingredients?.length) return `Resep ${item.name} belum tersedia.`;
-            for (const ingredient of item.ingredients) {
-                const entry = totals.get(ingredient.id) || { required: 0, available: units(ingredient.stok), ingredient };
+            const recipe = cartRecipe(item);
+            if (!recipe.length) return `Resep ${item.name} belum tersedia.`;
+            for (const ingredient of recipe) {
+                if (!(units(ingredient.quantity) > 0)) return `Resep ${item.name} belum valid.`;
+                const stock = ingredientStocks.get(ingredient.id) ?? units(ingredient.stok);
+                const entry = totals.get(ingredient.id) || { required: 0, available: stock, ingredient };
                 entry.required += units(ingredient.quantity) * item.qty;
-                entry.available = Math.min(entry.available, units(ingredient.stok));
+                entry.available = Math.min(entry.available, stock);
                 totals.set(ingredient.id, entry);
             }
         }
@@ -358,12 +485,14 @@
         return null;
     }
     async function refreshCart() {
+        await refreshProductStocks();
         const products = new Map();
         await Promise.all([...new Set(cart.map(item => item.id))].map(async id => {
             const response = await fetch(`/karyawan/pos/${id}/detail`, {headers: {'Accept':'application/json'}});
             if (!response.ok) throw new Error('Salah satu produk sudah tidak tersedia. Periksa kembali keranjang.');
             products.set(id, await response.json());
         }));
+        products.forEach(product => { productStocks[product.id] = product; rememberStock(product); });
         cart = cart.map(item => {
             const product = products.get(item.id);
             if (item.variant === 'lite' && product.price_lite == null) throw new Error('Varian Lite sudah tidak tersedia. Periksa kembali keranjang.');
@@ -399,7 +528,7 @@
 
     // === Product Detail Modal ===
     function showProductDetail(el) {
-        if (!editableCart()) return;
+        if (el.disabled || !editableCart()) return;
         const request = ++detailRequest;
         const id = el.dataset.id;
         fetch(`/karyawan/pos/${id}/detail`)
@@ -409,6 +538,13 @@
             })
             .then(data => {
                 if (request !== detailRequest) return;
+                productStocks[data.id] = data;
+                rememberStock(data);
+                renderProductStocks();
+                if (!productVariants(data).some(variant => remainingStock(data, variant) > 0)) {
+                    window.CiksAlert.notify('Produk ini sudah habis atau sisa stoknya sudah ada di keranjang.', 'warning', 'Produk habis');
+                    return;
+                }
                 currentProduct = data;
                 document.getElementById('modal-name').textContent = data.name;
                 document.getElementById('modal-category').textContent = data.category;
@@ -444,18 +580,10 @@
                 }
 
                 if (data.is_coffee && data.price_lite != null) {
-                    const canMake = variant => {
-                        const ingredients = recipeFor(data, variant);
-                        return ingredients.length > 0 && ingredients.every(ingredient => units(ingredient.stok) >= units(ingredient.quantity));
-                    };
-                    for (const variant of ['base', 'lite']) {
-                        const input = document.querySelector(`input[name="variant"][value="${variant}"]`);
-                        input.disabled = !canMake(variant);
-                        input.closest('label').classList.toggle('opacity-40', input.disabled);
-                    }
-                    if (!canMake('base') && canMake('lite')) document.querySelector('input[name="variant"][value="lite"]').checked = true;
+                    if (!remainingStock(data, 'base') && remainingStock(data, 'lite')) document.querySelector('input[name="variant"][value="lite"]').checked = true;
                 }
                 renderModalIngredients(data);
+                updateModalStock();
                 document.getElementById('product-modal').classList.remove('hidden');
             }).catch(error => window.CiksAlert.notify(error.message, 'error', 'Produk tidak dapat dibuka'));
     }
@@ -498,13 +626,15 @@
 
     // Update ingredients when variant changes
     document.querySelectorAll('input[name="variant"]').forEach(r => {
-        r.addEventListener('change', () => { if (currentProduct) renderModalIngredients(currentProduct); });
+        r.addEventListener('change', () => { if (currentProduct) { renderModalIngredients(currentProduct); updateModalStock(); } });
     });
+    document.getElementById('modal-qty').addEventListener('input', updateModalStock);
 
     function closeModal() { document.getElementById('product-modal').classList.add('hidden'); currentProduct = null; detailRequest += 1; }
     function changeQty(delta) {
         const inp = document.getElementById('modal-qty');
-        inp.value = Math.min(99, quantity(quantity(inp.value) + delta));
+        inp.value = Math.min(Number(inp.max), quantity(quantity(inp.value) + delta));
+        updateModalStock();
     }
 
     // === Cart ===
@@ -525,7 +655,7 @@
         if (existing) {
             existing.qty += requestedQty;
             existing.ingredients = getActiveIngredients(variant);
-        } else candidate.push({key, name: currentProduct.name, qty: requestedQty, ingredients: getActiveIngredients(variant)});
+        } else candidate.push({key, id: currentProduct.id, variant, name: currentProduct.name, qty: requestedQty, ingredients: getActiveIngredients(variant)});
         return stockError(candidate);
     }
 
@@ -539,6 +669,12 @@
                 ? (document.querySelector('input[name="variant"]:checked')?.value || 'base')
                 : 'base';
             price = variant === 'lite' ? parseFloat(currentProduct.price_lite) : parseFloat(currentProduct.price);
+        }
+
+        if (qty > remainingStock(productStocks[currentProduct.id], variant)) {
+            updateModalStock();
+            window.CiksAlert.notify('Jumlah pesanan melebihi sisa stok produk.', 'warning', 'Stok tidak cukup');
+            return;
         }
 
         // Validasi stok bahan baku SEBELUM menambahkan ke keranjang
@@ -576,6 +712,7 @@
     function clearCart() { if (!editableCart()) return; cart = []; renderCart(); }
 
     function renderCart() {
+        renderProductStocks();
         const container = document.getElementById('cart-items');
         const totalEl = document.getElementById('cart-total');
         const processBtn = document.getElementById('btn-process-order');
@@ -712,6 +849,7 @@
             if (!response.ok || !data.success) {
                 if (response.status === 422) {
                     persistPayment(null);
+                    await refreshProductStocks();
                     document.querySelectorAll('#checkout-customer, #checkout-cash, input[name="payment"]').forEach(input => input.disabled = false);
                     if (data.errors?.expected_total) {
                         closeCheckout(true);
@@ -726,6 +864,7 @@
             cart = []; renderCart();
             window.CiksAlert.notify(data.message || 'Pesanan berhasil diproses.', 'success', 'Pembayaran berhasil');
             showReceipt(data.order);
+            await refreshProductStocks();
         } catch (error) {
             const suffix = pendingPayment ? ' Jangan membuat pembayaran baru; tekan kembali Bayar untuk memeriksa pembayaran yang sama.' : '';
             window.CiksAlert.notify((error.message || 'Terjadi kesalahan koneksi.') + suffix, 'error', 'Periksa pembayaran');
@@ -776,6 +915,10 @@
             w.close();
         });
     }
+    Object.values(productStocks).forEach(rememberStock);
     renderCart();
+    setInterval(() => { if (!document.hidden) refreshProductStocks(); }, 15000);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshProductStocks(); });
+    window.addEventListener('focus', refreshProductStocks);
 </script>
 @endpush

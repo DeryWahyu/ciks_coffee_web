@@ -26,35 +26,35 @@ class CoffeeTablePolicy
     }
 
     /**
-     * Only the owner may add a table to a layout.
+     * Active owners and employees may use the table editor.
      */
     public function create(User $user): bool
     {
-        return $user->is_active && $user->isPemilik();
+        return $user->is_active && ($user->isPemilik() || $user->isKaryawan());
     }
 
     /**
-     * Table configuration is intentionally reserved for the owner.
+     * Table configuration uses the same staff permissions as the editor.
      */
     public function update(User $user, CoffeeTable $coffeeTable): bool
     {
-        return $user->is_active && $user->isPemilik();
+        return $user->is_active && ($user->isPemilik() || $user->isKaryawan());
     }
 
     /**
-     * Permanent deletion is reserved for the owner.
+     * Staff may delete tables that have no operational history.
      */
     public function delete(User $user, CoffeeTable $coffeeTable): bool
     {
-        return $user->is_active && $user->isPemilik();
+        return $user->is_active && ($user->isPemilik() || $user->isKaryawan());
     }
 
     /**
-     * Archiving remains reversible and owner-only.
+     * Staff may archive or restore tables without losing history.
      */
     public function toggleActive(User $user, CoffeeTable $coffeeTable): bool
     {
-        return $user->is_active && $user->isPemilik();
+        return $user->is_active && ($user->isPemilik() || $user->isKaryawan());
     }
 
     /**
@@ -66,10 +66,10 @@ class CoffeeTablePolicy
     }
 
     /**
-     * Layout configuration is intentionally reserved for the owner.
+     * Active owners and employees may configure table positions.
      */
     public function manageLayout(User $user, CoffeeTable $coffeeTable): bool
     {
-        return $user->is_active && $user->isPemilik();
+        return $user->is_active && ($user->isPemilik() || $user->isKaryawan());
     }
 }

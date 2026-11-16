@@ -155,6 +155,49 @@ class Product extends Model
         return $this->price_lite !== null;
     }
 
+    /** Sellable portions per variant; counts sharing ingredients cannot be added together. */
+    public function stockQuantities(): array
+    {
+        return $this->category?->isCoffee()
+            ? ['base' => $this->availableQuantity('base'), 'lite' => $this->availableQuantity('lite')]
+            : ['default' => $this->availableQuantity()];
+    }
+
+    /** Maximum portions for one recipe; variants may share the same ingredients. */
+    public function availableQuantity(?string $variant = null): int
+    {
+        if (! $this->is_active || ! $this->category?->is_active) {
+            return 0;
+        }
+
+        if ($this->category->isCoffee()) {
+            if (! in_array($variant, ['base', 'lite'], true)
+                || ($variant === 'lite' && ! $this->hasLitePrice())) {
+                return 0;
+            }
+        } elseif ($variant !== null) {
+            return 0;
+        }
+
+        $ingredients = $this->ingredientsByVariant($variant);
+        if ($ingredients->isEmpty()) {
+            return 0;
+        }
+
+        $requirements = [];
+        foreach ($ingredients as $ingredient) {
+            $required = Decimal::units($ingredient->pivot->quantity);
+            if ($required <= 0) {
+                return 0;
+            }
+            $requirements[$ingredient->id] = ($requirements[$ingredient->id] ?? 0) + $required;
+        }
+
+        return $ingredients->min(fn ($ingredient) => intdiv(
+            max(0, Decimal::units($ingredient->stok)), $requirements[$ingredient->id]
+        ));
+    }
+
     /**
      * Get formatted base price.
      */

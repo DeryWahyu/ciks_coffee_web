@@ -46,7 +46,12 @@
     {{-- Product Grid --}}
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
         @forelse ($products as $product)
-            <div class="bg-white rounded-2xl shadow-sm border border-latte/50 overflow-hidden group hover:shadow-md transition-all duration-300 {{ !$product->is_active ? 'opacity-60' : '' }}" id="product-{{ $product->id }}">
+            @php
+                $stocks = $product->stockQuantities();
+                $soldOut = max($stocks) === 0;
+                $saleActive = $product->is_active && $product->category?->is_active;
+            @endphp
+            <div class="owner-product-card bg-white rounded-2xl shadow-sm border border-latte/50 overflow-hidden group hover:shadow-md transition-all duration-300 {{ $soldOut ? 'is-sold-out' : '' }}" id="product-{{ $product->id }}" data-product-id="{{ $product->id }}">
                 {{-- Image --}}
                 <div class="relative aspect-[4/3] bg-latte/20 overflow-hidden">
                     @if ($product->image)
@@ -68,10 +73,12 @@
                             {{ $product->category->name }}
                         </span>
                     </div>
+                    <span class="owner-stock-badge absolute bottom-3 left-3 px-2.5 py-1 rounded-lg bg-espresso/90 text-cream text-xs font-bold" @if (! $soldOut) hidden @endif>{{ $saleActive ? 'Habis' : 'Nonaktif' }}</span>
                 </div>
 
                 {{-- Info --}}
                 <div class="p-4">
+                    <div class="product-summary">
                     <h3 class="text-sm font-bold text-espresso mb-1 truncate">{{ $product->name }}</h3>
                     @if ($product->description)
                         <p class="text-xs text-caramel-dark line-clamp-2 mb-3">{{ $product->description }}</p>
@@ -91,6 +98,16 @@
                                 <span class="text-sm font-bold text-espresso">{{ $product->formatted_price_lite }}</span>
                             </div>
                         @endif
+                    </div>
+
+                    <p class="owner-product-stock text-xs font-semibold text-caramel-dark mb-2">
+                        @if ($product->category->isCoffee() && $product->hasLitePrice())
+                            Base: {{ $stocks['base'] }} · Lite: {{ $stocks['lite'] }} porsi
+                        @else
+                            Sisa: {{ max($stocks) }} porsi
+                        @endif
+                    </p>
+                    <p class="owner-stock-note text-xs text-espresso mb-3" @if (! $soldOut) hidden @endif>{{ $saleActive ? 'Stok habis' : 'Produk atau kategori nonaktif' }}</p>
                     </div>
 
                     {{-- Actions --}}
@@ -139,3 +156,47 @@
         <div class="mt-6">{{ $products->links('components.pagination') }}</div>
     @endif
 @endsection
+
+@push('styles')
+<style>
+    .owner-product-card.is-sold-out img { filter: grayscale(1); opacity: .4; transform: none; }
+    .owner-product-card.is-sold-out .product-summary { opacity: .65; }
+</style>
+@endpush
+
+@push('scripts')
+<script>
+    let ownerStockVersion = 0;
+    async function refreshOwnerProductStocks() {
+        const cards = [...document.querySelectorAll('[data-product-id]')];
+        if (!cards.length) return;
+        const version = ++ownerStockVersion;
+        const url = new URL(@json(route('pemilik.products.stock')), location.origin);
+        cards.forEach(card => url.searchParams.append('ids[]', card.dataset.productId));
+        try {
+            const response = await fetch(url, {headers: {Accept: 'application/json'}, cache: 'no-store', signal: AbortSignal.timeout(8000)});
+            if (!response.ok) return;
+            const data = await response.json();
+            if (version !== ownerStockVersion) return;
+            cards.forEach(card => {
+                const product = data.products[card.dataset.productId];
+                const stocks = product?.stock_quantities || {default: 0};
+                const soldOut = Math.max(...Object.values(stocks)) === 0;
+                card.classList.toggle('is-sold-out', soldOut);
+                card.querySelector('.owner-product-stock').textContent = product?.is_coffee && product.has_lite
+                    ? `Base: ${stocks.base.toLocaleString('id-ID')} · Lite: ${stocks.lite.toLocaleString('id-ID')} porsi`
+                    : `Sisa: ${Math.max(...Object.values(stocks)).toLocaleString('id-ID')} porsi`;
+                const badge = card.querySelector('.owner-stock-badge');
+                badge.hidden = !soldOut;
+                badge.textContent = product?.is_active ? 'Habis' : 'Nonaktif';
+                const note = card.querySelector('.owner-stock-note');
+                note.hidden = !soldOut;
+                note.textContent = product?.is_active ? 'Stok habis' : 'Produk atau kategori tidak tersedia';
+            });
+        } catch { /* Keep the last valid stock snapshot during a connection failure. */ }
+    }
+    setInterval(() => { if (!document.hidden) refreshOwnerProductStocks(); }, 15000);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshOwnerProductStocks(); });
+    window.addEventListener('focus', refreshOwnerProductStocks);
+</script>
+@endpush

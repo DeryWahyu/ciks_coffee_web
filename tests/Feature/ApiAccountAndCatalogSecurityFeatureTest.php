@@ -90,6 +90,7 @@ class ApiAccountAndCatalogSecurityFeatureTest extends TestCase
             'price_lite',
             'category',
             'is_available',
+            'stock_quantities',
             'unavailable_reason',
         ], array_keys($payload));
         $this->assertEqualsCanonicalizing(['id', 'name', 'slug'], array_keys($payload['category']));

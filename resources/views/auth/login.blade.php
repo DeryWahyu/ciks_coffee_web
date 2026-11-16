@@ -107,7 +107,7 @@
         {{-- Left Side - Coffee Shop Image --}}
         <div class="hidden lg:flex lg:w-1/2 relative overflow-hidden">
             <img
-                src="{{ asset('images/background-Login.png') }}"
+                src="{{ asset('images/CiksCoffee.jpeg') }}"
                 alt="Interior Ciks Coffee"
                 class="absolute inset-0 w-full h-full object-cover"
                 id="login-bg-image"
@@ -119,7 +119,7 @@
                 <div class="animate-slide-in-left animate-delay-2">
                     <x-brand-logo :light="true" class="w-16 h-16 mb-6" />
                     <p class="text-white/70 text-sm font-medium tracking-[0.3em] uppercase mb-3">
-                        Sejak 2026
+                        Sejak 2025
                     </p>
                     <h2 class="text-white text-4xl font-bold tracking-tight font-sans">
                         Ciks Coffee

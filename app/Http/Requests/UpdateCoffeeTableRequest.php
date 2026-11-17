@@ -3,11 +3,10 @@
 namespace App\Http\Requests;
 
 use App\Models\CoffeeTable;
-use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
-class UpdateCoffeeTableRequest extends FormRequest
+class UpdateCoffeeTableRequest extends CoffeeTableDetailsRequest
 {
     public function authorize(): bool
     {
@@ -25,6 +24,7 @@ class UpdateCoffeeTableRequest extends FormRequest
 
         return [
             'code' => [
+                'bail',
                 'required',
                 'string',
                 'max:30',

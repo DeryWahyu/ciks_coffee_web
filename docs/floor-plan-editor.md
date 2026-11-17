@@ -31,6 +31,10 @@ Pengujian mencakup penyimpanan kedua role, konflik versi, validasi sisi/jumlah,
 ekspor, kesamaan geometri mobile, serta editor browser pada desktop dan ponsel.
 
 - Gunakan Tambah meja pada header untuk membuat meja.
+- Kode meja harus unik pada denah yang sama, termasuk meja arsip. Huruf kode
+  dinormalisasi menjadi huruf besar sebelum validasi. Jika kode sudah dipakai,
+  pesan muncul di bawah kolom kode; isian meja dan pilihan kursi tetap tersimpan
+  di formulir agar kode bisa dikoreksi tanpa mengisi ulang.
 - Geser objek; tarik titik sudut untuk mengubah ukuran. Panel Properti
   mengatur label, koordinat, ukuran, rotasi, dan ukuran teks.
 - Warna objek tersedia dari palet tema web, termasuk pilihan tanpa warna.

@@ -67,6 +67,8 @@ body:has(.owner-workspace),.owner-workspace { --plan-ink:var(--color-espresso); 
 .owner-field-label { display:block; color:var(--plan-muted); font-size:11px; font-weight:500; }
 .owner-input { display:block; width:100%; margin-top:4px; padding:9px 11px; color:var(--plan-ink); background:white; border:1px solid var(--plan-line); border-radius:9px; font-size:12px; outline:none; }
 .owner-input:focus { border-color:var(--color-caramel); box-shadow:0 0 0 2px color-mix(in srgb,var(--color-caramel) 20%,transparent); }
+.owner-field-error { margin-top:6px; color:var(--plan-ink); font-size:11px; line-height:1.5; }
+.owner-field-error[hidden] { display:none; }.owner-input[aria-invalid=true] { border-color:var(--color-caramel-dark); }
 .plan-empty-card { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:10px; text-align:center; pointer-events:none; color:var(--plan-muted); }
 .plan-empty-card svg { width:35px; height:35px; fill:none; stroke:var(--color-caramel); }.plan-empty-card p { max-width:270px; font-size:12px; }
 .owner-history { margin-top:18px; }.owner-history.hidden,.owner-monitor.hidden,.owner-modal.hidden { display:none; }

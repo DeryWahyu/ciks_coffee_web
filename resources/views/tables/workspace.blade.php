@@ -73,7 +73,7 @@
         <div class='owner-modal-header'><div><h3 id='owner-table-modal-title' class='owner-modal-title'>Tambah meja</h3><p id='owner-table-modal-subtitle' class='owner-modal-subtitle'>Atur data dan posisi awal meja.</p></div><button type='button' class='owner-modal-close' data-close-modal='owner-table-modal' aria-label='Tutup'>&times;</button></div>
         <form id='owner-table-form' class='owner-modal-body'>
             <div class='owner-form-grid'>
-                <div><label class='owner-field-label' for='table-code'>Kode meja</label><input id='table-code' class='owner-input' maxlength='30' required></div>
+                <div><label class='owner-field-label' for='table-code'>Kode meja</label><input id='table-code' class='owner-input' maxlength='30' aria-describedby='table-code-error' required><p id='table-code-error' class='owner-field-error' role='alert' hidden></p></div>
                 <div><label class='owner-field-label' for='table-name'>Nama meja</label><input id='table-name' class='owner-input' maxlength='255' required></div>
                 <div><label class='owner-field-label' for='table-capacity'>Kapasitas</label><input id='table-capacity' class='owner-input' type='number' min='1' max='20' required></div>
                 <div><label class='owner-field-label' for='table-shape'>Bentuk</label><select id='table-shape' class='owner-input'><option value='round'>Bulat</option><option value='square'>Persegi</option><option value='rectangle'>Persegi panjang</option></select></div>
@@ -93,6 +93,7 @@
                 <div><label class='owner-field-label' for='table-rotation'>Rotasi</label><input id='table-rotation' class='owner-input' type='number' min='0' max='359.99' step='0.01' required></div>
                 <div><label class='owner-field-label' for='table-active'>Tampilan</label><select id='table-active' class='owner-input'><option value='true'>Aktif</option><option value='false'>Arsip/nonaktif</option></select></div>
             </div>
+            <p id='table-form-error' class='owner-field-error' role='alert' hidden></p>
             <div class='owner-modal-actions'><button id='owner-table-delete' type='button' class='owner-table-delete' hidden>Hapus meja</button><button type='button' class='owner-button-cancel' data-close-modal='owner-table-modal'>Batal</button><button id='owner-table-submit' type='submit' class='owner-button-save'>Simpan meja</button></div>
         </form>
     </div>
@@ -551,6 +552,7 @@
     function field(id) { return document.getElementById(id); }
 
     function openTableModal(mode, table = null) {
+        clearTableFormErrors();
         state.tableFormMode = mode;
         field('owner-table-modal-title').textContent = mode === 'create' ? 'Tambah meja baru' : 'Ubah detail meja';
         field('owner-table-modal-subtitle').textContent = mode === 'create' ? 'Data posisi dapat disesuaikan kembali melalui editor layout.' : 'Perubahan detail memakai versi data terbaru.';
@@ -669,9 +671,30 @@
         showToast(payload?.message ?? 'Data meja telah diperbarui oleh pengguna lain. Muat ulang dan coba lagi.', 'info');
     }
 
+    function clearTableFormErrors() {
+        for (const id of ['table-code-error','table-form-error']) {
+            field(id).textContent = ''; field(id).hidden = true;
+        }
+        field('table-code').removeAttribute('aria-invalid');
+    }
+
+    function showTableFormErrors(payload) {
+        const errors = payload?.errors ?? {};
+        const codeError = Array.isArray(errors.code) ? errors.code[0] : null;
+        const firstError = Object.values(errors).flat().find(value => typeof value === 'string');
+        let message = codeError || firstError || payload?.message || 'Periksa kembali data meja yang diisi.';
+        if (message === 'validation.unique') message = 'Kode meja sudah digunakan pada denah ini. Gunakan kode lain atau ubah meja yang sudah ada.';
+        else if (message.startsWith('validation.')) message = 'Periksa kembali data meja yang diisi.';
+        const target = field(codeError ? 'table-code-error' : 'table-form-error');
+        target.textContent = message; target.hidden = false;
+        if (codeError) { field('table-code').setAttribute('aria-invalid','true'); field('table-code').focus(); }
+        showToast(message,'error');
+    }
+
     async function submitTableForm(event) {
         event.preventDefault();
         if (!state.data) return;
+        clearTableFormErrors();
         const payload = {
             code: field('table-code').value.trim(), name: field('table-name').value.trim(), capacity: number(field('table-capacity').value), shape: field('table-shape').value,
             chair_positions: field('table-chair-mode').value === 'custom' ? selectedChairPositions() : null,
@@ -687,6 +710,7 @@
                 payload.version = table.version;
                 result = await requestJson(endpoints.update.replace('__TABLE_ID__', String(table.id)), 'PUT', payload);
             }
+            if (result.response.status === 422) { showTableFormErrors(result.payload); return; }
             if (result.response.status === 409) { conflictMessage(result.payload); return; }
             if (!result.response.ok || !result.payload?.success) throw new Error(result.payload?.message ?? 'Data meja tidak dapat disimpan.');
             replaceTable(result.payload.data); closeModal(elements.tableModal); showToast(result.payload.message ?? 'Data meja berhasil disimpan.', 'success');
@@ -881,6 +905,7 @@
     document.querySelectorAll('[data-owner-mode]').forEach((button) => button.addEventListener('click', () => setMode(button.dataset.ownerMode)));
     document.querySelectorAll('[data-preview]').forEach((button) => button.addEventListener('click', () => { state.preview = button.dataset.preview; elements.canvasShell.classList.toggle('owner-preview-mobile', state.preview === 'mobile'); document.querySelectorAll('[data-preview]').forEach((item) => item.classList.toggle('is-active', item.dataset.preview === state.preview)); }));
     elements.tableForm.addEventListener('submit', submitTableForm);
+    field('table-code').addEventListener('input',clearTableFormErrors);
     field('table-chair-mode').addEventListener('change',()=>renderChairSettings());
     field('table-capacity').addEventListener('input',()=>renderChairSettings());
     field('table-shape').addEventListener('change',renderChairPreview);

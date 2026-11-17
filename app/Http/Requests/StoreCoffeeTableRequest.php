@@ -3,11 +3,10 @@
 namespace App\Http\Requests;
 
 use App\Models\CoffeeTable;
-use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
-class StoreCoffeeTableRequest extends FormRequest
+class StoreCoffeeTableRequest extends CoffeeTableDetailsRequest
 {
     public function authorize(): bool
     {
@@ -22,6 +21,7 @@ class StoreCoffeeTableRequest extends FormRequest
         return [
             'floor_layout_id' => ['required', 'integer', 'exists:floor_layouts,id'],
             'code' => [
+                'bail',
                 'required',
                 'string',
                 'max:30',

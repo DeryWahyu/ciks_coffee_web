@@ -536,11 +536,8 @@
         if (el.disabled || !editableCart()) return;
         const request = ++detailRequest;
         const id = el.dataset.id;
-        fetch(`/karyawan/pos/${id}/detail`)
-            .then(async response => {
-                if (!response.ok) throw new Error('Produk sudah tidak tersedia. Muat ulang daftar produk.');
-                return response.json();
-            })
+        fetch(`/karyawan/pos/${id}/detail`, {headers: {Accept: 'application/json'}})
+            .then(response => window.CiksErrors.readJson(response, 'Produk sudah tidak tersedia. Muat ulang daftar produk.'))
             .then(data => {
                 if (request !== detailRequest) return;
                 productStocks[data.id] = data;
@@ -590,7 +587,7 @@
                 renderModalIngredients(data);
                 updateModalStock();
                 document.getElementById('product-modal').classList.remove('hidden');
-            }).catch(error => window.CiksAlert.notify(error.message, 'error', 'Produk tidak dapat dibuka'));
+            }).catch(error => window.CiksAlert.notify(window.CiksErrors.message(error, 'Detail produk belum dapat dimuat. Silakan coba lagi.'), 'error', 'Produk tidak dapat dibuka'));
     }
 
     function renderModalIngredients(data) {
@@ -791,7 +788,7 @@
             if (window.innerWidth < 1024) document.getElementById('cart-panel').classList.add('hidden');
             document.getElementById('checkout-modal').classList.remove('hidden');
         } catch (error) {
-            window.CiksAlert.notify(error.message, 'warning', 'Periksa keranjang');
+            window.CiksAlert.notify(window.CiksErrors.message(error, 'Keranjang belum dapat diperiksa. Silakan coba lagi.'), 'warning', 'Periksa keranjang');
         } finally {
             preflightBusy = false; processButton.disabled = cart.length === 0;
         }
@@ -850,7 +847,7 @@
                 headers: {'Content-Type':'application/json', 'Accept':'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content},
                 body: JSON.stringify(payload)
             });
-            const data = await response.json().catch(() => ({}));
+            const data = await window.CiksErrors.readJson(response, 'Hasil pembayaran belum dapat diperiksa. Coba kembali untuk memeriksa pembayaran yang sama.', {allowError: true});
             if (!response.ok || !data.success) {
                 if (response.status === 422) {
                     persistPayment(null);
@@ -872,7 +869,7 @@
             await refreshProductStocks();
         } catch (error) {
             const suffix = pendingPayment ? ' Jangan membuat pembayaran baru; tekan kembali Bayar untuk memeriksa pembayaran yang sama.' : '';
-            window.CiksAlert.notify((error.message || 'Terjadi kesalahan koneksi.') + suffix, 'error', 'Periksa pembayaran');
+            window.CiksAlert.notify(window.CiksErrors.message(error, 'Hasil pembayaran belum dapat diperiksa. Periksa status pesanan terlebih dahulu.') + suffix, 'error', 'Periksa pembayaran');
         } finally {
             checkoutBusy = false;
             button.disabled = false;
@@ -911,7 +908,10 @@
     function printReceipt() {
         const content = document.getElementById('receipt-content').innerHTML;
         const w = window.open('', '_blank', 'width=320,height=600');
-        if (!w) return;
+        if (!w) {
+            window.CiksAlert.notify('Jendela cetak diblokir browser. Izinkan pop-up untuk situs ini lalu tekan Cetak kembali.', 'warning', 'Cetak belum dapat dibuka');
+            return;
+        }
         w.document.write(`<html><head><title>Struk</title><style>body{font-family:monospace,sans-serif;font-size:12px;padding:10px;max-width:280px;margin:0 auto}h3{margin:0;font-size:16px;text-align:center}.flex{display:flex;justify-content:space-between}.border-t,.border-b{border-top:1px dashed #ccc;padding-top:8px;margin-top:8px}.mb-4{margin-bottom:12px}.text-center{text-align:center}.font-bold{font-weight:bold}.space-y-1>*+*{margin-top:4px}.space-y-2>*+*{margin-top:6px}span{display:inline-block}@media print{body{padding:0}}</style></head><body>${content}<div class="text-center border-t" style="margin-top:12px;padding-top:8px"><small>*** Terima Kasih ***</small></div></body></html>`);
         w.document.close();
         Promise.all(Array.from(w.document.images, image => image.decode().catch(() => {}))).then(() => {

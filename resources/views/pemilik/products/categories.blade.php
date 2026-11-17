@@ -12,6 +12,7 @@
 @endsection
 
 @section('content')
+    @php $creatingRecord = ! in_array(strtoupper(old('_method', 'POST')), ['PUT', 'PATCH']); @endphp
     <div class="w-full space-y-6">
         {{-- Add Category Form --}}
         <div class="bg-white rounded-2xl shadow-sm border border-latte/50 p-6">
@@ -20,8 +21,8 @@
                 @csrf
                 <div class="flex-1">
                     <label for="name" class="block text-sm font-semibold text-espresso mb-1.5">Nama Kategori</label>
-                    <input type="text" name="name" id="name" value="{{ old('name') }}" required class="w-full px-4 py-2.5 text-sm bg-white border border-latte/60 rounded-xl focus:ring-2 focus:ring-caramel/30 focus:border-caramel outline-none transition" placeholder="Contoh: Juice">
-                    @error('name') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
+                    <input type="text" name="name" id="name" value="{{ $creatingRecord ? old('name') : '' }}" required class="w-full px-4 py-2.5 text-sm bg-white border border-latte/60 rounded-xl focus:ring-2 focus:ring-caramel/30 focus:border-caramel outline-none transition" placeholder="Contoh: Juice">
+                    @if ($creatingRecord) @error('name') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror @endif
                 </div>
                 <button type="submit" class="inline-flex items-center gap-2 bg-espresso hover:bg-espresso-light text-cream text-sm font-semibold px-5 py-2.5 rounded-xl transition-all hover:shadow-md shrink-0">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>

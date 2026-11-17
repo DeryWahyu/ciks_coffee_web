@@ -420,12 +420,12 @@
         setLoading(true);
         try {
             const response = await fetch(endpoints.data, { cache: 'no-store', headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' } });
-            const payload = await response.json().catch(() => null);
+            const payload = await window.CiksErrors.readJson(response, 'Data denah tidak dapat dimuat.');
             if (!response.ok || !payload?.success) throw new Error(payload?.message ?? 'Data denah tidak dapat dimuat.');
             state.data = payload.data; state.selectedId = null; state.selectedMarkerIndex = null; state.dirty = false; state.clean = snapshot(); state.undo = []; state.redo = []; renderAll();
             if (!quiet) showToast('Data denah sudah diperbarui.', 'success');
         } catch (error) {
-            const message = error.message ?? 'Data denah tidak dapat dimuat.';
+            const message = window.CiksErrors.message(error, 'Data denah tidak dapat dimuat.');
             setText('owner-layout-updated', message + ' Tekan Muat ulang untuk mencoba lagi.');
             if (!state.data) {
                 const empty = document.createElement('p');
@@ -659,7 +659,7 @@
                 options.body = JSON.stringify(body);
             }
             const response = await fetch(url, options);
-            const payload = await response.json().catch(() => null);
+            const payload = await window.CiksErrors.readJson(response, 'Data meja belum dapat diproses. Silakan coba lagi.', {allowError: true});
             return { response, payload };
         } finally {
             if (mutating) { pendingMutations -= 1; liveEpoch += 1; }
@@ -714,7 +714,7 @@
             if (result.response.status === 409) { conflictMessage(result.payload); return; }
             if (!result.response.ok || !result.payload?.success) throw new Error(result.payload?.message ?? 'Data meja tidak dapat disimpan.');
             replaceTable(result.payload.data); closeModal(elements.tableModal); showToast(result.payload.message ?? 'Data meja berhasil disimpan.', 'success');
-        } catch (error) { showToast(error.message ?? 'Data meja tidak dapat disimpan.', 'error'); }
+        } catch (error) { showToast(window.CiksErrors.message(error, 'Data meja tidak dapat disimpan.'), 'error'); }
         finally { submit.disabled = false; submit.textContent = state.tableFormMode === 'create' ? 'Tambah meja' : 'Simpan detail'; }
     }
 
@@ -728,7 +728,7 @@
             if (result.response.status === 409) { conflictMessage(result.payload); return; }
             if (!result.response.ok || !result.payload?.success) throw new Error(result.payload?.message ?? 'Status meja tidak dapat disimpan.');
             replaceTable(result.payload.data); closeModal(elements.statusModal); showToast(result.payload.message ?? 'Status meja berhasil diperbarui.', 'success');
-        } catch (error) { showToast(error.message ?? 'Status meja tidak dapat disimpan.', 'error'); }
+        } catch (error) { showToast(window.CiksErrors.message(error, 'Status meja tidak dapat disimpan.'), 'error'); }
         finally { submit.disabled = false; submit.textContent = 'Simpan status'; }
     }
 
@@ -746,7 +746,7 @@
             if (result.response.status === 409) { conflictMessage(result.payload); return; }
             if (!result.response.ok || !result.payload?.success) throw new Error(result.payload?.message ?? 'Status arsip meja tidak dapat diubah.');
             replaceTable(result.payload.data); showToast(result.payload.message ?? 'Status meja berhasil diperbarui.', 'success');
-        } catch (error) { showToast(error.message ?? 'Status arsip meja tidak dapat diubah.', 'error'); }
+        } catch (error) { showToast(window.CiksErrors.message(error, 'Status arsip meja tidak dapat diubah.'), 'error'); }
     }
 
     async function deleteTable(table, anchor) {
@@ -773,7 +773,7 @@
             recalculateSummary();
             renderAll();
             showToast(result.payload.message ?? 'Meja berhasil dihapus.', 'success');
-        } catch (error) { showToast(error.message ?? 'Meja tidak dapat dihapus.', 'error'); }
+        } catch (error) { showToast(window.CiksErrors.message(error, 'Meja tidak dapat dihapus.'), 'error'); }
         finally { state.deletingTableId=null; updateControls(); }
     }
 
@@ -796,7 +796,7 @@
             if (result.response.status === 409) { conflictMessage(result.payload); return; }
             if (!result.response.ok || !result.payload?.success) throw new Error(result.payload?.message ?? 'Layout tidak dapat disimpan.');
             state.data = result.payload.data; state.clean = snapshot(); state.undo = []; state.redo = []; state.dirty = false; renderAll(); showToast(result.payload.message ?? 'Denah meja berhasil disimpan.', 'success');
-        } catch (error) { showToast(error.message ?? 'Layout tidak dapat disimpan.', 'error'); }
+        } catch (error) { showToast(window.CiksErrors.message(error, 'Layout tidak dapat disimpan.'), 'error'); }
         finally { updateControls(); elements.saveLayout.textContent = 'Simpan denah'; }
     }
 
@@ -842,7 +842,7 @@
             const result = await requestJson(endpoints.history + '?' + params.toString());
             if (!result.response.ok || !result.payload?.success) throw new Error(result.payload?.message ?? 'Riwayat tidak dapat dimuat.');
             renderHistory(result.payload.data, result.payload.meta);
-        } catch (error) { showToast(error.message ?? 'Riwayat tidak dapat dimuat.', 'error'); }
+        } catch (error) { showToast(window.CiksErrors.message(error, 'Riwayat tidak dapat dimuat.'), 'error'); }
     }
 
     function setMode(mode) {

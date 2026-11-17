@@ -117,7 +117,8 @@
     }
 
     function viewReceipt(orderId) {
-        fetch(`/karyawan/orders/${orderId}/receipt`).then(r => r.json()).then(data => {
+        return fetch(`/karyawan/orders/${orderId}/receipt`, {headers: {Accept: 'application/json'}})
+            .then(response => window.CiksErrors.readJson(response, 'Struk belum dapat dimuat. Silakan coba lagi.')).then(data => {
             document.getElementById('rcpt-number').textContent = data.order_number;
             document.getElementById('rcpt-customer').textContent = data.customer_name;
             document.getElementById('rcpt-cashier').textContent = data.cashier;
@@ -136,12 +137,13 @@
                 document.getElementById('rcpt-change-row').classList.add('hidden');
             }
             document.getElementById('receipt-modal').classList.remove('hidden');
-        });
+        }).catch(error => window.CiksAlert.notify(window.CiksErrors.message(error, 'Struk belum dapat dimuat. Silakan coba lagi.'), 'error', 'Struk tidak tersedia'));
     }
     function closeReceipt() { document.getElementById('receipt-modal').classList.add('hidden'); }
     function printReceipt() {
         const w = window.open('', '_blank', 'width=320,height=600');
         if (!w) {
+            window.CiksAlert.notify('Jendela cetak diblokir browser. Izinkan pop-up untuk situs ini lalu tekan Cetak kembali.', 'warning', 'Cetak belum dapat dibuka');
             return;
         }
 

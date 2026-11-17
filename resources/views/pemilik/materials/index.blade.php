@@ -5,6 +5,7 @@
 @section('page-description', 'Atur stok dan data bahan baku')
 
 @section('content')
+    @php $creatingRecord = ! in_array(strtoupper(old('_method', 'POST')), ['PUT', 'PATCH']); @endphp
     <div class="w-full space-y-4 sm:space-y-6">
         {{-- Add Ingredient Form --}}
         <div class="bg-white rounded-2xl shadow-sm border border-latte/50 p-4 sm:p-6">
@@ -13,18 +14,18 @@
                 @csrf
                 <div class="w-full">
                     <label for="nama_bahan" class="block text-sm font-semibold text-espresso mb-1.5">Nama Bahan <span class="text-red-500">*</span></label>
-                    <input type="text" name="nama_bahan" id="nama_bahan" value="{{ old('nama_bahan') }}" required class="w-full px-4 py-2.5 text-sm bg-white border border-latte/60 rounded-xl focus:ring-2 focus:ring-caramel/30 focus:border-caramel outline-none transition" placeholder="Contoh: Kopi Arabica">
-                    @error('nama_bahan') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
+                    <input type="text" name="nama_bahan" id="nama_bahan" value="{{ $creatingRecord ? old('nama_bahan') : '' }}" required class="w-full px-4 py-2.5 text-sm bg-white border border-latte/60 rounded-xl focus:ring-2 focus:ring-caramel/30 focus:border-caramel outline-none transition" placeholder="Contoh: Kopi Arabica">
+                    @if ($creatingRecord) @error('nama_bahan') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror @endif
                 </div>
                 <div class="w-full">
                     <label for="satuan" class="block text-sm font-semibold text-espresso mb-1.5">Satuan <span class="text-red-500">*</span></label>
-                    <input type="text" name="satuan" id="satuan" value="{{ old('satuan') }}" required class="w-full px-4 py-2.5 text-sm bg-white border border-latte/60 rounded-xl focus:ring-2 focus:ring-caramel/30 focus:border-caramel outline-none transition" placeholder="gram">
-                    @error('satuan') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
+                    <input type="text" name="satuan" id="satuan" value="{{ $creatingRecord ? old('satuan') : '' }}" required class="w-full px-4 py-2.5 text-sm bg-white border border-latte/60 rounded-xl focus:ring-2 focus:ring-caramel/30 focus:border-caramel outline-none transition" placeholder="gram">
+                    @if ($creatingRecord) @error('satuan') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror @endif
                 </div>
                 <div class="w-full">
                     <label for="stok" class="block text-sm font-semibold text-espresso mb-1.5">Stok Awal <span class="text-red-500">*</span></label>
-                    <input type="number" name="stok" id="stok" value="{{ old('stok', 0) }}" required min="0" step="0.01" class="w-full px-4 py-2.5 text-sm bg-white border border-latte/60 rounded-xl focus:ring-2 focus:ring-caramel/30 focus:border-caramel outline-none transition" placeholder="0">
-                    @error('stok') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
+                    <input type="number" name="stok" id="stok" value="{{ $creatingRecord ? old('stok', 0) : 0 }}" required min="0" step="0.01" class="w-full px-4 py-2.5 text-sm bg-white border border-latte/60 rounded-xl focus:ring-2 focus:ring-caramel/30 focus:border-caramel outline-none transition" placeholder="0">
+                    @if ($creatingRecord) @error('stok') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror @endif
                 </div>
                 <button type="submit" class="inline-flex w-full justify-center items-center gap-2 rounded-xl bg-espresso px-5 py-2.5 text-sm font-semibold text-cream transition-all hover:bg-espresso-light hover:shadow-md sm:col-span-2 xl:col-span-1 xl:w-auto">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>

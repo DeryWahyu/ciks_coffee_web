@@ -10,6 +10,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @include('components.user-messages')
     <style>
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(8px); }
@@ -262,6 +263,7 @@
                         <p class="text-red-700 text-sm">{{ session('error') }}</p>
                     </div>
                 @endif
+                @include('components.validation-summary')
                 @yield('content')
             </div>
         </main>

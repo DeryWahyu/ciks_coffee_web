@@ -174,7 +174,7 @@ class OrderController extends Controller
     {
         // Ensure the order belongs to the authenticated user
         if ($request->user()->role !== User::ROLE_PENGGUNA || $order->user_id !== $request->user()->id) {
-            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+            return response()->json(['success' => false, 'message' => 'Anda tidak memiliki akses ke pesanan ini.'], 403);
         }
 
         return DB::transaction(function () use ($order) {

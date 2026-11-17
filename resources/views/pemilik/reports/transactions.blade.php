@@ -154,10 +154,8 @@
 @push('scripts')
 <script>
     function viewReceipt(orderId) {
-        fetch(`/pemilik/reports/transactions/${orderId}/receipt`, {headers: {'Accept':'application/json'}}).then(async response => {
-            if (!response.ok) throw new Error('Struk tidak dapat dimuat. Periksa akses atau sesi Anda.');
-            return response.json();
-        }).then(data => {
+        return fetch(`/pemilik/reports/transactions/${orderId}/receipt`, {headers: {'Accept':'application/json'}})
+            .then(response => window.CiksErrors.readJson(response, 'Struk belum dapat dimuat. Silakan coba lagi.')).then(data => {
             document.getElementById('rcpt-number').textContent = data.order_number;
             document.getElementById('rcpt-customer').textContent = data.customer_name;
             document.getElementById('rcpt-cashier').textContent = data.cashier;
@@ -182,13 +180,16 @@
                 document.getElementById('rcpt-change-row').classList.add('hidden');
             }
             document.getElementById('receipt-modal').classList.remove('hidden');
-        }).catch(error => window.CiksAlert.notify(error.message, 'error', 'Struk tidak tersedia'));
+        }).catch(error => window.CiksAlert.notify(window.CiksErrors.message(error, 'Struk belum dapat dimuat. Silakan coba lagi.'), 'error', 'Struk tidak tersedia'));
     }
     function closeReceipt() { document.getElementById('receipt-modal').classList.add('hidden'); }
     function printReceipt() {
         const content = document.getElementById('receipt-content').innerHTML;
         const w = window.open('', '_blank', 'width=320,height=600');
-        if (!w) return;
+        if (!w) {
+            window.CiksAlert.notify('Jendela cetak diblokir browser. Izinkan pop-up untuk situs ini lalu tekan Cetak kembali.', 'warning', 'Cetak belum dapat dibuka');
+            return;
+        }
         w.document.write(`<html><head><title>Struk</title><style>body{font-family:monospace,sans-serif;font-size:12px;padding:10px;max-width:280px;margin:0 auto}h3{margin:0;font-size:16px;text-align:center}.flex{display:flex;justify-content:space-between}.border-t,.border-b{border-top:1px dashed #ccc;padding-top:8px;margin-top:8px}.mb-4{margin-bottom:12px}.font-bold{font-weight:bold}.space-y-1>*+*{margin-top:4px}.space-y-2>*+*{margin-top:6px}span{display:inline-block}@media print{body{padding:0}}</style></head><body>${content}<div class="text-center border-t" style="margin-top:12px;padding-top:8px;text-align:center"><small>*** Terima Kasih ***</small></div></body></html>`);
         w.document.close();
         Promise.all(Array.from(w.document.images, image => image.decode().catch(() => {}))).then(() => {

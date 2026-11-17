@@ -1,4 +1,5 @@
 import { createOrderQueueSync } from './order-queue-sync.js';
+import { createAdaptivePoller } from './adaptive-poller.js';
 
 const queue = document.querySelector('[data-order-queue-revision]');
 
@@ -73,13 +74,24 @@ if (queue) {
         onError: () => message('Antrean belum tersambung. Pembaruan akan dicoba kembali.', true),
         onExpired: () => message('Sesi berakhir. Silakan masuk ulang untuk memperbarui antrean.', true),
     });
-    const check = () => { if (!document.hidden) sync.refresh(); };
-    window.addEventListener('ciks:order-queue-updated', check);
-    window.addEventListener('ciks:mobile-order-received', check);
+    const check = () => { if (!document.hidden) return sync.refresh(); };
+    let eventTimer;
+    const requestCheck = () => {
+        clearTimeout(eventTimer);
+        eventTimer = setTimeout(check, 100);
+    };
+    window.addEventListener('ciks:order-queue-updated', requestCheck);
+    window.addEventListener('ciks:mobile-order-received', requestCheck);
     window.addEventListener('online', check);
     window.addEventListener('focus', check);
     document.addEventListener('visibilitychange', check);
-    const timer = window.setInterval(check, 5000);
-    window.addEventListener('pagehide', () => { clearInterval(timer); sync.stop(); });
+    const polling = createAdaptivePoller({ task: check });
+    polling.setConnected(window.CiksRealtimeConnected);
+    polling.start();
+    window.addEventListener('ciks:realtime-state', event => {
+        polling.setConnected(event.detail?.connected);
+        requestCheck();
+    });
+    window.addEventListener('pagehide', () => { clearTimeout(eventTimer); polling.stop(); sync.stop(); });
     check();
 }

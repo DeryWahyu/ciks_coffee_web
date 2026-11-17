@@ -3,9 +3,9 @@ FROM php:8.3.36-fpm-bookworm@sha256:6b4641a875dd3e0f7551b2751e1f5909084856d18166
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates curl nginx supervisor cron mariadb-client python3 util-linux \
-    libfreetype6-dev libjpeg62-turbo-dev libpng-dev libicu-dev libzip-dev libsqlite3-dev libonig-dev \
-    && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install -j2 bcmath ctype mbstring pcntl pdo_mysql pdo_sqlite gd intl zip \
+    libfreetype6-dev libjpeg62-turbo-dev libpng-dev libwebp-dev libicu-dev libzip-dev libsqlite3-dev libonig-dev \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
+    && docker-php-ext-install -j2 bcmath ctype exif mbstring pcntl pdo_mysql pdo_sqlite gd intl zip \
     && rm -rf /var/lib/apt/lists/* \
     && useradd --system --create-home --home-dir /var/lib/cikscoffee --gid www-data cikscoffee \
     && install -d -m 0755 /run/php /run/lock /usr/local/lib/cikscoffee \

@@ -238,23 +238,32 @@ if (config?.userId) {
     if (state.enabled && !state.muted) unlockSound();
     updateUi(); updateConnection();
     feed?.start();
+    const setRealtime = connected => {
+        state.realtimeConnected = connected;
+        window.CiksRealtimeConnected = connected;
+        feed?.setRealtimeConnected(connected);
+        updateConnection();
+        window.dispatchEvent(new CustomEvent('ciks:realtime-state', { detail: { connected } }));
+    };
     try {
         const echo = window.createCiksEcho?.(config.reverb);
         const channel = echo?.private('karyawan.orders');
         channel?.listen('.mobile-order.created', handleOrder);
         const updateQueue = payload => window.dispatchEvent(new CustomEvent('ciks:order-queue-updated', { detail: payload }));
         channel?.listen('.order-queue.updated', updateQueue);
-        channel?.subscribed?.(() => { feed?.poll(); updateQueue(); });
+        channel?.subscribed?.(() => { setRealtime(true); feed?.poll(); updateQueue(); });
+        channel?.error?.(() => { setRealtime(false); feed?.poll(); });
         const connection = echo?.connector?.pusher?.connection;
         connection?.bind('connected', () => {
-            state.realtimeConnected = true; updateConnection(); feed?.poll(); updateQueue();
+            setRealtime(false); feed?.poll(); updateQueue();
         });
-        const disconnected = () => { state.realtimeConnected = false; updateConnection(); feed?.poll(); };
+        const disconnected = () => { setRealtime(false); feed?.poll(); };
         connection?.bind('disconnected', disconnected);
         connection?.bind('unavailable', disconnected);
         connection?.bind('error', disconnected);
+        connection?.bind('state_change', change => { if (change.current !== 'connected') disconnected(); });
     } catch {
         // Polling remains active even if a WebSocket cannot be constructed.
-        state.realtimeConnected = false; updateConnection();
+        setRealtime(false);
     }
 }

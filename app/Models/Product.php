@@ -28,6 +28,11 @@ class Product extends Model
 {
     use HasFactory;
 
+    public function imageSources(): array
+    {
+        return app(\App\Services\ImageVariants::class)->productSources($this->image);
+    }
+
     protected $fillable = [
         'category_id',
         'name',

@@ -10,6 +10,7 @@ use App\Models\ShopSetting;
 use App\Models\User;
 use App\Services\CheckoutService;
 use App\Support\Decimal;
+use App\Support\PrivateSnapshot;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -44,16 +45,16 @@ class PosController extends Controller
     }
 
     /** A single snapshot also refreshes products that share ingredients. */
-    public function stock()
+    public function stock(Request $request)
     {
         $products = Product::with(['category', 'ingredients'])
             ->where('is_active', true)
             ->whereHas('category', fn ($query) => $query->where('is_active', true))
             ->orderBy('id')->get();
 
-        return response()->json([
+        return PrivateSnapshot::response($request, [
             'products' => $products->mapWithKeys(fn (Product $product) => [$product->id => $this->stockData($product)]),
-        ])->header('Cache-Control', 'no-store, private');
+        ]);
     }
 
     /**
@@ -68,7 +69,7 @@ class PosController extends Controller
             ...$this->stockData($product),
             'name' => $product->name,
             'description' => $product->description,
-            'image' => $product->image ? asset('storage/'.$product->image) : null,
+            'image' => $product->imageSources()['src'],
             'price' => $product->price,
             'formatted_price' => $product->formatted_price,
             'formatted_price_lite' => $product->formatted_price_lite,

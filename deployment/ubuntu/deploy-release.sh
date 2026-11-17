@@ -75,6 +75,7 @@ maintenance=1
 (cd "$app" && runuser -u www-data -- php artisan down --retry=15 --no-interaction)
 supervisorctl stop cikscoffee-queue cikscoffee-reverb
 runuser -u www-data -- php artisan migrate --force --no-interaction
+runuser -u www-data -- php artisan media:optimize --no-interaction
 runuser -u www-data -- php artisan optimize --no-interaction
 ln -s "$release" "$app.next"
 mv -Tf -- "$app.next" "$app"

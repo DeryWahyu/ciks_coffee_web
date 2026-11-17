@@ -19,28 +19,11 @@ use App\Http\Controllers\Pemilik\SettingController;
 use App\Http\Controllers\Pemilik\TableController as PemilikTableController;
 use App\Http\Controllers\Pemilik\UserController;
 use App\Http\Middleware\CheckRole;
-use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Route;
 
-// Serve storage files with CORS for Flutter Web local development
-Route::get('/storage/{path}', function ($path) {
-    $filePath = storage_path('app/public/'.$path);
-    $realPath = realpath($filePath);
-    $basePath = realpath(storage_path('app/public'));
-
-    if (! $realPath || ! $basePath || ! str_starts_with($realPath, $basePath.DIRECTORY_SEPARATOR)) {
-        abort(404);
-    }
-
-    $file = file_get_contents($realPath);
-    $type = mime_content_type($realPath);
-
-    return Response::make($file, 200, [
-        'Content-Type' => $type,
-        'Access-Control-Allow-Origin' => config('app.url'),
-        'Access-Control-Allow-Methods' => 'GET, OPTIONS',
-    ]);
-})->where('path', '.*');
+// Public files have no session cookie; private proof files are never served here.
+Route::get('/storage/{path}', \App\Http\Controllers\PublicAssetController::class)
+    ->where('path', '.*')->withoutMiddleware('web');
 
 /*
 |--------------------------------------------------------------------------

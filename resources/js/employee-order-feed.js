@@ -1,8 +1,10 @@
-/** A full scan avoids losing late commits, reconnects, or a blocked WebSocket. */
+import { createAdaptivePoller } from './adaptive-poller.js';
+
+/** Full recovery scans still include late commits and missed websocket messages. */
 export function createOrderFeed({ url, receive, reconcile, onStatus = () => {}, onExpired = () => {},
     fetcher = (...args) => fetch(...args), interval = 5000 }) {
     let checking = false;
-    let timer;
+    let started = false;
     let controller;
     let stopped = false;
 
@@ -46,13 +48,15 @@ export function createOrderFeed({ url, receive, reconcile, onStatus = () => {}, 
 
     function stop() {
         stopped = true;
-        clearInterval(timer);
+        polling.stop();
         controller?.abort();
     }
 
+    const polling = createAdaptivePoller({ task: poll, interval });
     return {
         poll,
-        start() { if (timer || stopped) return; poll(); timer = setInterval(poll, interval); },
+        start() { if (started || stopped) return; started = true; poll(); polling.start(); },
+        setRealtimeConnected(connected) { polling.setConnected(connected); },
         stop,
     };
 }

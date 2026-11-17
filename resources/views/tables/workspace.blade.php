@@ -434,15 +434,18 @@
             && elements.tableModal.classList.contains('hidden') && elements.statusModal.classList.contains('hidden');
     }
 
+    let liveTag = null;
     async function refreshLiveData() {
         if (liveBusy || !canRefreshLiveData()) return;
         if (!state.data) { loadData({ quiet: true }); return; }
         const epoch = liveEpoch;
         liveBusy = true;
         try {
-            const response = await fetch(endpoints.data, { cache: 'no-store', headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(8000) });
+            const response = await fetch(endpoints.data, { cache: 'no-store', headers: { Accept: 'application/json', ...(liveTag ? {'If-None-Match': liveTag} : {}) }, signal: AbortSignal.timeout(8000) });
+            if (response.status === 304) return;
             const payload = await response.json();
             if (!response.ok || !payload?.success || epoch !== liveEpoch || !canRefreshLiveData()) return;
+            liveTag = response.headers.get('ETag');
             state.data = payload.data;
             if (!findTable(state.selectedId)) state.selectedId = null;
             state.clean = snapshot();

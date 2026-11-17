@@ -52,10 +52,10 @@ abstract class TableManagementController extends Controller
 
         Gate::forUser($request->user())->authorize('manage', $floorLayout);
 
-        return response()->json([
+        return \App\Support\PrivateSnapshot::response($request, [
             'success' => true,
             'data' => TableLayoutPresenter::forStaff($floorLayout, true),
-        ])->header('Cache-Control', 'no-store, private');
+        ]);
     }
 
     /**

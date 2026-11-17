@@ -33,7 +33,8 @@ return [
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),
-            'serve' => true,
+            // Payment proofs and exports use authenticated application routes.
+            'serve' => false,
             'throw' => false,
             'report' => false,
         ],

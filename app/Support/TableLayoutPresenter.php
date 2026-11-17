@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Models\CoffeeTable;
 use App\Models\FloorLayout;
+use App\Services\ImageVariants;
 use Illuminate\Support\Collection;
 
 class TableLayoutPresenter
@@ -72,7 +73,7 @@ class TableLayoutPresenter
         $background = config('floor_plan.background');
         $backgroundImage = is_array($background) && is_file(public_path($background['path']))
             ? [
-                'url' => asset($background['path']),
+                'url' => app(ImageVariants::class)->floorUrl(),
                 'width' => $background['width'],
                 'height' => $background['height'],
                 'alt' => $background['alt'],

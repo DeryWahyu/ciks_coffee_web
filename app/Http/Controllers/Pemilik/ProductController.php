@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\Ingredient;
 use App\Models\Product;
+use App\Services\ImageVariants;
+use App\Support\PrivateSnapshot;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -49,12 +51,12 @@ class ProductController extends Controller
         ]);
         $products = Product::with(['category', 'ingredients'])->whereIn('id', $validated['ids'])->get();
 
-        return response()->json(['products' => $products->mapWithKeys(fn (Product $product) => [$product->id => [
+        return PrivateSnapshot::response($request, ['products' => $products->mapWithKeys(fn (Product $product) => [$product->id => [
             'stock_quantities' => $product->stockQuantities(),
             'is_coffee' => $product->category?->isCoffee() ?? false,
             'has_lite' => $product->hasLitePrice(),
             'is_active' => $product->is_active && (bool) $product->category?->is_active,
-        ]])])->header('Cache-Control', 'no-store, private');
+        ]])]);
     }
 
     /**
@@ -106,6 +108,7 @@ class ProductController extends Controller
             if (! $validated['image']) {
                 throw ValidationException::withMessages(['image' => 'Gambar produk gagal disimpan.']);
             }
+            $this->prepareImage($validated['image']);
         }
 
         $validated['is_active'] = $request->boolean('is_active', true);
@@ -173,6 +176,7 @@ class ProductController extends Controller
             if (! $validated['image']) {
                 throw ValidationException::withMessages(['image' => 'Gambar produk gagal disimpan.']);
             }
+            $this->prepareImage($validated['image']);
         }
 
         $category = Category::find($validated['category_id']);
@@ -226,9 +230,20 @@ class ProductController extends Controller
         return $validated;
     }
 
+    private function prepareImage(string $path): void
+    {
+        try {
+            app(ImageVariants::class)->prepareProduct($path);
+        } catch (\Throwable $exception) {
+            // A derivative must not prevent saving the original product image.
+            report($exception);
+        }
+    }
+
     private function deleteImage(string $path): void
     {
         try {
+            app(ImageVariants::class)->deleteProduct($path);
             Storage::disk('public')->delete($path);
         } catch (\Throwable $exception) {
             report($exception);

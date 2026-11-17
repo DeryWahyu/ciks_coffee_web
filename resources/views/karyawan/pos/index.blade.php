@@ -41,13 +41,13 @@
                      data-name="{{ $product->name }}"
                      data-price="{{ $product->price }}"
                      data-price-lite="{{ $product->price_lite }}"
-                     data-image="{{ $product->image ? '/storage/' . $product->image : '' }}"
+                     data-image="{{ $product->imageSources()['src'] ?? '' }}"
                      data-category="{{ $product->category_id }}"
                      data-is-coffee="{{ $product->category->isCoffee() ? '1' : '0' }}"
                      onclick="showProductDetail(this)">
                     <div class="relative w-full shrink-0 aspect-square bg-latte/20 overflow-hidden">
                         @if ($product->image)
-                            <img src="{{ '/storage/' . $product->image }}" alt="{{ $product->name }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                            <x-product-image :product="$product" sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 320px" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                         @else
                             <div class="w-full h-full flex items-center justify-center">
                                 <svg class="w-10 h-10 text-caramel/30" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5a2.25 2.25 0 002.25-2.25V5.25a2.25 2.25 0 00-2.25-2.25H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21z"/></svg>
@@ -424,13 +424,18 @@
         });
         updateModalStock();
     }
+    let productStockTag = null;
     async function refreshProductStocks() {
         const version = ++stockRefreshVersion;
         try {
-            const response = await fetch(stockUrl, {headers: {'Accept': 'application/json'}, cache: 'no-store', signal: AbortSignal.timeout(8000)});
+            const headers = { Accept: 'application/json' };
+            if (productStockTag) headers['If-None-Match'] = productStockTag;
+            const response = await fetch(stockUrl, {headers, cache: 'no-store', signal: AbortSignal.timeout(8000)});
+            if (response.status === 304) return version === stockRefreshVersion;
             if (!response.ok) return false;
             const data = await response.json();
             if (version !== stockRefreshVersion) return false;
+            productStockTag = response.headers.get('ETag');
             productStocks = data.products;
             ingredientStocks.clear();
             Object.values(productStocks).forEach(rememberStock);

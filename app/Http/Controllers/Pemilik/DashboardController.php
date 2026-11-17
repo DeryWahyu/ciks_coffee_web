@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
+use App\Support\SalesStatistics;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -22,34 +23,27 @@ class DashboardController extends Controller
         $totalKaryawan = User::where('role', 'karyawan')->where('is_active', true)->count();
         $totalProducts = Product::where('is_active', true)->count();
 
-        $todayOrders = Order::whereDate('created_at', $today)->count();
-        $todayRevenue = Order::visibleInTransactionHistory()->whereDate('created_at', $today)->sum('total');
+        $todayOrders = Order::where('created_at', '>=', $today)->where('created_at', '<', $today->copy()->addDay())->count();
+        $todayRevenue = SalesStatistics::totals($today, $today)->revenue;
         $pendingOrders = Order::activeQueue()->count();
 
         // This month stats
         $monthStart = $today->copy()->startOfMonth();
-        $monthRevenue = Order::visibleInTransactionHistory()
-            ->whereDate('created_at', '>=', $monthStart)
-            ->sum('total');
-        $monthOrders = Order::visibleInTransactionHistory()
-            ->whereDate('created_at', '>=', $monthStart)
-            ->count();
+        $monthStats = SalesStatistics::totals($monthStart);
+        $monthRevenue = $monthStats->revenue;
+        $monthOrders = $monthStats->orders_count;
 
         // Last 7 days chart data
         $last7Days = collect();
+        $dailyStats = SalesStatistics::daily($today->copy()->subDays(6), $today);
         for ($i = 6; $i >= 0; $i--) {
             $date = $today->copy()->subDays($i);
-            $revenue = Order::visibleInTransactionHistory()
-                ->whereDate('created_at', $date)
-                ->sum('total');
-            $orders = Order::visibleInTransactionHistory()
-                ->whereDate('created_at', $date)
-                ->count();
+            $stats = $dailyStats->get($date->toDateString());
             $last7Days->push([
                 'date' => $date->translatedFormat('d M'),
                 'day' => $date->translatedFormat('D'),
-                'revenue' => (float) $revenue,
-                'orders' => $orders,
+                'revenue' => (float) ($stats?->revenue ?? 0),
+                'orders' => (int) ($stats?->orders_count ?? 0),
             ]);
         }
 
@@ -58,7 +52,7 @@ class DashboardController extends Controller
             ->join('orders', 'order_items.order_id', '=', 'orders.id')
 
             ->whereIn('orders.id', Order::visibleInTransactionHistory()->select('orders.id'))
-            ->whereDate('orders.created_at', '>=', $monthStart)
+            ->where('orders.created_at', '>=', $monthStart)
             ->select('order_items.product_name', DB::raw('SUM(order_items.quantity) as total_qty'))
             ->groupBy('order_items.product_name')
             ->orderByDesc('total_qty')
@@ -73,7 +67,7 @@ class DashboardController extends Controller
 
         // Payment method distribution this month
         $paymentStats = Order::visibleInTransactionHistory()
-            ->whereDate('created_at', '>=', $monthStart)
+            ->where('created_at', '>=', $monthStart)
             ->select('payment_method', DB::raw('COUNT(*) as count'), DB::raw('SUM(total) as total'))
             ->groupBy('payment_method')
             ->get();

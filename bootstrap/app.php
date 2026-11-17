@@ -13,6 +13,8 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->appendToGroup('web', \App\Http\Middleware\PrivateResponse::class);
+        $middleware->appendToGroup('api', \App\Http\Middleware\PrivateResponse::class);
         $middleware->redirectGuestsTo('/login');
         $middleware->redirectUsersTo(function ($request) {
             $user = $request->user();

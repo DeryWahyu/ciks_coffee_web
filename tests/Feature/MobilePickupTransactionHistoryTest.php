@@ -108,7 +108,7 @@ class MobilePickupTransactionHistoryTest extends TestCase
         foreach ([$waiting, $pickedUp, $pos] as $order) {
             $order->items()->create(['product_id' => $product->id, 'product_name' => $product->name, 'quantity' => 1, 'price' => $order->total, 'subtotal' => $order->total]);
         }
-        $csv = $this->actingAs($owner, 'web')->get(route('pemilik.exports.csv'))->assertOk()->streamedContent();
+        $csv = $this->actingAs($owner, 'web')->get(route('pemilik.exports.csv', ['scope' => 'sales']))->assertOk()->streamedContent();
         $this->assertStringNotContainsString($waiting->order_number, $csv);
         $this->assertStringContainsString($pickedUp->order_number, $csv);
         $this->assertStringContainsString($pos->order_number, $csv);

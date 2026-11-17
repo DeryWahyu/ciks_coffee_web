@@ -129,7 +129,7 @@ class PosConsistencyAuditTest extends TestCase
             ->assertViewHas('kpi', fn ($stats) => (float) $stats['revenue']['current'] === 15000.0);
         $this->get(route('pemilik.performance.employees'))->assertOk()->assertViewHas('grandTotal', 15000);
         $this->get(route('pemilik.performance.products'))->assertOk()->assertViewHas('totalRevenue', 15000);
-        $csv = $this->get(route('pemilik.exports.csv'))->assertOk()->streamedContent();
+        $csv = $this->get(route('pemilik.exports.csv', ['scope' => 'sales']))->assertOk()->streamedContent();
         $this->assertStringContainsString($pos->order_number, $csv);
         $this->assertStringNotContainsString($waiting->order_number, $csv);
     }

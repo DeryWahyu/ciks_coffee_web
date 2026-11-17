@@ -172,6 +172,7 @@
             sectionBase.classList.add('hidden');
             sectionLite.classList.add('hidden');
         }
+        window.CiksProductIngredients?.syncSections();
     }
 
     function previewImage(input) {
@@ -193,47 +194,6 @@
         if (select.value) toggleLitePrice(select);
     });
 
-    // === Ingredient Rows (variant-aware) ===
-    const ingredientsData = @json($ingredients);
-    let ingredientIndex = 0;
-
-    function getFieldName(variant) {
-        if (variant === 'base') return 'ingredients_base';
-        if (variant === 'lite') return 'ingredients_lite';
-        return 'ingredients';
-    }
-
-    function addIngredientRow(variant, selectedId = '', selectedQty = '') {
-        const container = document.getElementById('ingredients-container-' + variant);
-        const idx = ingredientIndex++;
-        const fieldName = getFieldName(variant);
-        const row = document.createElement('div');
-        row.className = 'flex items-center gap-3';
-        row.id = 'ingredient-row-' + idx;
-
-        let options = '<option value="">Pilih Bahan Baku</option>';
-        ingredientsData.forEach(ing => {
-            const sel = ing.id == selectedId ? 'selected' : '';
-            options += `<option value="${ing.id}" ${sel}>${ing.nama_bahan} (${ing.satuan})</option>`;
-        });
-
-        row.innerHTML = `
-            <div class="flex-1">
-                <select name="${fieldName}[${idx}][id]" required class="w-full px-3 py-2 text-sm bg-white border border-latte/60 rounded-xl focus:ring-2 focus:ring-caramel/30 focus:border-caramel outline-none transition">${options}</select>
-            </div>
-            <div class="w-32">
-                <input type="number" name="${fieldName}[${idx}][quantity]" value="${selectedQty}" required min="0.01" step="0.01" placeholder="Takaran" class="w-full px-3 py-2 text-sm bg-white border border-latte/60 rounded-xl focus:ring-2 focus:ring-caramel/30 focus:border-caramel outline-none transition">
-            </div>
-            <button type="button" onclick="removeIngredientRow(${idx})" class="p-2 rounded-lg text-red-400 hover:bg-red-50 hover:text-red-600 transition shrink-0">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
-            </button>
-        `;
-        container.appendChild(row);
-    }
-
-    function removeIngredientRow(idx) {
-        const row = document.getElementById('ingredient-row-' + idx);
-        if (row) row.remove();
-    }
 </script>
+@include('pemilik.products.partials.ingredient-editor')
 @endpush

@@ -4,10 +4,12 @@ namespace App\Http\Controllers\Pemilik;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
+use App\Services\SystemExportService;
 use App\Support\ReportDateRange;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -52,6 +54,28 @@ class ExportController extends Controller
         return view('pemilik.exports.index');
     }
 
+    private function validateFilters(Request $request): array
+    {
+        ReportDateRange::validate($request, 'date_from', 'date_to');
+
+        return $request->validate([
+            'scope' => ['sometimes', 'required', 'in:all,sales'],
+            'date_from' => ['nullable', 'date_format:Y-m-d'],
+            'date_to' => ['nullable', 'date_format:Y-m-d'],
+            'payment_method' => ['nullable', 'in:all,cash,qris'],
+        ]);
+    }
+
+    private function fullExport(string $format, array $filters)
+    {
+        $file = app(SystemExportService::class)->generate($format, $filters);
+
+        return response()->download(Storage::disk(config('exports.disk'))->path($file['path']), $file['filename'], [
+            'Content-Type' => $file['mime'], 'Cache-Control' => 'private, no-store',
+            'X-Content-Type-Options' => 'nosniff',
+        ])->setPrivate()->deleteFileAfterSend(true);
+    }
+
     /**
      * Build the filtered query based on request parameters.
      */
@@ -78,6 +102,10 @@ class ExportController extends Controller
      */
     public function exportCsv(Request $request)
     {
+        $filters = $this->validateFilters($request);
+        if (($filters['scope'] ?? 'all') === 'all') {
+            return $this->fullExport('csv', $filters);
+        }
         $orders = $this->buildQuery($request)->get();
 
         $filename = 'laporan_penjualan_'.now()->format('Y-m-d_His').'.csv';
@@ -85,6 +113,7 @@ class ExportController extends Controller
         $headers = [
             'Content-Type' => 'text/csv; charset=UTF-8',
             'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+            'Cache-Control' => 'private, no-store',
         ];
 
         $callback = function () use ($orders) {
@@ -118,6 +147,10 @@ class ExportController extends Controller
      */
     public function exportExcel(Request $request)
     {
+        $filters = $this->validateFilters($request);
+        if (($filters['scope'] ?? 'all') === 'all') {
+            return $this->fullExport('excel', $filters);
+        }
         $orders = $this->buildQuery($request)->get();
 
         $spreadsheet = new Spreadsheet;
@@ -173,6 +206,7 @@ class ExportController extends Controller
             $writer->save('php://output');
         }, $filename, [
             'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Cache-Control' => 'private, no-store',
         ]);
     }
 
@@ -181,6 +215,10 @@ class ExportController extends Controller
      */
     public function exportPdf(Request $request)
     {
+        $filters = $this->validateFilters($request);
+        if (($filters['scope'] ?? 'all') === 'all') {
+            return $this->fullExport('pdf', $filters);
+        }
         $orders = $this->buildQuery($request)->get();
 
         $dateFrom = $request->date_from ? Carbon::parse($request->date_from)->format('d/m/Y') : 'Semua';
@@ -192,6 +230,6 @@ class ExportController extends Controller
 
         $filename = 'laporan_penjualan_'.now()->format('Y-m-d_His').'.pdf';
 
-        return $pdf->download($filename);
+        return $pdf->download($filename)->header('Cache-Control', 'private, no-store');
     }
 }

@@ -25,7 +25,7 @@ class PemilikExportFormulaInjectionTest extends TestCase
             $this->makeCompletedOrder($owner, $customer, $category, "{$prefix}pelanggan", "{$prefix}produk");
         }
 
-        $response = $this->actingAs($owner)->get(route('pemilik.exports.csv'));
+        $response = $this->actingAs($owner)->get(route('pemilik.exports.csv', ['scope' => 'sales']));
 
         $response->assertOk();
         $rows = array_map(
@@ -48,7 +48,7 @@ class PemilikExportFormulaInjectionTest extends TestCase
         $category = Category::create(['name' => 'Minuman', 'is_active' => true]);
         $this->makeCompletedOrder($owner, $customer, $category, '=pelanggan', '@produk');
 
-        $response = $this->actingAs($owner)->get(route('pemilik.exports.excel'));
+        $response = $this->actingAs($owner)->get(route('pemilik.exports.excel', ['scope' => 'sales']));
         $response->assertOk();
 
         $temporaryFile = tempnam(sys_get_temp_dir(), 'ciks-export-');

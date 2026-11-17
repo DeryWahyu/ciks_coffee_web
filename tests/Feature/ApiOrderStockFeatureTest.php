@@ -146,7 +146,7 @@ class ApiOrderStockFeatureTest extends TestCase
 
         Sanctum::actingAs($user);
 
-        $this->postJson('/api/orders', [
+        $this->postMobileOrder([
             'payment_method' => 'qris',
             'items' => [['product_id' => $product->id, 'quantity' => 1]],
         ])
@@ -169,11 +169,11 @@ class ApiOrderStockFeatureTest extends TestCase
 
         Sanctum::actingAs($user);
 
-        $this->post('/api/orders', [
+        $this->postMobileOrder([
             'payment_method' => 'qris',
             'items' => [['product_id' => $product->id, 'quantity' => 1]],
             'payment_proof' => UploadedFile::fake()->image('bukti-qris.png'),
-        ], ['Accept' => 'application/json'])
+        ])
             ->assertCreated()
             ->assertJsonPath('success', true)
             ->assertJsonPath('order.status', 'menunggu_verifikasi');
@@ -203,10 +203,10 @@ class ApiOrderStockFeatureTest extends TestCase
         Sanctum::actingAs($user);
 
         foreach (range(1, 5) as $_) {
-            $this->postJson('/api/orders', $payload + ['payment_proof' => UploadedFile::fake()->image('proof.png')])->assertCreated();
+            $this->postMobileOrder($payload + ['payment_proof' => UploadedFile::fake()->image('proof.png')])->assertCreated();
         }
 
-        $this->postJson('/api/orders', $payload)->assertTooManyRequests();
+        $this->postMobileOrder($payload)->assertTooManyRequests();
     }
 
     private function customer(): User
@@ -257,7 +257,7 @@ class ApiOrderStockFeatureTest extends TestCase
     {
         Sanctum::actingAs($user);
 
-        return $this->postJson('/api/orders', [
+        return $this->postMobileOrder([
             'payment_method' => 'qris',
             'payment_proof' => UploadedFile::fake()->image('proof.png'),
             'items' => $items,

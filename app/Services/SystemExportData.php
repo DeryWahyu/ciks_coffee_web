@@ -6,6 +6,7 @@ use App\Models\Category;
 use App\Models\CoffeeTable;
 use App\Models\FloorLayout;
 use App\Models\Ingredient;
+use App\Models\MobileCheckout;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\ShopSetting;
@@ -40,15 +41,30 @@ class SystemExportData
     /** Explicit business columns keep credentials, sessions and device tokens out of exports. */
     public function sections(array $filters): array
     {
+        $checkouts = function () use ($filters) {
+            $query = MobileCheckout::query();
+            if (! empty($filters['date_from'])) {
+                $query->where('created_at', '>=', $filters['date_from'].' 00:00:00');
+            }
+            if (! empty($filters['date_to'])) {
+                $query->where('created_at', '<', CarbonImmutable::parse($filters['date_to'])->addDay()->startOfDay());
+            }
+            if (($filters['payment_method'] ?? 'all') === 'cash') {
+                $query->whereRaw('1 = 0');
+            }
+
+            return $query;
+        };
         $orders = fn () => $this->orders($filters);
         $transactions = fn () => $this->orders($filters, true);
-        $orderColumns = ['ID Pesanan', 'No. Order', 'Tanggal', 'ID Pemesan', 'Pelanggan', 'Asal', 'ID Kasir', 'Kasir', 'Metode Bayar', 'Status', 'Masuk Riwayat', 'Total', 'Uang Diterima', 'Kembalian', 'Dibayar Pada', 'Bukti Pembayaran', 'Diperbarui Pada'];
+        $orderColumns = ['ID Pesanan', 'No. Order', 'Tanggal', 'ID Pemesan', 'Pelanggan', 'Asal', 'ID Kasir', 'Kasir', 'Metode Bayar', 'Status', 'Masuk Riwayat', 'Total', 'Uang Diterima', 'Kembalian', 'Dibayar Pada', 'Bukti Pembayaran', 'Diperbarui Pada', 'Kendala Pembayaran', 'Catatan Penyelesaian', 'Diselesaikan Pada', 'ID Petugas Penyelesaian'];
         $orderRows = fn ($query) => $query->with(['user:id,name,role', 'cashier:id,name'])->lazyById(250)->map(fn ($o) => [
             $o->id, $o->order_number, $o->created_at?->toDateTimeString(), $o->user_id,
             $o->customer_name, $o->order_source_label, $o->cashier_id, $o->cashier?->name,
             $o->payment_method, $o->status, $o->isPosOrder() || $o->status === 'diambil' ? 'Ya' : 'Belum',
             $o->total, $o->cash_received, $o->change_amount, $o->paid_at?->toDateTimeString(),
             $o->payment_proof, $o->updated_at?->toDateTimeString(),
+            $o->payment_review_reason, $o->payment_resolution_note, $o->payment_resolved_at?->toDateTimeString(), $o->payment_resolved_by,
         ]);
 
         return [
@@ -84,9 +100,20 @@ class SystemExportData
                 'headers' => ['ID', 'ID Pesanan', 'ID Item', 'ID Bahan', 'Bahan', 'Jumlah Terpakai', 'Satuan'],
                 'rows' => fn () => DB::table('order_item_ingredients as used')
                     ->join('order_items as i', 'i.id', '=', 'used.order_item_id')->join('ingredients as b', 'b.id', '=', 'used.ingredient_id')
+                    ->join('orders as usage_order', 'usage_order.id', '=', 'i.order_id')
+                    ->whereNotNull('usage_order.paid_at')
+                    ->whereIn('usage_order.status', ['antrian_baru', 'sedang_dibuat', 'selesai', 'diambil'])
                     ->whereIn('i.order_id', $orders()->select('orders.id'))
-                    ->select('used.id', 'i.order_id', 'used.order_item_id', 'used.ingredient_id', 'b.nama_bahan', 'used.quantity', 'b.satuan')
+                    ->select('used.id', 'i.order_id', 'used.order_item_id', 'used.ingredient_id', 'b.nama_bahan', DB::raw('used.quantity * i.quantity as quantity'), 'b.satuan')
                     ->orderBy('used.id')->lazy(250)->map(fn ($r) => array_values((array) $r)),
+            ],
+            'sesi_pembayaran' => [
+                'title' => 'Sesi Pembayaran', 'headers' => ['ID Sesi', 'ID Pelanggan', 'ID Pesanan', 'Total', 'Status', 'Reservasi Sampai', 'Dibuat Pada'],
+                'rows' => fn () => $checkouts()->orderBy('created_at')->lazy(250)->map(fn ($q) => [$q->id, $q->user_id, $q->order_id, $q->total, $q->status, $q->expires_at?->toDateTimeString(), $q->created_at?->toDateTimeString()]),
+            ],
+            'reservasi_bahan' => [
+                'title' => 'Reservasi Bahan', 'headers' => ['ID', 'ID Sesi', 'ID Bahan', 'Jumlah Reservasi', 'Reservasi Sampai', 'Dilepas Pada'],
+                'rows' => fn () => DB::table('checkout_reservations')->whereIn('mobile_checkout_id', $checkouts()->select('id'))->orderBy('id')->lazy(250)->map(fn ($r) => [$r->id, $r->mobile_checkout_id, $r->ingredient_id, $r->quantity, $r->expires_at, $r->released_at]),
             ],
             'produk' => [
                 'title' => 'Produk',

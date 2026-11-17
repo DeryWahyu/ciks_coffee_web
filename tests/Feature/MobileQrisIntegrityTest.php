@@ -12,6 +12,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -39,6 +40,8 @@ class MobileQrisIntegrityTest extends TestCase
         $bytes = file_get_contents($image->getRealPath());
         Sanctum::actingAs($this->user('pengguna'));
         $payload = ['payment_method' => 'qris', 'items' => [['product_id' => $product->id, 'quantity' => 1]]];
+        $payload['checkout_id'] = $this->postJson('/api/checkouts', ['request_key' => (string) Str::uuid(),
+            'items' => $payload['items']])->assertCreated()->json('data.id');
         $first = $this->postJson('/api/orders', $payload + [
             'payment_proof' => UploadedFile::fake()->createWithContent('proof.png', $bytes),
         ])->assertCreated();
@@ -53,7 +56,7 @@ class MobileQrisIntegrityTest extends TestCase
         $payload['items'][0]['quantity'] = 2;
         $this->postJson('/api/orders', $payload + [
             'payment_proof' => UploadedFile::fake()->createWithContent('proof.png', $bytes),
-        ])->assertUnprocessable()->assertJsonValidationErrors('payment_proof');
+        ])->assertUnprocessable()->assertJsonValidationErrors('items');
         $this->assertDatabaseCount('orders', 1);
         Storage::disk('local')->assertExists(Order::firstOrFail()->payment_proof);
     }

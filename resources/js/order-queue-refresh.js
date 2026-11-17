@@ -32,7 +32,10 @@ if (queue) {
         const retained = new Set();
         candidates.forEach((candidate, index) => {
             const old = current.get(candidate.dataset.orderId || 'empty');
-            const node = old?.isEqualNode(candidate) ? old : document.importNode(candidate, true);
+            const comparable = old?.cloneNode(true);
+            // Opening a resolution form is local UI state, not a changed order.
+            comparable?.querySelectorAll('details[open]').forEach(detail => detail.removeAttribute('open'));
+            const node = comparable?.isEqualNode(candidate) ? old : document.importNode(candidate, true);
             if (old && old !== node) old.replaceWith(node);
             retained.add(node);
             if (list.children[index] !== node) list.insertBefore(node, list.children[index] || null);

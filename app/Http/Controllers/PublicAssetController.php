@@ -15,6 +15,8 @@ class PublicAssetController extends Controller
         $root = realpath(Storage::disk('public')->path(''));
         $source = realpath(Storage::disk('public')->path($path));
         abort_unless($root && $source && str_starts_with($source, $root.DIRECTORY_SEPARATOR) && is_file($source), 404);
+        $relative = str_replace('\\', '/', substr($source, strlen($root) + 1));
+        abort_if(str_starts_with(strtolower($relative), 'payment_proofs/'), 404);
         $immutable = (bool) preg_match('~^optimized-media/(products|floor)/[a-f0-9]{64}-[0-9]+\.(webp|jpg)$~', $path);
         $response = response()->file($source, [
             'Cache-Control' => $immutable ? 'public, max-age=31536000, immutable' : 'public, max-age=86400',

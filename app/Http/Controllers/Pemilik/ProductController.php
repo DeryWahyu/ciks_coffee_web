@@ -320,7 +320,8 @@ class ProductController extends Controller
         $image = null;
         $deleted = DB::transaction(function () use ($product, &$image) {
             $locked = Product::query()->lockForUpdate()->findOrFail($product->id);
-            if (DB::table('order_items')->where('product_id', $locked->id)->exists()) {
+            if (DB::table('order_items')->where('product_id', $locked->id)->exists()
+                || DB::table('mobile_checkout_products')->where('product_id', $locked->id)->exists()) {
                 return false;
             }
             $image = $locked->image;

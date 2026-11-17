@@ -15,7 +15,8 @@ class CheckoutService
     public function prepare(array $items): array
     {
         $products = Product::query()
-            ->with(['category' => fn ($query) => $query->orderBy('id')->lockForUpdate()])
+            ->with(['category' => fn ($query) => $query->orderBy('id')->lockForUpdate(),
+                'ingredients' => fn ($query) => $query->orderBy('ingredients.id')->lockForUpdate()])
             ->whereIn('id', array_column($items, 'product_id'))
             ->orderBy('id')->lockForUpdate()->get()->keyBy('id');
         $total = 0;
@@ -60,13 +61,14 @@ class CheckoutService
         return ['items' => $prepared, 'total_units' => $total, 'requirements' => $requirements];
     }
 
-    public function lockIngredients(array $requirements): Collection
+    public function lockIngredients(array $requirements, ?string $exceptCheckout = null): Collection
     {
         $ingredients = Ingredient::query()->whereIn('id', array_keys($requirements))
             ->orderBy('id')->lockForUpdate()->get()->keyBy('id');
+        $reserved = ReservedStock::units(array_keys($requirements), $exceptCheckout);
         foreach ($requirements as $id => $required) {
             $ingredient = $ingredients->get($id);
-            if (! $ingredient || Decimal::units($ingredient->stok) < $required) {
+            if (! $ingredient || Decimal::units($ingredient->stok) - ($reserved[$id] ?? 0) < $required) {
                 $this->invalid('Stok bahan '.($ingredient?->nama_bahan ?? 'yang dipilih').' tidak cukup untuk seluruh pesanan.');
             }
         }
@@ -100,7 +102,7 @@ class CheckoutService
         $order->load('items.ingredients');
         $requirements = [];
         // Product locks are needed only when recovering an older, unsnapshotted order.
-        $legacyProducts = Product::query()->whereIn('id', $order->items
+        $legacyProducts = Product::query()->with(['ingredients' => fn ($query) => $query->orderBy('ingredients.id')->lockForUpdate()])->whereIn('id', $order->items
             ->filter(fn ($item) => $item->ingredients->isEmpty())->pluck('product_id'))
             ->orderBy('id')->lockForUpdate()->get()->keyBy('id');
         if ($order->items->isEmpty()) {

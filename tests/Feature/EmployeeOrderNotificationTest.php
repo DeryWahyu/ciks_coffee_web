@@ -70,7 +70,7 @@ class EmployeeOrderNotificationTest extends TestCase
         Event::fake([MobileOrderReceived::class]);
         [$product] = $this->product();
         Sanctum::actingAs($this->user('pengguna'));
-        $response = $this->postJson('/api/orders', ['payment_method' => 'qris',
+        $response = $this->postMobileOrder(['payment_method' => 'qris',
             'payment_proof' => UploadedFile::fake()->image('proof.png'),
             'items' => [['product_id' => $product->id, 'quantity' => 1]],
         ])->assertCreated();
@@ -85,7 +85,7 @@ class EmployeeOrderNotificationTest extends TestCase
         Event::listen(MobileOrderReceived::class, static fn () => throw new \RuntimeException('Test broadcast unavailable'));
         [$product] = $this->product();
         Sanctum::actingAs($this->user('pengguna'));
-        $response = $this->postJson('/api/orders', ['payment_method' => 'qris',
+        $response = $this->postMobileOrder(['payment_method' => 'qris',
             'payment_proof' => UploadedFile::fake()->image('proof.png'),
             'items' => [['product_id' => $product->id, 'quantity' => 1]],
         ])->assertCreated();

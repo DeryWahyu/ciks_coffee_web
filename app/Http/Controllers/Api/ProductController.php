@@ -35,6 +35,7 @@ class ProductController extends Controller
      */
     public function index(Request $request)
     {
+        abort_unless($request->header('X-Ciks-Checkout-Version') === '2', 426, 'Perbarui aplikasi Ciks Coffee untuk menggunakan pembayaran dengan harga dan stok terkunci.');
         $query = Product::query()
             ->with(['category:id,name,slug,is_active', 'ingredients'])
             ->where('is_active', true);

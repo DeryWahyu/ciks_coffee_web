@@ -41,13 +41,16 @@
                         @endforeach
                     </div>
                 </div>
-                <div class="flex flex-wrap items-center justify-end gap-2 shrink-0">
+                <div class="flex w-full min-w-0 flex-wrap items-center justify-end gap-2 sm:w-auto sm:max-w-md">
                     @if ($order->isMobileOrder() && $order->status === 'selesai')
                         <span class="px-3 py-2 text-xs font-semibold bg-green-50 text-green-700 rounded-lg">Menunggu pelanggan mengambil</span>
                     @endif
 
                     @if ($canHandleOrder)
                         @if ($order->status === 'menunggu_verifikasi')
+                            @if ($order->payment_review_reason)
+                                <p class="w-full text-xs text-espresso">{{ $order->payment_review_reason }}</p>
+                            @endif
                             {{-- View Payment Proof & Verify --}}
                             @if ($order->payment_proof)
                                 <button onclick='viewProof(@json(route('karyawan.orders.payment-proof', $order)), @json($order->order_number), @json($order->customer_name), @json($order->formatted_total))' class="px-3 py-2 text-xs font-semibold bg-orange-50 text-orange-600 hover:bg-orange-100 rounded-lg transition flex items-center gap-1.5">
@@ -62,6 +65,23 @@
                                     Validasi & Proses
                                 </button>
                             </form>
+                            <details class="w-full text-xs text-espresso">
+                                <summary class="cursor-pointer py-2">Selesaikan kendala pembayaran</summary>
+                                <form method="POST" action="{{ route('karyawan.orders.resolve-payment', $order) }}" class="space-y-2 pt-2">
+                                    @csrf @method('PATCH')
+                                    <label class="block">Tindakan
+                                        <select name="action" required class="block w-full rounded-lg border border-latte p-2">
+                                            <option value="reject">Tolak bukti: pembayaran tidak diterima</option>
+                                            <option value="refund">Catat dana yang sudah dikembalikan</option>
+                                        </select>
+                                    </label>
+                                    <label class="block">Alasan / referensi pengembalian
+                                        <textarea name="note" minlength="5" maxlength="500" required class="block w-full rounded-lg border border-latte p-2"></textarea>
+                                    </label>
+                                    <label class="flex items-start gap-2"><input type="checkbox" name="confirmed" value="1" required>Saya sudah memeriksa mutasi pembayaran. Jika memilih pengembalian, dana sudah dikirim kembali ke pelanggan.</label>
+                                    <button class="rounded-lg bg-espresso px-3 py-2 text-cream">Simpan penyelesaian</button>
+                                </form>
+                            </details>
                         @elseif ($order->status === 'antrian_baru')
                             <form method="POST" action="{{ route('karyawan.orders.update-status', $order) }}">
                                 @csrf @method('PATCH')

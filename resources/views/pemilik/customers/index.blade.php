@@ -65,6 +65,7 @@
             <div class="flex-1 min-w-0">
                 <div class="flex flex-wrap items-center gap-2 mb-1">
                     <p class="text-sm font-bold text-espresso">{{ $customer->customer_name }}</p>
+                    <p class="text-xs text-caramel-dark">{{ $customer->mobile_customer_id ? 'Aplikasi · ID '.$customer->mobile_customer_id : 'POS · berdasarkan nama' }}</p>
                     <span class="inline-flex items-center justify-center min-w-[2rem] px-2 py-0.5 rounded-full text-xs font-bold {{ $customer->total_orders > 5 ? 'bg-espresso text-cream' : ($customer->total_orders > 2 ? 'bg-caramel/20 text-espresso' : 'bg-latte/30 text-espresso') }}">
                         {{ $customer->total_orders }}x order
                     </span>

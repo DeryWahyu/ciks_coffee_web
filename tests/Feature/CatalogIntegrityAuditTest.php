@@ -34,7 +34,7 @@ class CatalogIntegrityAuditTest extends TestCase
         Storage::fake('local');
         [$product, $ingredient] = $this->product();
         Sanctum::actingAs($this->user('pengguna'));
-        $response = $this->postJson('/api/orders', [
+        $response = $this->postMobileOrder([
             'payment_method' => 'qris', 'payment_proof' => UploadedFile::fake()->image('proof.png'),
             'items' => [['product_id' => $product->id, 'quantity' => 2]],
         ])->assertCreated()->assertJsonPath('order.paid_at', null);
@@ -125,7 +125,7 @@ class CatalogIntegrityAuditTest extends TestCase
         [$product] = $this->product();
         $product->category->update(['is_active' => false]);
         Sanctum::actingAs($this->user('pengguna'));
-        $this->postJson('/api/orders', [
+        $this->postMobileOrder([
             'payment_method' => 'qris', 'payment_proof' => UploadedFile::fake()->image('proof.png'),
             'items' => [['product_id' => $product->id, 'quantity' => 1]],
         ])->assertUnprocessable();
@@ -139,7 +139,7 @@ class CatalogIntegrityAuditTest extends TestCase
         [$product] = $this->product();
         Event::listen(MobileOrderReceived::class, static fn () => throw new \RuntimeException('Audit: notification unavailable'));
         Sanctum::actingAs($this->user('pengguna'));
-        $this->postJson('/api/orders', [
+        $this->postMobileOrder([
             'payment_method' => 'qris', 'payment_proof' => UploadedFile::fake()->image('proof.png'),
             'items' => [['product_id' => $product->id, 'quantity' => 1]],
         ])->assertCreated();

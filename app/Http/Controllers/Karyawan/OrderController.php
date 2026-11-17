@@ -3,9 +3,12 @@
 namespace App\Http\Controllers\Karyawan;
 
 use App\Http\Controllers\Controller;
+use App\Models\MobileCheckout;
 use App\Models\Order;
 use App\Models\User;
 use App\Services\CheckoutService;
+use App\Services\MobileCheckoutService;
+use App\Services\ReservedStock;
 use App\Support\ReportDateRange;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -283,13 +286,19 @@ class OrderController extends Controller
 
                 $service = app(CheckoutService::class);
                 $requirements = $service->requirementsForOrder($lockedOrder);
-                $ingredients = $service->lockIngredients($requirements);
+                $checkout = MobileCheckout::where('order_id', $lockedOrder->id)->lockForUpdate()->first();
+                $ingredients = $service->lockIngredients($requirements, $checkout?->id);
                 $service->deduct($ingredients, $requirements);
+                if ($checkout) {
+                    ReservedStock::release($checkout->id);
+                    $checkout->update(['status' => 'completed']);
+                }
 
                 $lockedOrder->update([
                     'status' => 'antrian_baru',
                     'paid_at' => now(),
                     'cashier_id' => $request->user()->id,
+                    'payment_review_reason' => null,
                 ]);
 
                 return $lockedOrder->fresh();
@@ -301,6 +310,35 @@ class OrderController extends Controller
         }
 
         return back()->with('success', "Pembayaran #{$verifiedOrder->order_number} berhasil diverifikasi. Pesanan masuk antrean.");
+    }
+
+    public function resolvePayment(Request $request, Order $order)
+    {
+        $data = $request->validate(['action' => 'required|in:reject,refund', 'note' => 'required|string|min:5|max:500', 'confirmed' => 'accepted']);
+        try {
+            DB::transaction(function () use ($order, $request, $data) {
+                $cashier = User::query()->lockForUpdate()->findOrFail($request->user()->id);
+                abort_unless($cashier->is_active && $cashier->isKaryawan(), 403);
+                $locked = Order::query()->with('user')->lockForUpdate()->findOrFail($order->id);
+                if ($locked->status !== 'menunggu_verifikasi' || ! $locked->isMobileOrder()
+                    || ($locked->cashier_id !== null && $locked->cashier_id !== $cashier->id)) {
+                    throw new \DomainException('Pesanan tidak dapat diselesaikan melalui tindakan ini.');
+                }
+                $checkout = MobileCheckout::where('order_id', $locked->id)->lockForUpdate()->first();
+                if ($checkout) {
+                    app(MobileCheckoutService::class)->lockReservationIngredients($checkout);
+                    ReservedStock::release($checkout->id);
+                    $checkout->update(['status' => 'resolved']);
+                }
+                $locked->update(['status' => $data['action'] === 'refund' ? 'dikembalikan' : 'dibatalkan',
+                    'cashier_id' => $cashier->id, 'payment_resolved_by' => $cashier->id,
+                    'payment_resolution_note' => $data['note'], 'payment_resolved_at' => now()]);
+            }, 3);
+        } catch (\DomainException $exception) {
+            return back()->with('error', $exception->getMessage());
+        }
+
+        return back()->with('success', 'Penyelesaian pembayaran berhasil dicatat.');
     }
 
     /**

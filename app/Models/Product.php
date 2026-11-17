@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\ImageVariants;
 use App\Support\Decimal;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -30,7 +31,7 @@ class Product extends Model
 
     public function imageSources(): array
     {
-        return app(\App\Services\ImageVariants::class)->productSources($this->image);
+        return app(ImageVariants::class)->productSources($this->image);
     }
 
     protected $fillable = [
@@ -66,6 +67,7 @@ class Product extends Model
     public function ingredients(): BelongsToMany
     {
         return $this->belongsToMany(Ingredient::class, 'ingredient_product')
+            ->withReservedStock()
             ->withPivot('quantity', 'variant')
             ->withTimestamps();
     }
@@ -134,7 +136,7 @@ class Product extends Model
             $requirements = $ingredients->groupBy('id')->map(fn ($rows) => $rows->sum(fn ($ingredient) => Decimal::units($ingredient->pivot->quantity)));
             $available = true;
             foreach ($ingredients->unique('id') as $ingredient) {
-                if ($requirements[$ingredient->id] <= 0 || Decimal::units($ingredient->stok) < $requirements[$ingredient->id]) {
+                if ($requirements[$ingredient->id] <= 0 || Decimal::units($ingredient->available_stock) < $requirements[$ingredient->id]) {
                     $variantLabel = $variant ? ' ('.ucfirst($variant).')' : '';
                     $reason = "Bahan {$ingredient->nama_bahan} kurang untuk {$this->name}{$variantLabel}.";
 
@@ -199,7 +201,7 @@ class Product extends Model
         }
 
         return $ingredients->min(fn ($ingredient) => intdiv(
-            max(0, Decimal::units($ingredient->stok)), $requirements[$ingredient->id]
+            max(0, Decimal::units($ingredient->available_stock)), $requirements[$ingredient->id]
         ));
     }
 

@@ -30,6 +30,7 @@ class Order extends Model
         'checkout_key',
         'checkout_fingerprint',
         'payment_proof_hash',
+        'payment_review_reason', 'payment_resolution_note', 'payment_resolved_at', 'payment_resolved_by',
     ];
 
     protected function casts(): array
@@ -39,6 +40,7 @@ class Order extends Model
             'cash_received' => 'decimal:2',
             'change_amount' => 'decimal:2',
             'paid_at' => 'datetime',
+            'payment_resolved_at' => 'datetime',
         ];
     }
 
@@ -102,12 +104,12 @@ class Order extends Model
                             User::ROLE_KARYAWAN,
                             User::ROLE_PEMILIK,
                         ]))
-                        ->whereNotIn('status', ['selesai', 'diambil']);
+                        ->whereNotIn('status', ['selesai', 'diambil', 'dibatalkan', 'dikembalikan']);
                 })
                 ->orWhere(function (Builder $mobileOrders) {
                     $mobileOrders
                         ->whereHas('user', fn (Builder $users) => $users->where('role', User::ROLE_PENGGUNA))
-                        ->where('status', '!=', 'diambil');
+                        ->whereNotIn('status', ['diambil', 'dibatalkan', 'dikembalikan']);
                 });
         });
     }
@@ -140,11 +142,11 @@ class Order extends Model
     public function isActiveQueueOrder(): bool
     {
         if ($this->isPosOrder()) {
-            return ! in_array($this->status, ['selesai', 'diambil'], true);
+            return ! in_array($this->status, ['selesai', 'diambil', 'dibatalkan', 'dikembalikan'], true);
         }
 
         if ($this->isMobileOrder()) {
-            return $this->status !== 'diambil';
+            return ! in_array($this->status, ['diambil', 'dibatalkan', 'dikembalikan'], true);
         }
 
         return false;
@@ -168,6 +170,8 @@ class Order extends Model
             'sedang_dibuat' => 'Sedang Dibuat',
             'selesai' => 'Selesai',
             'diambil' => 'Telah Diambil',
+            'dibatalkan' => 'Bukti Ditolak',
+            'dikembalikan' => 'Dana Dikembalikan',
             default => $this->status,
         };
     }
@@ -180,6 +184,7 @@ class Order extends Model
             'sedang_dibuat' => 'bg-blue-100 text-blue-700',
             'selesai' => 'bg-green-100 text-green-700',
             'diambil' => 'bg-purple-100 text-purple-700',
+            'dibatalkan', 'dikembalikan' => 'bg-stone-100 text-stone-700',
             default => 'bg-gray-100 text-gray-700',
         };
     }

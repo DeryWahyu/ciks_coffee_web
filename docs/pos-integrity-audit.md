@@ -1,5 +1,9 @@
 # Ringkasan audit transaksi dan sinkronisasi CiksCoffee
 
+Catatan ini menyimpan hasil audit terdahulu. Perbaikan reservasi harga/stok,
+pembatalan dan penyelesaian pembayaran terbaru dijelaskan pada
+[perbaikan audit 17 November 2026](system-audit-fixes.md).
+
 Tanggal: 25 Oktober 2026. Status: perbaikan tersedia di working tree lokal,
 belum di-commit, di-push, atau di-deploy pada pekerjaan ini.
 

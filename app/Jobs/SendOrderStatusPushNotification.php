@@ -75,6 +75,8 @@ class SendOrderStatusPushNotification implements ShouldQueue
     private function notificationCopy(Order $order): ?array
     {
         return match ($this->status) {
+            'dibatalkan' => ['title' => 'Bukti pembayaran ditolak', 'body' => "Bukti pesanan {$order->order_number} telah diperiksa. Lihat riwayat untuk keterangan kasir."],
+            'dikembalikan' => ['title' => 'Pengembalian dana dicatat', 'body' => "Kasir mencatat pengembalian dana pesanan {$order->order_number}. Periksa riwayat dan rekeningmu."],
             'antrian_baru' => [
                 'title' => 'Pembayaran terverifikasi',
                 'body' => "Pesanan {$order->order_number} sudah masuk antrean.",

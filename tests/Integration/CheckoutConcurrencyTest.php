@@ -164,6 +164,47 @@ class CheckoutConcurrencyTest extends TestCase
         }
     }
 
+    public function test_two_mobile_reservations_for_different_products_cannot_claim_one_shared_portion(): void
+    {
+        [$first, $ingredient] = $this->product(1);
+        $category = Category::create(['name' => 'Meal', 'is_active' => true]);
+        $second = Product::create(['name' => 'Produk berbagi bahan', 'category_id' => $category->id, 'price' => 15000, 'is_active' => true]);
+        $second->ingredients()->attach($ingredient->id, ['quantity' => 1, 'variant' => null]);
+        $results = $this->race([
+            [$this->user('pengguna'), '/api/checkouts', ['request_key' => (string) Str::uuid(), 'items' => [['product_id' => $first->id, 'quantity' => 1]]]],
+            [$this->user('pengguna'), '/api/checkouts', ['request_key' => (string) Str::uuid(), 'items' => [['product_id' => $second->id, 'quantity' => 1]]]],
+        ]);
+        $this->assertEqualsCanonicalizing([201, 422], array_column($results, 'status'));
+        $this->assertDatabaseCount('mobile_checkouts', 1);
+        $this->assertSame('1.00', $ingredient->fresh()->stok);
+        $this->assertSame(0, $first->fresh()->availableQuantity());
+        $this->assertSame(0, $second->fresh()->availableQuantity());
+    }
+
+    public function test_reservation_retry_with_the_same_request_key_holds_stock_once(): void
+    {
+        [$product] = $this->product(1);
+        $customer = $this->user('pengguna');
+        $payload = ['request_key' => (string) Str::uuid(), 'items' => [['product_id' => $product->id, 'quantity' => 1]]];
+        $results = $this->race([[$customer, '/api/checkouts', $payload], [$customer, '/api/checkouts', $payload]]);
+        $this->assertSame([201, 201], array_column($results, 'status'));
+        $this->assertSame($results[0]['body']['data']['id'], $results[1]['body']['data']['id']);
+        $this->assertDatabaseCount('checkout_reservations', 1);
+    }
+
+    public function test_pos_sale_and_mobile_reservation_cannot_spend_the_same_portion(): void
+    {
+        [$product, $ingredient] = $this->product(1);
+        $results = $this->race([
+            [$this->user('karyawan'), '/karyawan/pos/checkout', $this->payload($product)],
+            [$this->user('pengguna'), '/api/checkouts', ['request_key' => (string) Str::uuid(), 'items' => [['product_id' => $product->id, 'quantity' => 1]]]],
+        ]);
+        $this->assertTrue(($results[0]['status'] === 200 && $results[1]['status'] === 422)
+            || ($results[0]['status'] === 422 && $results[1]['status'] === 201));
+        $this->assertSame(0, $product->fresh()->availableQuantity());
+        $this->assertContains($ingredient->fresh()->stok, ['0.00', '1.00']);
+    }
+
     private function user(string $role): User
     {
         return User::factory()->create(['role' => $role, 'is_active' => true]);

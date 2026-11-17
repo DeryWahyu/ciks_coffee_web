@@ -18,11 +18,12 @@ use App\Http\Controllers\Pemilik\ReportController;
 use App\Http\Controllers\Pemilik\SettingController;
 use App\Http\Controllers\Pemilik\TableController as PemilikTableController;
 use App\Http\Controllers\Pemilik\UserController;
+use App\Http\Controllers\PublicAssetController;
 use App\Http\Middleware\CheckRole;
 use Illuminate\Support\Facades\Route;
 
 // Public files have no session cookie; private proof files are never served here.
-Route::get('/storage/{path}', \App\Http\Controllers\PublicAssetController::class)
+Route::get('/storage/{path}', PublicAssetController::class)
     ->where('path', '.*')->withoutMiddleware('web');
 
 /*
@@ -142,6 +143,7 @@ Route::middleware(['auth', 'auth.session', CheckRole::class.':karyawan'])
 
         // Antrean Pesanan
         Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
+        Route::patch('/orders/{order}/resolve-payment', [OrderController::class, 'resolvePayment'])->name('orders.resolve-payment');
         Route::get('/orders/revision', [OrderController::class, 'revision'])->name('orders.revision');
         Route::get('/orders/snapshot', [OrderController::class, 'snapshot'])->name('orders.snapshot');
         Route::get('/orders/notifications', OrderNotificationController::class)->name('orders.notifications');

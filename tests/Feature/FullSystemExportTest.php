@@ -40,7 +40,7 @@ class FullSystemExportTest extends TestCase
         $this->assertTrue($zip->open($response->baseResponse->getFile()->getPathname()));
         try {
             $manifest = json_decode($zip->getFromName('manifest.json'), true, flags: JSON_THROW_ON_ERROR);
-            $this->assertCount(15, $manifest['row_counts']);
+            $this->assertCount(17, $manifest['row_counts']);
             $this->assertSame(1, $manifest['row_counts']['transaksi']);
             $this->assertSame(2, $manifest['row_counts']['pesanan']);
             $summary = $this->csvRows($zip->getFromName('ringkasan.csv'));
@@ -80,7 +80,7 @@ class FullSystemExportTest extends TestCase
         $response = $this->actingAs($owner)->get(route('pemilik.exports.excel'))->assertOk();
         $book = IOFactory::load($response->baseResponse->getFile()->getPathname());
         try {
-            $this->assertCount(15, $book->getAllSheets());
+            $this->assertCount(17, $book->getAllSheets());
             $sheet = $book->getSheetByName('Produk');
             $this->assertSame("'=Produk Uji", $sheet->getCell('D2')->getValue());
             $this->assertSame(DataType::TYPE_STRING, $sheet->getCell('D2')->getDataType());

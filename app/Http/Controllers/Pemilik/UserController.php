@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Pemilik;
 
 use App\Http\Controllers\Controller;
+use App\Models\MobileCheckout;
 use App\Models\Order;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -75,8 +76,12 @@ class UserController extends Controller
     {
         $changed = DB::transaction(function () use ($user) {
             $lockedUser = User::query()->lockForUpdate()->findOrFail($user->id);
-            if ($lockedUser->is_active && $lockedUser->isKaryawan()
-                && Order::activeQueue()->where('cashier_id', $lockedUser->id)->exists()) {
+            if ($lockedUser->is_active && (
+                ($lockedUser->isKaryawan() && Order::activeQueue()->where('cashier_id', $lockedUser->id)->exists())
+                || ($lockedUser->isPengguna() && Order::activeQueue()->where('user_id', $lockedUser->id)->exists())
+                || ($lockedUser->isPengguna() && MobileCheckout::where('user_id', $lockedUser->id)
+                    ->where('status', 'reserved')->where('expires_at', '>', now())->exists())
+            )) {
                 return false;
             }
             $lockedUser->update(['is_active' => ! $lockedUser->is_active]);
@@ -91,7 +96,7 @@ class UserController extends Controller
         });
 
         if (! $changed) {
-            return back()->with('error', 'Karyawan masih menangani pesanan aktif. Selesaikan pesanan sebelum menonaktifkan akun.');
+            return back()->with('error', 'Akun masih memiliki pesanan aktif. Selesaikan pesanan sebelum menonaktifkan akun.');
         }
 
         $status = $user->is_active ? 'diaktifkan' : 'dinonaktifkan';

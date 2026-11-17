@@ -4,9 +4,31 @@ namespace Tests;
 
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
+use Illuminate\Support\Str;
+use Illuminate\Testing\TestResponse;
 
 abstract class TestCase extends BaseTestCase
 {
+    // Test requests represent the published mobile checkout protocol.
+    protected $defaultHeaders = ['X-Ciks-Checkout-Version' => '2'];
+
+    /** Exercise the public reserve-before-payment contract, including failed preflight responses. */
+    protected function postMobileOrder(array $payload): TestResponse
+    {
+        if (! isset($payload['checkout_id'])) {
+            $quote = $this->postJson('/api/checkouts', [
+                'request_key' => (string) Str::uuid(),
+                'items' => $payload['items'] ?? [],
+            ]);
+            if ($quote->status() !== 201) {
+                return $quote;
+            }
+            $payload['checkout_id'] = $quote->json('data.id');
+        }
+
+        return $this->postJson('/api/orders', $payload);
+    }
+
     public function createApplication(): Application
     {
         $app = parent::createApplication();

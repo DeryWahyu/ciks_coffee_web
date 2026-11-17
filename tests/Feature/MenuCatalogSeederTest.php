@@ -95,7 +95,7 @@ class MenuCatalogSeederTest extends TestCase
         $product = Product::where('name', 'Kopi Susu Gula Aren')->firstOrFail();
         Sanctum::actingAs(User::factory()->create(['role' => 'pengguna', 'is_active' => true]));
 
-        $response = $this->postJson('/api/orders', [
+        $response = $this->postMobileOrder([
             'payment_method' => 'qris', 'payment_proof' => UploadedFile::fake()->image('proof.png'),
             'items' => [['product_id' => $product->id, 'quantity' => 2, 'variant' => 'lite', 'price' => 1]],
         ])->assertCreated();

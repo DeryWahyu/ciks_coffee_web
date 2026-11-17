@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Pemilik;
 
 use App\Http\Controllers\Controller;
 use App\Models\Ingredient;
+use App\Services\ReservedStock;
 use App\Support\Decimal;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
@@ -66,12 +67,17 @@ class MaterialController extends Controller
 
         DB::transaction(function () use ($ingredient, $validated) {
             $lockedIngredient = Ingredient::query()->lockForUpdate()->findOrFail($ingredient->id);
+            $reserved = ReservedStock::units([$lockedIngredient->id]);
+            if (Decimal::units($validated['stok']) < ($reserved[$lockedIngredient->id] ?? 0)) {
+                throw ValidationException::withMessages(['stok' => 'Stok tidak boleh lebih kecil dari bahan yang sedang direservasi untuk pembayaran.']);
+            }
             if (Decimal::units($lockedIngredient->stok) !== Decimal::units($validated['expected_stock'])) {
                 throw ValidationException::withMessages(['stok' => 'Stok telah berubah karena transaksi atau pembaruan lain. Muat ulang data sebelum mengubah stok.']);
             }
             if ($lockedIngredient->satuan !== $validated['satuan'] && (
                 $lockedIngredient->products()->exists()
                 || DB::table('order_item_ingredients')->where('ingredient_id', $lockedIngredient->id)->exists()
+                || DB::table('checkout_reservations')->where('ingredient_id', $lockedIngredient->id)->exists()
             )) {
                 throw ValidationException::withMessages(['satuan' => 'Satuan bahan yang sudah dipakai dalam resep atau pesanan tidak dapat diubah.']);
             }

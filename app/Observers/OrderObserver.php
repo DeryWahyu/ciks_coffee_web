@@ -26,7 +26,7 @@ class OrderObserver
 
         $status = (string) $order->status;
 
-        if (! in_array($status, ['antrian_baru', 'sedang_dibuat', 'selesai'], true)) {
+        if (! in_array($status, ['antrian_baru', 'sedang_dibuat', 'selesai', 'dibatalkan', 'dikembalikan'], true)) {
             return;
         }
 

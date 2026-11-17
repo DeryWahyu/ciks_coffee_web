@@ -88,7 +88,7 @@ class PosController extends Controller
                 'nama_bahan' => $i->nama_bahan,
                 'satuan' => $i->satuan,
                 'quantity' => $i->pivot->quantity,
-                'stok' => $i->stok,
+                'stok' => $i->available_stock,
             ]);
         }
 

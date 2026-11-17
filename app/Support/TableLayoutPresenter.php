@@ -39,6 +39,7 @@ class TableLayoutPresenter
             'code' => $coffeeTable->code,
             'name' => $coffeeTable->name,
             'capacity' => $coffeeTable->capacity,
+            'chair_positions' => $coffeeTable->chair_positions,
             'shape' => $coffeeTable->shape,
             'position_x' => (float) $coffeeTable->position_x,
             'position_y' => (float) $coffeeTable->position_y,

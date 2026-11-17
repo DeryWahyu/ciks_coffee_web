@@ -2,23 +2,28 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Builder;
 
 class CoffeeTable extends Model
 {
     use HasFactory;
 
     public const STATUS_AVAILABLE = 'available';
+
     public const STATUS_OCCUPIED = 'occupied';
+
     public const STATUS_RESERVED = 'reserved';
+
     public const STATUS_UNAVAILABLE = 'unavailable';
 
     public const SHAPE_ROUND = 'round';
+
     public const SHAPE_SQUARE = 'square';
+
     public const SHAPE_RECTANGLE = 'rectangle';
 
     protected $fillable = [
@@ -26,6 +31,7 @@ class CoffeeTable extends Model
         'code',
         'name',
         'capacity',
+        'chair_positions',
         'shape',
         'position_x',
         'position_y',
@@ -44,6 +50,7 @@ class CoffeeTable extends Model
     {
         return [
             'capacity' => 'integer',
+            'chair_positions' => 'array',
             'position_x' => 'decimal:2',
             'position_y' => 'decimal:2',
             'width' => 'decimal:2',

@@ -151,9 +151,9 @@ class SystemExportData
                     json_encode($l->background_config, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR), $l->is_active ? 'Ya' : 'Tidak', $l->created_at?->toDateTimeString(), $l->updated_at?->toDateTimeString()]),
             ],
             'meja' => [
-                'title' => 'Meja', 'headers' => ['ID Meja', 'ID Denah', 'Kode', 'Nama', 'Kapasitas', 'Bentuk', 'Posisi X', 'Posisi Y', 'Lebar', 'Tinggi', 'Rotasi', 'Status', 'Catatan', 'Aktif', 'ID Pengubah Status', 'Status Diubah Pada', 'Versi'],
+                'title' => 'Meja', 'headers' => ['ID Meja', 'ID Denah', 'Kode', 'Nama', 'Kapasitas', 'Bentuk', 'Posisi X', 'Posisi Y', 'Lebar', 'Tinggi', 'Rotasi', 'Status', 'Catatan', 'Aktif', 'ID Pengubah Status', 'Status Diubah Pada', 'Versi', 'Posisi Kursi JSON'],
                 'rows' => fn () => CoffeeTable::lazyById(250)->map(fn ($t) => [$t->id, $t->floor_layout_id, $t->code, $t->name, $t->capacity, $t->shape, $t->position_x, $t->position_y,
-                    $t->width, $t->height, $t->rotation, $t->status, $t->status_note, $t->is_active ? 'Ya' : 'Tidak', $t->status_updated_by, $t->status_updated_at?->toDateTimeString(), $t->version]),
+                    $t->width, $t->height, $t->rotation, $t->status, $t->status_note, $t->is_active ? 'Ya' : 'Tidak', $t->status_updated_by, $t->status_updated_at?->toDateTimeString(), $t->version, json_encode($t->chair_positions, JSON_THROW_ON_ERROR)]),
             ],
             'riwayat_meja' => [
                 'title' => 'Riwayat Status Meja', 'headers' => ['ID', 'ID Meja', 'Kode Meja', 'ID Pengubah', 'Pengubah', 'Status Lama', 'Status Baru', 'Catatan', 'Sumber', 'Tanggal'],

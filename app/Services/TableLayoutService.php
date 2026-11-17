@@ -126,6 +126,7 @@ class TableLayoutService
     {
         $this->assertActorCanManage($actor);
         $this->assertGeometry($attributes);
+        $this->assertChairPositions($attributes['chair_positions'] ?? null, (int) $attributes['capacity']);
 
         return DB::transaction(function () use ($floorLayout, $attributes): CoffeeTable {
             $lockedLayout = FloorLayout::query()
@@ -137,6 +138,7 @@ class TableLayoutService
                 'code' => Str::upper(trim((string) $attributes['code'])),
                 'name' => trim((string) $attributes['name']),
                 'capacity' => $attributes['capacity'],
+                'chair_positions' => $attributes['chair_positions'] ?? null,
                 'shape' => $attributes['shape'],
                 'position_x' => $attributes['position_x'],
                 'position_y' => $attributes['position_y'],
@@ -182,10 +184,15 @@ class TableLayoutService
                 throw new TableVersionConflictException($lockedTable);
             }
 
+            $chairPositions = array_key_exists('chair_positions', $attributes)
+                ? $attributes['chair_positions']
+                : ((int) $attributes['capacity'] === $lockedTable->capacity ? $lockedTable->chair_positions : null);
+            $this->assertChairPositions($chairPositions, (int) $attributes['capacity']);
             $lockedTable->fill([
                 'code' => Str::upper(trim((string) $attributes['code'])),
                 'name' => trim((string) $attributes['name']),
                 'capacity' => $attributes['capacity'],
+                'chair_positions' => $chairPositions,
                 'shape' => $attributes['shape'],
                 'position_x' => $attributes['position_x'],
                 'position_y' => $attributes['position_y'],
@@ -270,10 +277,22 @@ class TableLayoutService
     }
 
     /**
-     * @param  array<string, mixed>  $geometry
+     * @param  array<int, string>|null  $positions
      *
      * @throws InvalidArgumentException
      */
+    private function assertChairPositions(mixed $positions, int $capacity): void
+    {
+        if ($positions === null) {
+            return;
+        }
+        if (! is_array($positions) || ! array_is_list($positions) || count($positions) !== $capacity || $capacity < 1 || $capacity > 20
+            || array_filter($positions, fn ($side) => ! in_array($side, ['left', 'right', 'front', 'back'], true))) {
+            throw new InvalidArgumentException('Jumlah dan posisi kursi harus sesuai kapasitas meja. Pilih kiri, kanan, depan, atau belakang.');
+        }
+    }
+
+    /** @param array<string, mixed> $geometry */
     private function assertGeometry(array $geometry): void
     {
         $positionX = $this->toFloat($geometry, 'position_x');

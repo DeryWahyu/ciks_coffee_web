@@ -77,6 +77,14 @@
                 <div><label class='owner-field-label' for='table-name'>Nama meja</label><input id='table-name' class='owner-input' maxlength='255' required></div>
                 <div><label class='owner-field-label' for='table-capacity'>Kapasitas</label><input id='table-capacity' class='owner-input' type='number' min='1' max='20' required></div>
                 <div><label class='owner-field-label' for='table-shape'>Bentuk</label><select id='table-shape' class='owner-input'><option value='round'>Bulat</option><option value='square'>Persegi</option><option value='rectangle'>Persegi panjang</option></select></div>
+                <fieldset class='owner-form-span owner-chair-settings'>
+                    <legend class='owner-field-label'>Posisi kursi</legend>
+                    <label class='owner-field-label' for='table-chair-mode'>Pengaturan</label>
+                    <select id='table-chair-mode' class='owner-input'><option value='auto'>Otomatis</option><option value='custom'>Atur setiap kursi</option></select>
+                    <p class='owner-modal-subtitle'>Kursi tetap mengikuti tepi dan rotasi meja. Depan = sisi bawah, belakang = sisi atas sebelum meja diputar.</p>
+                    <div id='table-chair-preview' class='owner-chair-preview' role='img' aria-label='Pratinjau posisi kursi'></div>
+                    <div id='table-chair-inputs' class='owner-form-grid' hidden></div>
+                </fieldset>
 
                 <div><label class='owner-field-label' for='table-x'>Posisi X</label><input id='table-x' class='owner-input' type='number' min='0' max='100' step='0.01' required></div>
                 <div><label class='owner-field-label' for='table-y'>Posisi Y</label><input id='table-y' class='owner-input' type='number' min='0' max='100' step='0.01' required></div>
@@ -559,8 +567,49 @@
         field('table-height').value = table?.height ?? round(6.67 * number(state.data?.layout.canvas_width,1200) / number(state.data?.layout.canvas_height,800));
         field('table-rotation').value = table?.rotation ?? 0;
         field('table-active').value = String(table?.is_active ?? true);
+        field('table-chair-mode').value = Array.isArray(table?.chair_positions) ? 'custom' : 'auto';
+        renderChairSettings(table?.chair_positions ?? []);
         openModal(elements.tableModal);
         window.setTimeout(() => field('table-code').focus(), 60);
+    }
+
+    function chairPreviewTable() {
+        const original = findTable(elements.tableForm.dataset.tableId);
+        return {...original, capacity:number(field('table-capacity').value,2), shape:field('table-shape').value, rotation:number(field('table-rotation').value)};
+    }
+
+    function selectedChairPositions() {
+        return [...field('table-chair-inputs').querySelectorAll('select')].map(select=>select.value);
+    }
+
+    function renderChairSettings(saved = null) {
+        const table = chairPreviewTable();
+        const defaults = window.CiksFloorPlan.defaultChairPositions(table,state.data?.layout.background_config ?? {});
+        const previous = saved ?? selectedChairPositions();
+        const inputs = field('table-chair-inputs');
+        inputs.hidden = field('table-chair-mode').value !== 'custom';
+        inputs.replaceChildren();
+        defaults.forEach((side,index)=>{
+            const label = document.createElement('label'); label.className = 'owner-field-label'; label.textContent = 'Kursi '+(index+1);
+            const select = document.createElement('select'); select.className = 'owner-input'; select.dataset.chairIndex = index; select.setAttribute('aria-label','Posisi kursi '+(index+1));
+            for (const [value,text] of Object.entries({left:'Kiri',right:'Kanan',front:'Depan (bawah)',back:'Belakang (atas)'})) {
+                const option = document.createElement('option'); option.value = value; option.textContent = text; select.append(option);
+            }
+            select.value = previous[index] ?? side;
+            select.addEventListener('change',renderChairPreview); label.append(select); inputs.append(label);
+        });
+        renderChairPreview();
+    }
+
+    function renderChairPreview() {
+        const table = chairPreviewTable();
+        table.chair_positions = field('table-chair-mode').value === 'custom' ? selectedChairPositions() : null;
+        const preview = field('table-chair-preview'); preview.replaceChildren();
+        const surface = document.createElement('span'); surface.className = 'owner-chair-preview-table '+table.shape;
+        surface.style.transform = 'translate(-50%,-50%) rotate('+table.rotation+'deg)';
+        const label = document.createElement('span'); label.textContent = 'Meja'; surface.append(label);
+        window.CiksFloorPlan.appendSeating(surface,table,state.data?.layout.background_config ?? {});
+        preview.append(surface);
     }
 
     function openStatusModal(table) {
@@ -625,6 +674,7 @@
         if (!state.data) return;
         const payload = {
             code: field('table-code').value.trim(), name: field('table-name').value.trim(), capacity: number(field('table-capacity').value), shape: field('table-shape').value,
+            chair_positions: field('table-chair-mode').value === 'custom' ? selectedChairPositions() : null,
             position_x: number(field('table-x').value), position_y: number(field('table-y').value), width: number(field('table-width').value), height: number(field('table-height').value), rotation: number(field('table-rotation').value), is_active: field('table-active').value === 'true',
         };
         const submit = field('owner-table-submit'); submit.disabled = true; submit.textContent = 'Menyimpan...';
@@ -831,6 +881,10 @@
     document.querySelectorAll('[data-owner-mode]').forEach((button) => button.addEventListener('click', () => setMode(button.dataset.ownerMode)));
     document.querySelectorAll('[data-preview]').forEach((button) => button.addEventListener('click', () => { state.preview = button.dataset.preview; elements.canvasShell.classList.toggle('owner-preview-mobile', state.preview === 'mobile'); document.querySelectorAll('[data-preview]').forEach((item) => item.classList.toggle('is-active', item.dataset.preview === state.preview)); }));
     elements.tableForm.addEventListener('submit', submitTableForm);
+    field('table-chair-mode').addEventListener('change',()=>renderChairSettings());
+    field('table-capacity').addEventListener('input',()=>renderChairSettings());
+    field('table-shape').addEventListener('change',renderChairPreview);
+    field('table-rotation').addEventListener('input',renderChairPreview);
     elements.statusForm.addEventListener('submit', submitStatusForm);
     document.querySelectorAll('[data-close-modal]').forEach((button) => button.addEventListener('click', () => closeModal(document.getElementById(button.dataset.closeModal))));
     [elements.tableModal, elements.statusModal].forEach((modal) => modal.addEventListener('click', (event) => { if (event.target === modal) closeModal(modal); }));

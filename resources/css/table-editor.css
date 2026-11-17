@@ -81,6 +81,12 @@ body:has(.owner-workspace),.owner-workspace { --plan-ink:var(--color-espresso); 
 .owner-modal-title { color:var(--plan-ink); font-size:16px; font-weight:700; }.owner-modal-subtitle { margin-top:4px; color:var(--plan-muted); font-size:11px; }
 .owner-modal-close { width:28px; height:28px; color:var(--plan-muted); font-size:22px; }.owner-modal-body { padding:18px; }
 .owner-form-span { grid-column:span 2; }.owner-modal-actions { display:flex; justify-content:flex-end; gap:9px; margin-top:18px; }
+.owner-chair-settings { min-width:0; padding:12px; border:1px solid var(--plan-line); border-radius:12px; }
+.owner-chair-preview { position:relative; height:164px; margin:10px 0; overflow:hidden; background:var(--plan-soft); border-radius:9px; }
+.owner-chair-preview-table { position:absolute; left:50%; top:50%; display:flex; align-items:center; justify-content:center; width:72px; height:72px; border:1px solid var(--color-espresso-light); background:white; color:var(--plan-ink); font-size:11px; }
+.owner-chair-preview-table.round { border-radius:50%; }.owner-chair-preview-table.rectangle { width:112px; height:64px; }
+.owner-chair-preview .plan-furniture { pointer-events:none; }
+.owner-chair-settings [hidden] { display:none; }
 .owner-modal-actions button { padding:9px 14px; border-radius:10px; font-size:12px; font-weight:600; }
 .owner-button-cancel { color:var(--plan-ink); border:1px solid var(--plan-line); }.owner-button-save { color:var(--color-cream); background:var(--plan-ink); }
 .owner-button-save:disabled { opacity:.5; }.owner-note { min-height:80px; resize:vertical; }.owner-toast { display:none; }

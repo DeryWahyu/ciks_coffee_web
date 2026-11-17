@@ -35,6 +35,8 @@ class UpdateCoffeeTableRequest extends FormRequest
             ],
             'name' => ['required', 'string', 'max:255'],
             'capacity' => ['required', 'integer', 'between:1,20'],
+            'chair_positions' => ['sometimes', 'nullable', 'array', 'list', 'max:20', 'size:'.$this->integer('capacity')],
+            'chair_positions.*' => ['required', 'string', Rule::in(['left', 'right', 'front', 'back'])],
             'shape' => ['required', 'string', Rule::in(CoffeeTable::shapes())],
             'position_x' => ['required', 'numeric', 'between:0,100'],
             'position_y' => ['required', 'numeric', 'between:0,100'],

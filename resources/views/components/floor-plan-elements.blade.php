@@ -88,6 +88,29 @@ window.CiksFloorPlan = (() => {
             Object.assign(node.style, { left:left+'%', top:top+'%', width:width+'%', height:height+'%' });
             parent.append(node);
         };
+        const positions = table.chair_positions;
+        if (Array.isArray(positions) && positions.length === Number(table.capacity) && positions.every(side => ['left','right','front','back'].includes(side))) {
+            parent.dataset.seatingStyle = 'custom';
+            const used = {left:0,right:0,front:0,back:0};
+            const totals = Object.fromEntries(Object.keys(used).map(side => [side, positions.filter(value => value === side).length]));
+            positions.forEach((side, index) => {
+                const count = totals[side], slot = used[side]++;
+                if (table.shape === 'round') {
+                    const size = Math.min(30, 70 / count);
+                    const angle = ({right:0,front:Math.PI/2,left:Math.PI,back:-Math.PI/2})[side] + ((slot+.5)/count-.5)*Math.PI/2;
+                    const radius = 54 + size/2;
+                    seat(50+Math.cos(angle)*radius-size/2,50+Math.sin(angle)*radius-size/2,size,size,'round');
+                } else {
+                    const size = Math.min(30, 80 / count), center = 10 + (slot+.5)*80/count;
+                    if (side === 'left' || side === 'right') seat(side === 'left' ? -18 : 110,center-size/2,8,size);
+                    else seat(center-size/2,side === 'back' ? -18 : 110,size,8);
+                }
+                const node = parent.lastElementChild;
+                node.dataset.chairIndex = index;
+                node.dataset.chairSide = side;
+            });
+            return;
+        }
         if (style === 'sofa_pair') { seat(-104,-6,86,111,'sofa','sofa'); seat(120,-6,86,111,'sofa','sofa'); return; }
         if (style === 'bench') { seat(16,125,41,23); return; }
         if (style === 'round_pair') { seat(-74,23,53,53,'round'); seat(121,23,53,53,'round'); return; }
@@ -100,6 +123,15 @@ window.CiksFloorPlan = (() => {
         const topCount = Math.ceil(count/2); const bottomCount = Math.floor(count/2);
         for (let i=0;i<topCount;i++) seat((i+.5)/topCount*100-15,-18,30,8);
         for (let i=0;i<bottomCount;i++) seat((i+.5)/bottomCount*100-15,111,30,8);
+    }
+    function defaultChairPositions(table, config = {}) {
+        const count = Math.max(1,Math.min(20,Number(table.capacity)||1));
+        const style = config.table_seating?.['id:'+table.id] ?? config.table_seating?.[table.code];
+        if (style === 'bench') return Array(count).fill('front');
+        if (style === 'sofa_pair' || style === 'round_pair' || (table.shape === 'round' && count === 2)) {
+            return Array.from({length:count},(_,i)=>i<Math.ceil(count/2)?'left':'right');
+        }
+        return Array.from({length:count},(_,i)=>table.shape==='round'?['right','front','left','back'][Math.floor((i/count*4+.5)%4)]:(i<Math.ceil(count/2)?'back':'front'));
     }
     function applyBackground(canvas, layout) {
         const background=layout.background_image;
@@ -116,7 +148,7 @@ window.CiksFloorPlan = (() => {
         canvas.style.backgroundPosition=grid?'0 0, center':'center';
         canvas.style.backgroundRepeat=grid?'repeat, no-repeat':'no-repeat';
     }
-    return { types, render, appendSeating, applyBackground };
+    return { types, render, appendSeating, defaultChairPositions, applyBackground };
 })();
 </script>
 @endonce

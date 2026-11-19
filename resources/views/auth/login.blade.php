@@ -55,24 +55,6 @@
         .animate-delay-5 { animation-delay: 0.5s; opacity: 0; }
         .animate-delay-6 { animation-delay: 0.6s; opacity: 0; }
 
-        /* Input focus animation */
-        .input-line {
-            position: relative;
-        }
-        .input-line::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 0;
-            height: 2px;
-            background-color: #3E2723;
-            transition: width 0.3s ease;
-        }
-        .input-line:focus-within::after {
-            width: 100%;
-        }
-
         /* Button shimmer */
         .btn-shimmer {
             position: relative;
@@ -103,7 +85,7 @@
         }
     </style>
 </head>
-<body class="min-h-screen bg-cream-light font-sans antialiased">
+<body class="min-h-screen bg-white font-sans antialiased">
     <div class="flex min-h-screen">
         {{-- Left Side - Coffee Shop Image --}}
         <div class="hidden lg:flex lg:w-1/2 relative overflow-hidden">
@@ -133,21 +115,21 @@
         </div>
 
         {{-- Right Side - Login Form --}}
-        <div class="w-full lg:w-1/2 flex items-center justify-center px-6 py-12 lg:px-16 xl:px-24">
-            <div class="w-full max-w-md">
+        <div class="w-full lg:w-1/2 flex items-center justify-center bg-white px-6 py-12 sm:px-10 xl:px-14">
+            <div class="w-full max-w-[34rem]">
                 {{-- Logo & Brand --}}
-                <div class="mb-10 animate-fade-in-up animate-delay-1">
-                    <div class="flex items-center gap-3 mb-8">
+                <div class="mb-9 text-center animate-fade-in-up animate-delay-1">
+                    <div class="flex items-center justify-center mb-6">
                         <x-brand-logo :wordmark="true" class="w-36 h-16" />
                         <h1 class="sr-only">
                             Ciks Coffee
                         </h1>
                     </div>
 
-                    <h2 class="text-2xl font-bold text-espresso font-sans">
-                        Selamat datang kembali
+                    <h2 class="text-2xl sm:text-3xl font-bold text-espresso font-sans tracking-tight leading-tight">
+                        Selamat datang kembali.
                     </h2>
-                    <p class="text-caramel-dark mt-2 text-sm">
+                    <p class="text-caramel-dark mt-3 text-sm sm:text-base leading-relaxed">
                         Masuk untuk mengakses portal pengelolaan Ciks Coffee.
                     </p>
                 </div>
@@ -169,16 +151,16 @@
                 @endif
 
                 {{-- Login Form --}}
-                <form method="POST" action="{{ route('login') }}" class="space-y-6" id="login-form">
+                <form method="POST" action="{{ route('login') }}" class="space-y-5" id="login-form">
                     @csrf
 
                     {{-- Email Field --}}
                     <div class="animate-fade-in-up animate-delay-2">
-                        <label for="email" class="block text-xs font-semibold text-espresso tracking-[0.15em] uppercase mb-3">
-                            Alamat email
+                        <label for="email" class="block text-sm font-medium text-espresso mb-2">
+                            Email<span class="text-red-500 ml-0.5" aria-hidden="true">*</span>
                         </label>
-                        <div class="input-line">
-                            <div class="flex items-center gap-3 pb-3 border-b border-latte">
+                        <div class="rounded-2xl border border-latte bg-white transition-all duration-200 focus-within:border-espresso focus-within:ring-4 focus-within:ring-espresso/5">
+                            <div class="flex min-h-14 items-center gap-3 px-4">
                                 <svg class="w-5 h-5 text-caramel shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"/>
                                 </svg>
@@ -187,11 +169,12 @@
                                     id="email"
                                     name="email"
                                     value="{{ old('email') }}"
-                                    placeholder="barista@cikscoffee.com"
-                                    class="w-full bg-transparent text-espresso placeholder-caramel-light text-sm focus:outline-none"
+                                    placeholder="nama@email.com"
+                                    class="min-w-0 w-full bg-transparent py-4 text-espresso placeholder-caramel-light text-base focus:outline-none"
                                     required
-                                    autofocus
                                     autocomplete="email"
+                                    autocapitalize="none"
+                                    spellcheck="false"
                                 >
                             </div>
                         </div>
@@ -199,17 +182,13 @@
 
                     {{-- Password Field --}}
                     <div class="animate-fade-in-up animate-delay-3">
-                        <div class="flex items-center justify-between mb-3">
-                            <label for="password" class="block text-xs font-semibold text-espresso tracking-[0.15em] uppercase">
-                                Kata sandi
+                        <div class="mb-2">
+                            <label for="password" class="block text-sm font-medium text-espresso">
+                                Password<span class="text-red-500 ml-0.5" aria-hidden="true">*</span>
                             </label>
-                            {{-- Forgot Password link (for future implementation) --}}
-                            {{-- <a href="#" class="text-xs text-caramel-dark hover:text-espresso transition-colors duration-200">
-                                Lupa kata sandi?
-                            </a> --}}
                         </div>
-                        <div class="input-line">
-                            <div class="flex items-center gap-3 pb-3 border-b border-latte">
+                        <div class="rounded-2xl border border-latte bg-white transition-all duration-200 focus-within:border-espresso focus-within:ring-4 focus-within:ring-espresso/5">
+                            <div class="flex min-h-14 items-center gap-3 pl-4 pr-1">
                                 <svg class="w-5 h-5 text-caramel shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"/>
                                 </svg>
@@ -217,12 +196,12 @@
                                     type="password"
                                     id="password"
                                     name="password"
-                                    placeholder="••••••••"
-                                    class="w-full bg-transparent text-espresso placeholder-caramel-light text-sm focus:outline-none"
+                                    placeholder="Masukkan password"
+                                    class="min-w-0 w-full bg-transparent py-4 text-espresso placeholder-caramel-light text-base focus:outline-none"
                                     required
                                     autocomplete="current-password"
                                 >
-                                <button type="button" id="toggle-password" class="text-caramel hover:text-espresso transition-colors duration-200" aria-label="Tampilkan kata sandi" aria-pressed="false" onclick="togglePassword()">
+                                <button type="button" id="toggle-password" class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-caramel hover:text-espresso transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-espresso" aria-label="Tampilkan password" aria-controls="password" aria-pressed="false" onclick="togglePassword()">
                                     <svg id="eye-icon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/>
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
@@ -236,44 +215,34 @@
                     </div>
 
                     {{-- Remember Me --}}
-                    <div class="flex items-center gap-3 animate-fade-in-up animate-delay-4">
-                        <div class="relative">
-                            <input
-                                type="checkbox"
-                                id="remember"
-                                name="remember"
-                                class="peer sr-only"
-                                {{ old('remember') ? 'checked' : '' }}
-                            >
-                            <label for="remember" class="flex items-center justify-center w-5 h-5 border-2 border-latte rounded cursor-pointer transition-all duration-200 peer-checked:bg-espresso peer-checked:border-espresso">
-                                <svg class="w-3 h-3 text-cream opacity-0 peer-checked:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
-                                </svg>
-                            </label>
-                        </div>
+                    <div class="flex items-center gap-2.5 animate-fade-in-up animate-delay-4">
+                        <input
+                            type="checkbox"
+                            id="remember"
+                            name="remember"
+                            class="h-4 w-4 rounded border-latte accent-espresso cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-espresso"
+                            {{ old('remember') ? 'checked' : '' }}
+                        >
                         <label for="remember" class="text-sm text-caramel-dark cursor-pointer select-none">
                             Ingat saya
                         </label>
                     </div>
 
                     {{-- Submit Button --}}
-                    <div class="pt-4 animate-fade-in-up animate-delay-5">
+                    <div class="pt-2 animate-fade-in-up animate-delay-5">
                         <button
                             type="submit"
                             id="login-button"
-                            class="btn-shimmer w-full flex items-center justify-center gap-3 bg-espresso hover:bg-espresso-light text-cream py-4 px-6 text-sm font-semibold tracking-[0.2em] uppercase rounded-xl transition-all duration-300 hover:shadow-lg hover:shadow-espresso/20 active:scale-[0.98]"
+                            class="btn-shimmer w-full flex min-h-14 items-center justify-center bg-espresso hover:bg-espresso-light text-white py-3.5 px-6 text-base font-semibold rounded-full shadow-lg shadow-espresso/10 transition-all duration-200 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-espresso active:scale-[0.98]"
                         >
                             <span>Masuk</span>
-                            <svg class="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/>
-                            </svg>
                         </button>
                     </div>
                 </form>
 
                 {{-- Footer --}}
-                <div class="mt-10 pt-6 border-t border-latte animate-fade-in-up animate-delay-6">
-                    <p class="text-xs text-caramel text-center">
+                <div class="mt-8 animate-fade-in-up animate-delay-6">
+                    <p class="text-sm text-caramel-dark text-center">
                         Khusus pemilik dan karyawan.
                     </p>
                 </div>
@@ -292,13 +261,13 @@
                 passwordInput.type = 'text';
                 eyeIcon.classList.add('hidden');
                 eyeOffIcon.classList.remove('hidden');
-                toggle.setAttribute('aria-label', 'Sembunyikan kata sandi');
+                toggle.setAttribute('aria-label', 'Sembunyikan password');
                 toggle.setAttribute('aria-pressed', 'true');
             } else {
                 passwordInput.type = 'password';
                 eyeIcon.classList.remove('hidden');
                 eyeOffIcon.classList.add('hidden');
-                toggle.setAttribute('aria-label', 'Tampilkan kata sandi');
+                toggle.setAttribute('aria-label', 'Tampilkan password');
                 toggle.setAttribute('aria-pressed', 'false');
             }
         }

@@ -80,3 +80,11 @@ queue, and Reverb within this container, and checks health. Activation
 failure restores the prior code; database migrations are not automatically
 reversed. APK publication changes the latest alias atomically. Phones still
 need to download and install new APKs manually.
+
+Mobile uploads have a 15-minute receive deadline and report transfer progress.
+The mobile SSH connection uses compression to reduce uploaded data and sends
+traffic without a low-priority QoS marking.
+The receiver still caps payloads at 128 MiB and verifies the full SHA-256 before
+publishing. The Android publish job allows 35 minutes, including the existing
+10-minute deployment-lock wait and GitHub release upload. Web archive reception
+retains its 5-minute deadline.

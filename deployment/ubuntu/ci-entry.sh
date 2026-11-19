@@ -19,7 +19,17 @@ exec 9>/run/lock/cikscoffee-deploy.lock
 flock -w 600 9
 work=$(mktemp -d /var/tmp/cikscoffee-ci.XXXXXXXX)
 trap 'rm -rf -- "$work"' EXIT
-timeout 300 dd bs=1M count=128 iflag=fullblock of="$work/payload" status=none
+receive_timeout=300
+if [[ "$mode" == mobile ]]; then receive_timeout=900; fi
+echo "Receiving $mode payload (limit 128 MiB, timeout ${receive_timeout}s)."
+if timeout "$receive_timeout" dd bs=1M count=128 iflag=fullblock of="$work/payload" status=progress; then
+    printf 'Payload received: %s bytes. Verifying checksum.\n' "$(wc -c < "$work/payload")"
+else
+    status=$?
+    printf 'Payload reception failed (exit %s, received %s bytes, timeout %s seconds).\n' \
+        "$status" "$(wc -c < "$work/payload")" "$receive_timeout" >&2
+    exit "$status"
+fi
 printf '%s  %s\n' "$digest" "$work/payload" | sha256sum -c -
 chmod 0644 "$work/payload"
 chmod 0755 "$work"

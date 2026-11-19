@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\DeviceTokenController;
 use App\Http\Controllers\Api\MobileCheckoutController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\ProductController;
+use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\TableLayoutController;
 use App\Http\Controllers\PublicAssetController;
 use App\Http\Middleware\EnsureActiveUser;
@@ -20,6 +21,8 @@ Route::middleware(['auth:sanctum', EnsureActiveUser::class])->group(function () 
     Route::get('/user', function (Request $request) {
         return $request->user();
     });
+    Route::patch('/user', [ProfileController::class, 'update'])->middleware('throttle:10,1,mobile-profile');
+    Route::put('/user/password', [ProfileController::class, 'password'])->middleware('throttle:5,1,mobile-password');
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/device-tokens', [DeviceTokenController::class, 'store'])
         ->middleware('throttle:30,1,mobile-devices');

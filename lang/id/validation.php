@@ -158,7 +158,7 @@ return [
     'uuid' => 'Identitas :attribute tidak valid. Muat ulang dan coba lagi.',
     'attributes' => [
         'name' => 'Nama', 'email' => 'Email', 'phone' => 'Nomor telepon',
-        'password' => 'Kata sandi', 'password_confirmation' => 'Konfirmasi kata sandi',
+        'password' => 'Kata sandi', 'password_confirmation' => 'Konfirmasi kata sandi', 'current_password' => 'Kata sandi saat ini', 'device_token' => 'Token notifikasi perangkat',
         'role' => 'Peran', 'token' => 'Token perangkat', 'platform' => 'Jenis perangkat',
         'nama_bahan' => 'Nama bahan baku', 'satuan' => 'Satuan bahan', 'stok' => 'Stok bahan',
         'expected_stock' => 'Stok pembanding', 'category_id' => 'Kategori produk',

@@ -47,7 +47,7 @@
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm animate-fade-in my-auto">
             <div id="receipt-content" class="p-6">
                 <div class="text-center border-b border-dashed border-latte/60 pb-4 mb-4">
-                    <x-brand-logo style="display:block;width:40px;height:40px;margin:0 auto 8px;" />
+                    <x-brand-logo :wordmark="true" style="display:block;width:100px;height:44px;margin:0 auto 8px;" />
                     <h3 class="text-base font-bold text-espresso font-sans">Ciks Coffee</h3>
                     <p class="text-[0.6rem] text-caramel mt-1">Terima kasih atas kunjungan Anda</p>
                 </div>

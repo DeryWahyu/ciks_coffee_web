@@ -22,7 +22,7 @@
 @foreach($sections as $section)
     <div class="section">
         @if($loop->first)
-            <x-brand-logo :inline="true" style="display:block;width:32px;height:32px;" />
+            <x-brand-logo :inline="true" :wordmark="true" style="display:block;width:88px;height:40px;" />
             <h1>Ciks Coffee &middot; Data Lengkap</h1>
             <p class="muted">Dibuat {{ now()->format('d/m/Y H:i') }} ({{ config('app.timezone') }}). Lampiran gambar tersedia dalam arsip CSV ZIP.</p>
         @endif

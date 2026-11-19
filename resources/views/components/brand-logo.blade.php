@@ -1,7 +1,7 @@
-@props(['light' => false, 'inline' => false])
+@props(['light' => false, 'inline' => false, 'wordmark' => false])
 
 @php
-    $logo = 'images/cikscoffee-aroma.png';
+    $logo = $wordmark ? 'images/branding/cikscoffee-wordmark.png' : 'images/branding/cikscoffee-c-mark.png';
     $source = $inline
         ? 'data:image/png;base64,'.base64_encode(file_get_contents(public_path($logo)))
         : asset($logo);
@@ -13,7 +13,7 @@
 ])->merge([
     'src' => $source,
     'alt' => 'Logo CiksCoffee',
-    'width' => '40',
+    'width' => $wordmark ? '96' : '40',
     'height' => '40',
     'decoding' => 'async',
 ]) }}>

@@ -24,7 +24,7 @@
 </head>
 <body>
     <div class="header">
-        <x-brand-logo :inline="true" style="display:block;width:44px;height:44px;margin:0 auto 6px;" />
+        <x-brand-logo :inline="true" :wordmark="true" style="display:block;width:108px;height:48px;margin:0 auto 6px;" />
         <h1>Ciks Coffee</h1>
         <p>Laporan Penjualan</p>
     </div>

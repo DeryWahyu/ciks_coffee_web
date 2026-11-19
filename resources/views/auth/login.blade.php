@@ -118,7 +118,6 @@
             {{-- Floating brand on image --}}
             <div class="relative z-10 flex flex-col justify-end p-12 pb-16">
                 <div class="animate-slide-in-left animate-delay-2">
-                    <x-brand-logo :light="true" class="w-16 h-16 mb-6" />
                     <p class="text-white/70 text-sm font-medium tracking-[0.3em] uppercase mb-3">
                         Sejak 2025
                     </p>
@@ -139,8 +138,8 @@
                 {{-- Logo & Brand --}}
                 <div class="mb-10 animate-fade-in-up animate-delay-1">
                     <div class="flex items-center gap-3 mb-8">
-                        <x-brand-logo class="w-12 h-12" />
-                        <h1 class="text-xl font-extrabold text-espresso tracking-[0.15em] uppercase">
+                        <x-brand-logo :wordmark="true" class="w-36 h-16" />
+                        <h1 class="sr-only">
                             Ciks Coffee
                         </h1>
                     </div>

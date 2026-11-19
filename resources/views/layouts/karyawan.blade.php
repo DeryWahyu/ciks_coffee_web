@@ -45,10 +45,9 @@
         <aside class="hidden lg:flex lg:flex-col w-64 bg-white border-r border-latte/60 fixed inset-y-0 left-0 z-30" id="sidebar">
             {{-- Brand --}}
             <div class="flex items-center gap-3 px-6 py-5 border-b border-latte/40">
-                <x-brand-logo class="w-10 h-10" />
                 <div>
-                    <h1 class="text-sm font-extrabold text-espresso tracking-[0.08em] uppercase">Ciks Coffee</h1>
-                    <p class="text-[0.65rem] text-caramel font-medium">Karyawan Panel</p>
+                    <x-brand-logo :wordmark="true" class="w-28 h-12" />
+                    <h1 class="sr-only">Ciks Coffee</h1>
                 </div>
             </div>
 
@@ -142,8 +141,8 @@
         <div class="lg:hidden fixed top-0 inset-x-0 z-30 bg-espresso shadow-lg">
             <div class="flex items-center justify-between px-4 py-3">
                 <div class="flex items-center gap-2">
-                    <x-brand-logo :light="true" class="w-8 h-8" />
-                    <span class="text-cream font-extrabold tracking-wider text-sm uppercase">Ciks Coffee</span>
+                    <x-brand-logo :wordmark="true" :light="true" class="w-20 h-8" />
+                    <span class="sr-only">Ciks Coffee</span>
                 </div>
                 <button onclick="document.getElementById('mobile-menu-k').classList.toggle('hidden')" class="text-cream p-1">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
